@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Models\Department;
+use App\Http\Controllers\Admin\AdminCourseRegistrationController;
 use App\Http\Controllers\{
     AdminController, StudentController, LecturerController, VcController, RegistrarController,
     BursarController, HomeController, CourseRegistrationController, CourseController,
@@ -82,11 +83,26 @@ Route::middleware([
         Route::resource('courses', CourseController::class);
         Route::get('courses/{course}/prerequisites', [CourseController::class, 'showPrerequisites'])->name('courses.prerequisites');
         Route::post('courses/{course}/prerequisites', [CourseController::class, 'assignPrerequisites'])->name('courses.assignPrerequisites');
+        
         Route::resources([
             'faculties' => FacultyController::class,
             'departments' => DepartmentController::class,
             'class-schedules' => ClassScheduleController::class,
         ]);
+
+        Route::middleware('usertype:admin')->group(function () {
+            Route::get('/course-registrations', [AdminCourseRegistrationController::class, 'index'])
+                ->name('course-registrations.index');
+
+            Route::get('/course-registrations/{student}', [AdminCourseRegistrationController::class, 'show'])
+                ->name('course-registrations.show');
+
+            Route::get('/course-registrations/{student}/edit', [AdminCourseRegistrationController::class, 'edit'])
+                ->name('course-registrations.edit');
+
+            Route::put('/course-registrations/{student}', [AdminCourseRegistrationController::class, 'update'])
+                ->name('course-registrations.update');
+        });
 
         Route::prefix('course-materials')->name('course-materials.')->group(function () {
             Route::get('/', [CourseMaterialController::class, 'index'])->name('index');

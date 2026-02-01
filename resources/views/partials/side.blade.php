@@ -32,7 +32,7 @@
                         <a class="nav-link" href="{{ route('admin.students.index')}}">Add/Manage Students</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="pages/ui-features/dropdowns.html">Enrollment & Admissions</a>
+                        <a class="nav-link" href="{{ route('admin.course-registrations.index')}}">Students Registered Courses</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="pages/ui-features/typography.html">Attendance Records</a>

@@ -23,6 +23,18 @@ class CourseRegistrationController extends Controller
         '400' => 24, // Max 30 credit units for 400-level
     ];
 
+    private function normalizeSemester($semester)
+    {
+        $semester = strtolower(trim((string) $semester));
+
+        if (in_array($semester, ['1', 'first', 'first semester'])) return 'First';
+        if (in_array($semester, ['2', 'second', 'second semester'])) return 'Second';
+
+        // default
+        return 'First';
+    }
+
+
     /**
      * Show the course registration form.
      */
@@ -266,4 +278,6 @@ class CourseRegistrationController extends Controller
 
         return Excel::download(new CoursesExport($courses), "registered_courses_{$semester}.xlsx");
     }
+
+
 }
