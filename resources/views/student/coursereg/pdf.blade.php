@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registered Courses</title>
+
+  <style>
+  :root{
+    --blue:#0B5ED7;
+    --orange:#C25A1D;
+    --red:#D72638;
+
+    --ink:#111827;
+    --muted:#6b7280;
+    --line:#d1d5db;
+    --bg:#f8fafc;
+    --card:#ffffff;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    font-family: DejaVu Sans, "Segoe UI", Arial, sans-serif; /* DejaVu helps DomPDF */
+    margin: 0;
+    padding: 0;
+    background: #ffffff; /* safest for PDF */
+    color: var(--ink);
+  }
+
+  .container{
+    max-width: 900px;
+    margin: 18px auto;
+    padding: 18px;
+    background: var(--card);
+    border: 1px solid var(--line); /* instead of shadow */
+    border-radius: 6px;            /* simple radius works */
+  }
+
+  /* Brand strip (no gradients) */
+  .brand-strip{
+    width: 100%;
+    height: 8px;
+    background: var(--blue);
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+
+  /* Simple 3-color bar under strip (PDF safe) */
+  .brand-strip-2{
+    width: 100%;
+    height: 4px;
+    margin-top: 6px;
+    font-size: 0;
+  }
+  .brand-strip-2 span{
+    display:inline-block;
+    height: 4px;
+  }
+  .brand-strip-2 .b{ width:60%; background: var(--blue); }
+  .brand-strip-2 .o{ width:25%; background: var(--orange); }
+  .brand-strip-2 .r{ width:15%; background: var(--red); }
+
+  .logo{
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .logo h1{
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--blue);
+  }
+  .logo p{
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .header{
+    text-align: center;
+    margin: 12px 0 14px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    background: #f9fafb; /* flat color */
+  }
+  .header h2{
+    margin: 0 0 10px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--ink);
+  }
+
+  /* Meta grid (PDF-safe 2 columns) */
+  .meta{
+    width: 100%;
+    margin: 0 auto;
+    text-align: left;
+    border-collapse: separate;
+    border-spacing: 10px 8px;
+  }
+  .meta td{
+    width: 50%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    background: #ffffff;
+    vertical-align: top;
+  }
+  .meta strong{
+    display:block;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 4px;
+  }
+  .meta span{
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    display:block;
+    word-break: break-word;
+  }
+
+  table{
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 0;
+  }
+
+  thead th{
+    background: var(--blue);
+    color: #ffffff;
+    padding: 10px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    border: 1px solid var(--blue);
+  }
+
+  tbody td{
+    padding: 10px;
+    border: 1px solid var(--line);
+    font-size: 13px;
+  }
+
+  .code{
+    font-weight: 700;
+  }
+  .unit{
+    text-align: center;
+    font-weight: 700;
+  }
+
+  /* Badge: avoid flex/chips, use simple inline-block */
+  .sem-badge{
+    display:inline-block;
+    padding: 4px 8px;
+    border: 1px solid var(--orange);
+    color: var(--orange);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 14px;
+  }
+
+  /* Signatures: use table for perfect PDF layout */
+  .signature-section{
+    margin-top: 4px;
+  }
+
+  .signature-table{
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 14px 0; /* spacing between boxes */
+  }
+
+  .signature-table td{
+    width: 33.33%;
+    border: 1px solid var(--line);
+    padding: 14px;
+    vertical-align: bottom;
+    height: 95px;
+    position: relative;
+  }
+
+  /* left color strip (no gradient) */
+  .signature-table td::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width: 5px;
+    background: var(--blue);
+  }
+  .signature-table td:nth-child(2)::before{ background: var(--orange); }
+  .signature-table td:nth-child(3)::before{ background: var(--red); }
+
+  .signature-line{
+    border-top: 1px dashed #9ca3af;
+    margin: 0 0 10px;
+    width: 100%;
+  }
+
+  .signature-table p{
+    margin: 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+
+  .footer{
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .footer a{
+    color: var(--blue);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  /* Ensure colors print (Chrome print) */
+  @media print{
+    *{
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+</style>
+
+</head>
+
+<body>
+  <div class="container">
+
+    <div class="brand-strip"></div>
+
+    <!-- Logo Section -->
+    <div class="logo">
+      <h1>Mudiame University Irrua</h1>
+      <p>Student Portal • Registered Courses</p>
+    </div>
+
+    <div class="header">
+      <div class="meta">
+        <div class="meta-item">
+          <strong>Name</strong>
+          <span>{{ $user->name }}</span>
+        </div>
+        <div class="meta-item">
+          <strong>Name</strong>
+          <span>{{ $user->matric_number }}</span>
+        </div>
+
+        <div class="meta-item">
+          <strong>Department</strong>
+          <span>{{ $department }}</span>
+        </div>
+
+        <div class="meta-item">
+          <strong>Level</strong>
+          <span>{{ $user->level }}</span>
+        </div>
+
+        <div class="meta-item">
+          <strong>Semester</strong>
+          <span>{{ $semester }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:18%; color: var(--blue);">Course Code</th>
+            <th style="color: var(--blue)">Course Title</th>
+            <th style="width:14%; text-align:center; color: var(--blue)">Credit Unit</th>
+            <th style="width:16%; color: var(--blue)">Semester</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @forelse ($courses as $registration)
+            <tr>
+              <td class="code">{{ $registration->course->code }}</td>
+              <td>{{ $registration->course->title }}</td>
+              <td class="unit">{{ $registration->course->credit_unit }}</td>
+              <td>
+                <span class="sem-badge">{{ ucfirst($registration->course->semester) }}</span>
+              </td>
+            </tr>
+          @empty
+            <tr>
+              <td colspan="4" style="text-align:center; padding:16px; color: var(--muted);">
+                No registered courses found.
+              </td>
+            </tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+
+    <div class="signature-section">
+      <div class="signatures">
+        <div class="sig">
+          <div class="signature-line"></div>
+          <p>HOD</p>
+        </div>
+
+        <div class="sig">
+          <div class="signature-line"></div>
+          <p>DAP</p>
+        </div>
+
+        <div class="sig">
+          <div class="signature-line"></div>
+          <p>Academic Affairs</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>
+        Copyright © {{ date('Y') }}
+        <a href="#" target="_blank">codewitheugene</a>. All rights reserved.
+      </div>
+      <div style="margin-top:6px;">
+        Coding made simple <span style="color: var(--red); font-weight:900;">♥</span>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
