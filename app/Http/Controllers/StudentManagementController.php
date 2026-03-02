@@ -7,8 +7,10 @@ use App\Models\User;
 use App\Models\Department;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use App\Exports\StudentsExport;
 use Maatwebsite\Excel\Facades\Excel;
+
 
 
 
@@ -141,19 +143,35 @@ class StudentManagementController extends Controller
         // Retrieve the student by ID
         $student = User::findOrFail($id);
 
-        // Update the student's details
-        $student->update([
+        // Update basic details
+        $updateData = [
             'name' => $request->name,
             'email' => $request->email,
             'level' => $request->level,
             'department_id' => $request->department_id,
-        ]);
+        ];
 
-        // If a new password is provided, update it
+        // If a new password is provided, add it
         if ($request->filled('password')) {
-            $student->update([
-                'password' => Hash::make($request->password),
+            $updateData['password'] = Hash::make($request->password);
+        }
+
+        // Perform the update and verify it succeeded
+        try {
+            DB::transaction(function () use ($student, $updateData) {
+                $student->update($updateData);
+                // Force refresh from database to ensure update was persisted
+                $student->refresh();
+            });
+        } catch (\Exception $e) {
+            \Log::error('Error updating student: ' . $e->getMessage(), [
+                'student_id' => $id,
+                'data' => $updateData
             ]);
+            
+            return redirect()
+                ->route('admin.students.index')
+                ->with('error', 'Failed to update student: ' . $e->getMessage());
         }
 
         // Redirect back with success message

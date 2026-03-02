@@ -94,6 +94,7 @@
                                     <th>Name</th>
                                     <th>Usertype</th>
                                     <th>Email</th>
+                                    <th>Assigned Courses</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -103,6 +104,13 @@
                                         <td>{{ $staff->name }}</td>
                                         <td>{{ $staff->usertype }}</td>
                                         <td>{{ $staff->email }}</td>
+                                        <td>
+                                            @if ($staff->usertype === 'lecturer' && $staff->assignedCourses->isNotEmpty())
+                                                {{ $staff->assignedCourses->pluck('code')->implode(', ') }}
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
                                         <td>
                                             <a href="{{ route('admin.staffs.edit', $staff->id) }}" class="btn btn-warning">Edit</a>
                                             <form action="{{ route('admin.staffs.destroy', $staff->id) }}" method="POST" class="d-inline">

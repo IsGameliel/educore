@@ -30,12 +30,20 @@
         <form action="{{ route('admin.results.storeUpload') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="form-group">
-                <label for="user_id">Student</label>
-                <select name="user_id" class="form-control" required>
-                    <option value="">Select Student</option>
-                    @foreach ($students as $student)
-                        <option value="{{ $student->id }}">{{ $student->name }} ({{ $student->matric_number }}) }}</option>
+                <label for="course_id">Course</label>
+                <select name="course_id" id="course_id" class="form-control" required>
+                    <option value="">Select Course</option>
+                    @foreach ($courses as $course)
+                        <option value="{{ $course->id }}" data-department-id="{{ $course->department_id }}">
+                            {{ $course->code }} - {{ $course->title }}
+                        </option>
                     @endforeach
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="user_id">Student</label>
+                <select name="user_id" id="student_id" class="form-control" required>
+                    <option value="">Select Student</option>
                 </select>
             </div>
             <div class="form-group">
@@ -46,7 +54,8 @@
         </form>
         <p class="mt-3">
             <strong>Note:</strong> The CSV/Excel file should have columns: 
-            user_id, matric_number, session, semester, level, course_code, course_title, credit_unit, score
+            user_id, matric_number, session, semester, level, course_code, course_title, credit_unit, department_id,
+            and either score or ca_score + exam_score. The selected course must match the uploaded rows.
         </p>
     </div>
 </div>
@@ -57,3 +66,36 @@
         </div>
     </div>
 @endsection
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function () {
+    function loadStudents(departmentId) {
+        $('#student_id').html('<option value="">Loading...</option>');
+
+        if (!departmentId) {
+            $('#student_id').html('<option value="">Select Student</option>');
+            return;
+        }
+
+        $.ajax({
+            url: "{{ url('/admin/results/get-students') }}/" + departmentId,
+            type: 'GET',
+            success: function (data) {
+                $('#student_id').empty().append('<option value="">Select Student</option>');
+                $.each(data, function (key, student) {
+                    $('#student_id').append(
+                        '<option value="' + student.id + '">' +
+                        student.name + ' (' + student.matric_number + ')' +
+                        '</option>'
+                    );
+                });
+            }
+        });
+    }
+
+    $('#course_id').on('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        loadStudents(selectedOption.getAttribute('data-department-id') || '');
+    });
+});
+</script>

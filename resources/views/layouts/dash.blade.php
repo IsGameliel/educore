@@ -48,6 +48,8 @@
     <div class="container-fluid page-body-wrapper">
         @if(Auth::user()->usertype == 'student')
             @include('partials/student_side')
+        @elseif(Auth::user()->usertype == 'lecturer')
+            @include('partials/lecturer_side')
         @else
             @include('partials/side')
         @endif

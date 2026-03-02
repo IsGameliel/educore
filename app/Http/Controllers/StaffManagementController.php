@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Courses;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,7 +15,7 @@ class StaffManagementController extends Controller
      */
     public function index()
     {
-        $staffs = User::whereNot('usertype', 'student')->paginate(10);
+        $staffs = User::whereNot('usertype', 'student')->with('assignedCourses')->paginate(10);
         return view('admin.staffs.index', compact('staffs'));
     }
 
@@ -24,7 +25,8 @@ class StaffManagementController extends Controller
      */
     public function create()
     {
-        return view('admin.staffs.create');
+        $courses = Courses::with('department')->orderBy('code')->get();
+        return view('admin.staffs.create', compact('courses'));
     }
 
     /**
@@ -46,6 +48,8 @@ class StaffManagementController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', 'min:8'], // Ensures password matches password_confirmation
             'usertype' => ['required', 'string'], // Ensures valid usertype
+            'course_ids' => ['nullable', 'array'],
+            'course_ids.*' => ['exists:courses,id'],
         ]);
 
         // Transaction to store the user
@@ -59,6 +63,10 @@ class StaffManagementController extends Controller
 
             // Create default team for Jetstream (if necessary)
             $this->createTeam($user);
+
+            $user->assignedCourses()->sync(
+                $request->usertype === 'lecturer' ? ($request->course_ids ?? []) : []
+            );
         });
 
         // Redirect back to the index page with a success message
@@ -80,7 +88,8 @@ class StaffManagementController extends Controller
     public function edit(string $id)
     {
         $staff = User::findOrFail($id);
-        return view('admin.staffs.edit', compact('staff'));
+        $courses = Courses::with('department')->orderBy('code')->get();
+        return view('admin.staffs.edit', compact('staff', 'courses'));
     }
 
     /**
@@ -94,24 +103,32 @@ class StaffManagementController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $id], // Ensure email is unique except for the current student
             'password' => ['nullable', 'confirmed', 'min:8'], // Password is optional, but must be confirmed if provided
             'usertype' => ['required', 'string'], // Ensures valid usertype
+            'course_ids' => ['nullable', 'array'],
+            'course_ids.*' => ['exists:courses,id'],
         ]);
 
         // Retrieve the student by ID
         $staff = User::findOrFail($id);
 
         // Update the student's details
-        $staff->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'usertype' => $request->usertype,
-        ]);
-
-        // If a new password is provided, update it
-        if ($request->filled('password')) {
+        DB::transaction(function () use ($request, $staff) {
             $staff->update([
-                'password' => Hash::make($request->password),
+                'name' => $request->name,
+                'email' => $request->email,
+                'usertype' => $request->usertype,
             ]);
-        }
+
+            // If a new password is provided, update it
+            if ($request->filled('password')) {
+                $staff->update([
+                    'password' => Hash::make($request->password),
+                ]);
+            }
+
+            $staff->assignedCourses()->sync(
+                $request->usertype === 'lecturer' ? ($request->course_ids ?? []) : []
+            );
+        });
 
         // Redirect back with success message
         return redirect()

@@ -12,8 +12,11 @@ class CourseRegistration extends Model
     // Allow mass assignment for these attributes
     protected $fillable = [
         'user_id',
+        'acted_by',
         'course_id',
+        'status',
         'semester',
+        'session',
         'registration_date',
     ];
 
@@ -32,6 +35,11 @@ class CourseRegistration extends Model
     public function student()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function actor()
+    {
+        return $this->belongsTo(User::class, 'acted_by');
     }
 
     // Check if the registration is for a specific semester

@@ -60,7 +60,7 @@ Route::middleware([
         Route::prefix('results')->name('results.')->group(function () {
             Route::get('/', [ResultController::class, 'index'])->name('index');
             Route::get('/{userId}/{session}/{semester}', [ResultController::class, 'show'])
-                ->where('session', '.*')
+                ->where(['userId' => '[0-9]+', 'session' => '.*'])
                 ->name('show');
 
             // ✅ Student transcript route
@@ -78,6 +78,12 @@ Route::middleware([
         Route::post('/faculty/import', [FacultyController::class, 'import'])->name('faculties.import');
         Route::get('/departments/import', [DepartmentController::class, 'showImportForm'])->name('departments.import.form');
         Route::post('/departments/import', [DepartmentController::class, 'import'])->name('departments.import');
+
+        // pass mark configuration page
+        Route::get('/departments/pass-marks', [DepartmentController::class, 'showPassMarks'])
+            ->name('departments.passmarks');
+        Route::post('/departments/pass-marks', [DepartmentController::class, 'updatePassMarks'])
+            ->name('departments.passmarks.update');
         Route::get('/courses/import', [CourseController::class, 'showImportForm'])->name('courses.import.form');
         Route::post('/courses/import', [CourseController::class, 'import'])->name('courses.import');
         Route::resource('courses', CourseController::class);
@@ -136,18 +142,28 @@ Route::middleware([
 
         Route::prefix('results')->name('results.')->group(function () {
             Route::get('/', [ResultController::class, 'index'])->name('index');
-            Route::get('/{userId}/{session}/{semester}', [ResultController::class, 'show'])->name('show');
+            // put specific editing endpoints before the general show route
+            Route::get('/edit-group/{user_id}/{session}/{semester}', [ResultController::class, 'editGroup'])
+                ->where('session', '.*')
+                ->name('editGroup');
+            Route::put('/update-group/{user_id}/{session}/{semester}', [ResultController::class, 'updateGroup'])
+                ->where('session', '.*')
+                ->name('updateGroup');
+
+            Route::get('/{userId}/{session}/{semester}', [ResultController::class, 'show'])
+                ->where(['userId' => '[0-9]+', 'session' => '.*'])
+                ->name('show');
             Route::get('/export', [ResultController::class, 'export'])->name('export');
 
-            Route::get('/edit-group/{user_id}/{session}/{semester}', [ResultController::class, 'editGroup'])->name('editGroup');
-            Route::put('/update-group/{user_id}/{session}/{semester}', [ResultController::class, 'updateGroup'])->name('updateGroup');
-
-            Route::middleware('usertype:admin,lecturer')->group(function () {
+            Route::middleware('usertype:admin,lecturer,exam_officer')->group(function () {
                 Route::get('/create', [ResultController::class, 'create'])->name('create');
                 Route::get('/get-students/{department_id}', [App\Http\Controllers\ResultController::class, 'getStudentsByDepartment']);
+                Route::post('/migrate-department-results/{userId}', [ResultController::class, 'migrateDepartmentResults'])
+                    ->name('migrateDepartmentResults');
                 Route::post('/', [ResultController::class, 'store'])->name('store');
                 Route::get('/{result}/edit', [ResultController::class, 'edit'])->name('edit');
                 Route::put('/{result}', [ResultController::class, 'update'])->name('update');
+                Route::delete('/{result}', [ResultController::class, 'destroy'])->name('destroy');
                 Route::get('/upload', [ResultController::class, 'upload'])->name('upload');
                 Route::post('/upload', [ResultController::class, 'storeUpload'])->name('storeUpload');
 
@@ -155,6 +171,8 @@ Route::middleware([
                 Route::post('/{userId}/{session}/{semester}/transcript', [ResultController::class, 'generateTranscriptForSemester'])
                     ->where('session', '.*')
                     ->name('transcript.generate');
+                Route::post('/{userId}/full-transcript', [ResultController::class, 'generateFullTranscriptForStudent'])
+                    ->name('transcript.full');
 
                 // ✅ Bulk transcripts
                 Route::post('/{session}/{semester}/transcripts', [ResultController::class, 'generateTranscriptsForAll'])

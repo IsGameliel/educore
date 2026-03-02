@@ -27,9 +27,19 @@
         @if (session('success'))
             <div class="alert alert-success" role="alert">{{ session('success') }}</div>
         @endif
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         <form action="{{ route('admin.results.update', $result) }}" method="POST">
             @csrf
             @method('PUT')
+            <input type="hidden" name="department_id" value="{{ old('department_id', $result->department_id) }}">
             <div class="form-group">
                 <div class="form-group">
                     <label for="user_id">Student</label>
@@ -69,18 +79,51 @@
                 <input type="number" name="credit_unit" class="form-control" value="{{ old('credit_unit', $result->credit_unit) }}" required>
             </div>
             <div class="form-group">
+                <label for="ca_score">CA</label>
+                <input type="number" name="ca_score" id="ca_score" class="form-control score-part" value="{{ old('ca_score', $result->ca_score) }}" step="0.01" min="0" max="100">
+            </div>
+            <div class="form-group">
+                <label for="exam_score">Exam</label>
+                <input type="number" name="exam_score" id="exam_score" class="form-control score-part" value="{{ old('exam_score', $result->exam_score) }}" step="0.01" min="0" max="100">
+            </div>
+            <div class="form-group">
                 <label for="score">Score</label>
-                <input type="number" name="score" class="form-control" value="{{ old('score', $result->score) }}" step="0.01" required>
+                <input type="number" name="score" id="score" class="form-control" value="{{ old('score', $result->score) }}" step="0.01" min="0" max="100">
+                <small class="text-muted">If CA or Exam is entered, Score is calculated automatically. Leave CA and Exam blank to edit Score directly.</small>
             </div>
             <button type="submit" class="btn btn-primary">Update Result</button>
         </form>
     </div>
     <script>
-        document.querySelector('select[name="user_id"]').addEventListener('change', function() {
+        const studentSelect = document.querySelector('select[name="user_id"]');
+        const levelField = document.getElementById('level');
+        const caField = document.getElementById('ca_score');
+        const examField = document.getElementById('exam_score');
+        const scoreField = document.getElementById('score');
+
+        studentSelect.addEventListener('change', function() {
             var level = this.options[this.selectedIndex].getAttribute('data-level');
-            document.getElementById('level').value = level || '';
+            levelField.value = level || '';
         });
-        document.getElementById('level').value = document.querySelector('select[name="user_id"] option:selected').getAttribute('data-level') || '';
+
+        function updateScoreField() {
+            const hasCa = caField.value !== '';
+            const hasExam = examField.value !== '';
+
+            if (hasCa || hasExam) {
+                const total = (parseFloat(caField.value || 0) + parseFloat(examField.value || 0)).toFixed(2);
+                scoreField.value = total;
+                scoreField.readOnly = true;
+            } else {
+                scoreField.readOnly = false;
+            }
+        }
+
+        caField.addEventListener('input', updateScoreField);
+        examField.addEventListener('input', updateScoreField);
+
+        levelField.value = studentSelect.options[studentSelect.selectedIndex].getAttribute('data-level') || '';
+        updateScoreField();
     </script>
 
 

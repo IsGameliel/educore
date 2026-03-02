@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Department;
+use App\Support\ActivityLogger;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\CoursesExport;
 use PDF;
@@ -126,12 +127,32 @@ class CourseRegistrationController extends Controller
         // Step 4: Proceed with the bulk course registration
         foreach ($courses as $course) {
             // Create a new registration for each course
-            CourseRegistration::create([
+            $registration = CourseRegistration::create([
                 'user_id' => $userId,
+                'acted_by' => $userId,
                 'course_id' => $course->id,
                 'semester' => $semester, // Save as "First Semester" or "Second Semester"
+                'registration_date' => now(),
                 'status' => 'registered', // You can add more status options like 'pending', 'approved', etc.
             ]);
+
+            ActivityLogger::log(
+                $user,
+                'registration_created',
+                "{$user->name} registered {$course->code} - {$course->title} for {$semester} Semester",
+                [
+                    'subject' => $registration,
+                    'target_user' => $user,
+                    'department_id' => $course->department_id,
+                    'properties' => [
+                        'course_id' => $course->id,
+                        'course_code' => $course->code,
+                        'course_title' => $course->title,
+                        'semester' => $semester,
+                        'status' => 'registered',
+                    ],
+                ]
+            );
         }
 
         return redirect()->route('student.courses.registered', ['semester' => $semester])
@@ -195,6 +216,28 @@ class CourseRegistrationController extends Controller
         }
 
         // Remove the registration (i.e., withdrawal)
+        $registration->acted_by = $userId;
+        $registration->save();
+
+        $course = $registration->course;
+        ActivityLogger::log(
+            Auth::user(),
+            'registration_withdrawn',
+            Auth::user()->name . ' withdrew from ' . ($course?->code ?? 'N/A') . ' - ' . ($course?->title ?? 'Unknown course'),
+            [
+                'subject' => $registration,
+                'target_user_id' => $userId,
+                'department_id' => $course?->department_id,
+                'properties' => [
+                    'course_id' => $course?->id,
+                    'course_code' => $course?->code,
+                    'course_title' => $course?->title,
+                    'semester' => $registration->semester,
+                    'status' => 'withdrawn',
+                ],
+            ]
+        );
+
         $registration->delete();
 
         return response()->json(['message' => 'Successfully withdrawn from the course.']);

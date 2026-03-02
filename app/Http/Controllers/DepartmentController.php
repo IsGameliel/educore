@@ -28,6 +28,7 @@ class DepartmentController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string|max:5000',
             'faculty_id' => 'required|exists:faculties,id',
+            'pass_mark' => 'nullable|integer|min:0|max:100',
         ]);
         Department::create($request->all());
 
@@ -51,6 +52,7 @@ class DepartmentController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string|max:5000',
             'faculty_id' => 'required|exists:faculties,id',
+            'pass_mark' => 'nullable|integer|min:0|max:100',
         ]);
 
         $department->update($request->all());
@@ -68,6 +70,39 @@ class DepartmentController extends Controller
     public function showImportForm()
     {
         return view('admin.departments.import');
+    }
+
+    /**
+     * Display a simple page that lists every department alongside its current
+     * pass mark.  Administrators can update the values in bulk.
+     */
+    public function showPassMarks()
+    {
+        $departments = Department::orderBy('name')->get();
+        return view('admin.departments.pass_marks', compact('departments'));
+    }
+
+    /**
+     * Persist pass mark updates from the settings page.
+     */
+    public function updatePassMarks(Request $request)
+    {
+        $data = $request->validate([
+            'pass_marks' => 'required|array',
+            'pass_marks.*' => 'nullable|integer|min:0|max:100',
+        ]);
+
+        foreach ($data['pass_marks'] as $deptId => $mark) {
+            $dept = Department::find($deptId);
+            if ($dept) {
+                $dept->pass_mark = $mark ?? 0;
+                $dept->save();
+            }
+        }
+
+        return redirect()
+            ->route('admin.departments.passmarks')
+            ->with('success', 'Department pass marks updated successfully.');
     }
 
     public function import(Request $request)

@@ -70,4 +70,9 @@ class Courses extends Model
         return $this->hasMany(CourseMaterial::class, 'course_id');
     }
 
+    public function lecturers()
+    {
+        return $this->belongsToMany(User::class, 'course_user', 'course_id', 'user_id')->withTimestamps();
+    }
+
 }

@@ -93,6 +93,7 @@
                             <thead>
                                 <tr>
                                     <th>Name</th>
+                                    <th>Pass Mark</th>
                                     {{-- <th>Description</th> --}}
                                     <th>Faculty</th>
                                     <th>Actions</th>
@@ -102,6 +103,7 @@
                                 @foreach($departments as $department)
                                     <tr>
                                         <td>{{ $department->name }}</td>
+                                        <td>{{ $department->pass_mark ?? 40 }}%</td>
                                         {{-- <td>{{ $department->description }}</td> --}}
                                         <td>{{ $department->faculty->name ?? 'N/A' }}</td>
                                         <td>

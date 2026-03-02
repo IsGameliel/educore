@@ -11,6 +11,7 @@ class Result extends Model
 
     protected $fillable = [
         'user_id',
+        'uploaded_by',
         'matric_number',
         'session',
         'semester',
@@ -18,10 +19,14 @@ class Result extends Model
         'course_code',
         'course_title',
         'credit_unit',
+        'ca_score',
+        'exam_score',
         'score',
         'grade',
         'grade_point',
+        'source_result_id',
         'transcript_path',
+        'full_transcript_path',
         'department_id',
     ];
 
@@ -30,8 +35,45 @@ class Result extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public static function calculateGradeAndPoint($score)
+    public function uploader()
     {
+        return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function sourceResult()
+    {
+        return $this->belongsTo(self::class, 'source_result_id');
+    }
+
+    // default pass mark used when a department has not yet been configured
+    public const DEFAULT_PASS_MARK = 40;
+
+    /**
+     * Determine the letter grade and grade point for a given score.  A
+     * department-specific pass mark can be supplied; any score below that
+     * threshold will automatically be considered a failing grade (F).
+     *
+     * @param  float|int  $score
+     * @param  int|null   $passMark
+     * @return array{grade:string,grade_point:float}
+     */
+    public static function calculateGradeAndPoint($score, $passMark = null)
+    {
+        $pass = is_null($passMark) ? self::DEFAULT_PASS_MARK : $passMark;
+        // ensure pass mark is a sensible integer 0–100
+        $pass = max(0, min(100, intval($pass)));
+
+        // failing is evaluated first so that a higher pass mark can override
+        // the usual grade boundaries (e.g. a 45 with a 50 pass mark becomes F).
+        if ($score < $pass) {
+            return ['grade' => 'F', 'grade_point' => 0.0];
+        }
+
         if ($score >= 70) {
             return ['grade' => 'A', 'grade_point' => 5.0];
         } elseif ($score >= 60) {
@@ -45,6 +87,18 @@ class Result extends Model
         } else {
             return ['grade' => 'F', 'grade_point' => 0.0];
         }
+    }
+
+    public static function resolveScore($score = null, $caScore = null, $examScore = null)
+    {
+        $hasCa = $caScore !== null && $caScore !== '';
+        $hasExam = $examScore !== null && $examScore !== '';
+
+        if ($hasCa || $hasExam) {
+            return round((float) ($caScore ?: 0) + (float) ($examScore ?: 0), 2);
+        }
+
+        return $score === null || $score === '' ? null : round((float) $score, 2);
     }
 
     public function getGradePointAttribute($value)

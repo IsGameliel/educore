@@ -122,6 +122,7 @@
                             <thead>
                                 <tr>
                                     <th>Student</th>
+                                    <th>Department</th>
                                     <th>Matric Number</th>
                                     <th>Session</th>
                                     <th>Semester</th>
@@ -133,17 +134,20 @@
                             </thead>
                             <tbody>
                                 @php
+                                    $renderedFullTranscriptButtons = [];
                                     $groupedResults = $results->groupBy(function($item) {
-                                        return $item->user_id . '_' . $item->session . '_' . $item->semester;
+                                        return $item->user_id . '_' . $item->department_id . '_' . $item->session . '_' . $item->semester;
                                     });
                                 @endphp
 
                                 @foreach ($groupedResults as $group)
                                     @php
                                         $first = $group->first();
+                                        $fullTranscriptKey = $first->user_id . '_' . $first->department_id;
                                     @endphp
                                     <tr>
                                         <td>{{ $first->user->name }}</td>
+                                        <td>{{ $first->department->name ?? 'N/A' }}</td>
                                         <td>{{ $first->matric_number }}</td>
                                         <td>{{ $first->session }}</td>
                                         <td>{{ $first->semester }}</td>
@@ -156,8 +160,9 @@
                                             </ul>
                                         </td>
                                         <td>
-                                            <form method="POST" action="{{ route('admin.results.transcript.generate', [$first->user_id, $first->session, $first->semester]) }}">
+                                            <form method="POST" action="{{ route('admin.results.transcript.generate', [$first->user_id, urlencode($first->session), $first->semester]) }}">
                                                 @csrf
+                                                <input type="hidden" name="department_id" value="{{ $first->department_id }}">
                                                 <button type="submit" class="btn btn-sm btn-success">
                                                     {{ $first->transcript_path ? 'Regenerate' : 'Generate' }}
                                                 </button>
@@ -170,9 +175,39 @@
                                                     View Transcript
                                                 </a>
                                             @endif
+
+                                            @if (!isset($renderedFullTranscriptButtons[$fullTranscriptKey]) && in_array(Auth::user()->usertype, ['admin', 'exam_officer']))
+                                                @php $renderedFullTranscriptButtons[$fullTranscriptKey] = true; @endphp
+                                                <form method="POST" action="{{ route('admin.results.transcript.full', $first->user_id) }}" class="mt-2">
+                                                    @csrf
+                                                    <input type="hidden" name="department_id" value="{{ $first->department_id }}">
+                                                    <button type="submit" class="btn btn-sm btn-secondary">
+                                                        {{ $first->full_transcript_path ? 'Regenerate Full' : 'Generate Full' }}
+                                                    </button>
+                                                </form>
+
+                                                @if($first->full_transcript_path)
+                                                    <a href="{{ asset(ltrim($first->full_transcript_path, '/')) }}"
+                                                        target="_blank"
+                                                        class="btn btn-sm btn-dark mt-1">
+                                                        View Full Transcript
+                                                    </a>
+                                                @endif
+                                            @endif
                                         </td>
                                         <td>
-                                            <a href="{{ route('admin.results.editGroup', [$first->user_id, $first->session, $first->semester]) }}" class="btn btn-sm btn-warning">Edit All</a>
+                                            <a href="{{ route('admin.results.editGroup', [$first->user_id, $first->session, $first->semester, 'department_id' => $first->department_id]) }}" class="btn btn-sm btn-warning">Edit All</a>
+
+                                            @if($first->department_id !== $first->user->department_id && in_array(Auth::user()->usertype, ['admin', 'exam_officer']))
+                                                <form method="POST" action="{{ route('admin.results.migrateDepartmentResults', $first->user_id) }}" class="d-inline">
+                                                    @csrf
+                                                    <input type="hidden" name="source_department_id" value="{{ $first->department_id }}">
+                                                    <input type="hidden" name="target_department_id" value="{{ $first->user->department_id }}">
+                                                    <button type="submit" class="btn btn-sm btn-info">
+                                                        Copy To {{ $first->user->department->name ?? 'Current Dept' }}
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach

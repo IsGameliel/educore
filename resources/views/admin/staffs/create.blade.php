@@ -43,6 +43,7 @@
                                     <option value="">Choose usertype</option>
                                     <option value="guest" {{ old('usertype') == 'guest' ? 'selected' : '' }}>Guest</option>
                                     <option value="lecturer" {{ old('usertype') == 'lecturer' ? 'selected' : '' }}>Lecturer</option>
+                                    <option value="exam_officer" {{ old('usertype') == 'exam_officer' ? 'selected' : '' }}>Exam Officer</option>
                                     <option value="vc" {{ old('usertype') == 'vc' ? 'selected' : '' }}>Vice Chancellor</option>
                                     <option value="registrar" {{ old('usertype') == 'registrar' ? 'selected' : '' }}>Registrar</option>
                                     <option value="burser" {{ old('usertype') == 'burser' ? 'selected' : '' }}>Burser</option>
@@ -50,6 +51,24 @@
                                 </select>
                                 @error('usertype')
                                     <span class="text-danger">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            <div class="form-group" id="course-assignment-group" style="{{ old('usertype') === 'lecturer' ? '' : 'display: none;' }}">
+                                <label for="course_ids">Assigned Courses</label>
+                                <select name="course_ids[]" id="course_ids" class="form-control" multiple size="8">
+                                    @foreach ($courses as $course)
+                                        <option value="{{ $course->id }}" {{ in_array($course->id, old('course_ids', [])) ? 'selected' : '' }}>
+                                            {{ $course->code }} - {{ $course->title }} ({{ $course->department->name ?? 'N/A' }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">Assign one or more courses when the staff member is a lecturer.</small>
+                                @error('course_ids')
+                                    <span class="text-danger d-block">{{ $message }}</span>
+                                @enderror
+                                @error('course_ids.*')
+                                    <span class="text-danger d-block">{{ $message }}</span>
                                 @enderror
                             </div>
 
@@ -79,3 +98,20 @@
 </div>
 
 @endsection
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const staffTypeSelect = document.getElementById('usertype');
+        const courseAssignmentGroup = document.getElementById('course-assignment-group');
+
+        if (!staffTypeSelect || !courseAssignmentGroup) {
+            return;
+        }
+
+        function toggleCourseAssignment() {
+            courseAssignmentGroup.style.display = staffTypeSelect.value === 'lecturer' ? 'block' : 'none';
+        }
+
+        staffTypeSelect.addEventListener('change', toggleCourseAssignment);
+        toggleCourseAssignment();
+    });
+</script>

@@ -25,7 +25,7 @@
                                 <h4 class="font-weight-normal mb-3">Students <i class="mdi mdi-account-group menu-icon mdi-24px float-end"></i>
                                 </h4>
                                 <h2 class="mb-5">{{ $studentsCount}}</h2>
-                                <h6 class="card-text">Registered student accounts</h6>
+                                <h6 class="card-text">Increased by 60%</h6>
                             </div>
                         </div>
                     </div>
@@ -33,10 +33,10 @@
                         <div class="card bg-gradient-info card-img-holder text-white">
                             <div class="card-body">
                                 <img src="dash/assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
-                                <h4 class="font-weight-normal mb-3">Lecturers <i class="mdi mdi-school mdi-24px float-end"></i>
+                                <h4 class="font-weight-normal mb-3">Departments <i class="mdi mdi-bookmark-outline mdi-24px float-end"></i>
                                 </h4>
-                                <h2 class="mb-5">{{ $lecturersCount }}</h2>
-                                <h6 class="card-text">Registered lecturer accounts</h6>
+                                <h2 class="mb-5">{{ $departmentsCount }}</h2>
+                                <h6 class="card-text">Decreased by 10%</h6>
                             </div>
                         </div>
                     </div>
@@ -44,10 +44,10 @@
                         <div class="card bg-gradient-success card-img-holder text-white">
                             <div class="card-body">
                                 <img src="dash/assets/images/dashboard/circle.svg" class="card-img-absolute" alt="circle-image" />
-                                <h4 class="font-weight-normal mb-3">Administrators <i class="mdi mdi-shield-account mdi-24px float-end"></i>
+                                <h4 class="font-weight-normal mb-3">Faculty <i class="mdi mdi-diamond mdi-24px float-end"></i>
                                 </h4>
-                                <h2 class="mb-5">{{ $adminsCount }}</h2>
-                                <h6 class="card-text">Accounts managing the platform</h6>
+                                <h2 class="mb-5">{{ $facultyCount }}</h2>
+                                <h6 class="card-text">Increased by 5%</h6>
                             </div>
                         </div>
                     </div>
@@ -57,47 +57,21 @@
                         <div class="card">
                             <div class="card-body">
                                 <div class="clearfix">
-                                    <h4 class="card-title float-start">App Visitor Statistics</h4>
-                                    <div class="text-muted float-end">Total Accounts: {{ $totalUsersCount }}</div>
+                                    <h4 class="card-title float-start">Visit And Sales Statistics</h4>
+                                    <div id="visit-sale-chart-legend" class="rounded-legend legend-horizontal legend-top-right float-end"></div>
                                 </div>
-                                <canvas id="app-visitor-chart" class="mt-4"></canvas>
+                                <canvas id="visit-sale-chart" class="mt-4"></canvas>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-5 grid-margin stretch-card">
                         <div class="card">
                             <div class="card-body">
-                                <h4 class="card-title">Platform Overview</h4>
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <tbody>
-                                        <tr>
-                                            <td>Total Users</td>
-                                            <td class="text-end font-weight-bold">{{ $totalUsersCount }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Students</td>
-                                            <td class="text-end font-weight-bold">{{ $studentsCount }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Lecturers</td>
-                                            <td class="text-end font-weight-bold">{{ $lecturersCount }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Administrators</td>
-                                            <td class="text-end font-weight-bold">{{ $adminsCount }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Departments</td>
-                                            <td class="text-end font-weight-bold">{{ $departmentsCount }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Faculties</td>
-                                            <td class="text-end font-weight-bold">{{ $facultyCount }}</td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
+                                <h4 class="card-title">Traffic Sources</h4>
+                                <div class="doughnutjs-wrapper d-flex justify-content-center">
+                                    <canvas id="traffic-chart"></canvas>
                                 </div>
+                                <div id="traffic-chart-legend" class="rounded-legend legend-vertical legend-bottom-left pt-4"></div>
                             </div>
                         </div>
                     </div>
@@ -343,85 +317,4 @@
                 </div>
             </div>
             <!-- content-wrapper ends -->
-@endsection
-
-@section('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const chartCanvas = document.getElementById('app-visitor-chart');
-
-            if (!chartCanvas) {
-                return;
-            }
-
-            const visitorStatistics = @json($visitorStatistics);
-            const labels = visitorStatistics.map(function (item) {
-                return item.label;
-            });
-            const counts = visitorStatistics.map(function (item) {
-                return item.count;
-            });
-            const percentages = visitorStatistics.map(function (item) {
-                return item.percentage;
-            });
-
-            new Chart(chartCanvas, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Users',
-                        data: counts,
-                        backgroundColor: [
-                            'rgba(254, 124, 150, 0.75)',
-                            'rgba(54, 185, 204, 0.75)',
-                            'rgba(28, 200, 138, 0.75)'
-                        ],
-                        borderColor: [
-                            '#fe7c96',
-                            '#36b9cc',
-                            '#1cc88a'
-                        ],
-                        borderWidth: 1,
-                        borderRadius: 8,
-                        maxBarThickness: 72
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    const value = context.raw ?? 0;
-                                    const percentage = percentages[context.dataIndex] ?? 0;
-                                    return value + ' users (' + percentage + '%)';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.08)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-        });
-    </script>
 @endsection

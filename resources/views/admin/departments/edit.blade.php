@@ -43,6 +43,11 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label for="pass_mark">Pass Mark (0–100)</label>
+                            <input type="number" name="pass_mark" id="pass_mark" class="form-control" min="0" max="100" value="{{ old('pass_mark', $department->pass_mark ?? 40) }}">
+                            <small class="form-text text-muted">Minimum score required for a student to be considered to have passed.</small>
+                        </div>
                         <button type="submit" class="btn btn-success">Update</button>
                     </form>
             

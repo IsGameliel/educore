@@ -81,6 +81,9 @@
                         <a class="nav-link" href="{{ route('admin.departments.index') }}"> Add/Manage Departments </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{{ route('admin.departments.passmarks') }}"> Department Pass Marks </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{{ route('admin.class-schedules.index')}}"> Class Schedules & Timetables </a>
                     </li>
                     <li class="nav-item">

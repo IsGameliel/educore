@@ -11,6 +11,10 @@
         th { background-color: #f2f2f2; }
         .semester-title { background-color: #ddd; font-weight: bold; padding: 5px; text-align: left; }
         .summary { margin-top: 20px; }
+        .signatories { width: 100%; margin-top: 50px; border: none; }
+        .signatories td { width: 33.33%; border: none; text-align: center; padding-top: 30px; }
+        .sign-line { display: inline-block; width: 180px; border-top: 1px solid #000; padding-top: 6px; }
+        .footer { margin-top: 40px; text-align: center; font-size: 10pt; color: #555; }
     </style>
 </head>
 <body>
@@ -46,9 +50,12 @@
                     <th>Course Code</th>
                     <th>Course Title</th>
                     <th>Credit Unit</th>
+                    <th>CA</th>
+                    <th>Exam</th>
                     <th>Score</th>
                     <th>Grade</th>
                     <th>Grade Point</th>
+                    <th>Remark</th>
                 </tr>
             </thead>
             <tbody>
@@ -57,15 +64,18 @@
                         <td>{{ $result->course_code }}</td>
                         <td>{{ $result->course_title }}</td>
                         <td>{{ $result->credit_unit }}</td>
+                        <td>{{ $result->ca_score ?? '-' }}</td>
+                        <td>{{ $result->exam_score ?? '-' }}</td>
                         <td>{{ $result->score }}</td>
                         <td>{{ $result->grade }}</td>
                         <td>{{ $result->grade_point }}</td>
+                        <td>{{ strtoupper($result->grade) === 'F' ? 'Fail' : 'Pass' }}</td>
                     </tr>
                 @endforeach
                 <tr>
-                    <th colspan="2">Total</th>
+                    <th colspan="2">Total Credit Units</th>
                     <td>{{ $data['totalCreditUnits'] }}</td>
-                    <td colspan="2">GPA</td>
+                    <td colspan="5">GPA</td>
                     <td>{{ $data['gpa'] }}</td>
                 </tr>
             </tbody>
@@ -75,6 +85,19 @@
 
 <div class="summary">
     <h3>Overall CGPA: {{ $cgpa ?? 'N/A' }}</h3>
+</div>
+
+<table class="signatories">
+    <tr>
+        <td><span class="sign-line">Exam Officer</span></td>
+        <td><span class="sign-line">HOD</span></td>
+        <td><span class="sign-line">Dean</span></td>
+    </tr>
+</table>
+
+<div class="footer">
+        <p>Issued by the Office of the Registrar, {{ config('app.name', 'University') }}s</p>
+        <p>Date Issued: {{ \Carbon\Carbon::now()->format('F d, Y') }}</p>
 </div>
 
 </body>
