@@ -49,8 +49,8 @@
                         <div class="form-group">
                             <label for="semester">Select Semester:</label>
                             <select name="semester" id="semester" class="form-control" required>
-                                <option value="First">First</option>
-                                <option value="Second">Second</option>
+                                <option value="First" @selected(old('semester') === 'First')>First</option>
+                                <option value="Second" @selected(old('semester') === 'Second')>Second</option>
                                 <!-- Add other semesters as needed -->
                             </select>
                         </div>
@@ -60,10 +60,10 @@
                             <label for="level">Select Level:</label>
                             <select name="level" id="level" class="form-control" required>
                                 <option value="">-- Select Level --</option>
-                                <option value="100">100 Level</option>
-                                <option value="200">200 Level</option>
-                                <option value="300">300 Level</option>
-                                <option value="400">400 Level</option>
+                                <option value="100" @selected(old('level') === '100')>100 Level</option>
+                                <option value="200" @selected(old('level') === '200')>200 Level</option>
+                                <option value="300" @selected(old('level') === '300')>300 Level</option>
+                                <option value="400" @selected(old('level') === '400')>400 Level</option>
                             </select>
                         </div>
 
@@ -141,8 +141,11 @@
                 success: function (courses) {
                     $('#courses').empty();
 
+                    courseCreditMapping = {};
+
                     if (courses.length > 0) {
                         $.each(courses, function (index, course) {
+                            courseCreditMapping[String(course.id)] = parseInt(course.credit_unit || 0, 10);
                             let prerequisites = '';
                             if (course.prerequisites.length > 0) {
                                 prerequisites = ' - Prerequisite: ' + course.prerequisites.map(p => p.title).join(', ');
@@ -157,6 +160,8 @@
                     } else {
                         $('#courses').append('<option value="">No courses available</option>');
                     }
+
+                    $('#courses').trigger('change');
                 }
             });
         }

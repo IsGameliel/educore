@@ -27,12 +27,26 @@
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
                         <input type="email" name="email" id="email" class="form-control" value="{{ old('email', $student->email) }}" required>
+                        @error('email')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="matric_number" class="form-label">Matric Number</label>
+                        <input type="text" name="matric_number" id="matric_number" class="form-control" value="{{ old('matric_number', $student->matric_number) }}">
+                        @error('matric_number')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
                     </div>
 
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
                         <input type="password" name="password" id="password" class="form-control">
                         <small class="form-text text-muted">Leave blank to keep the current password.</small>
+                        @error('password')
+                            <span class="text-danger d-block">{{ $message }}</span>
+                        @enderror
                     </div>
 
                     <div class="mb-3">
@@ -49,6 +63,9 @@
                             <option value="400" {{ old('level', $student->level) == '400' ? 'selected' : '' }}>400</option>
                             <option value="500" {{ old('level', $student->level) == '500' ? 'selected' : '' }}>500</option>
                         </select>
+                        @error('level')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
                     </div>
 
                     <div class="mb-3">
@@ -60,6 +77,9 @@
                                 </option>
                             @endforeach
                         </select>
+                        @error('department_id')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
                     </div>
 
                     <button type="submit" class="btn btn-primary">Update</button>

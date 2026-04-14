@@ -88,15 +88,49 @@
         </div>
 
         {{-- Password --}}
-        <div class="mt-4">
+        <div class="mt-4" x-data="{ showPassword: false }">
             <x-label for="password" value="{{ __('Password') }}" />
-            <x-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
+            <div class="relative mt-1">
+                <x-input id="password" class="block w-full pr-12" x-bind:type="showPassword ? 'text' : 'password'" name="password" required autocomplete="new-password" />
+                <button
+                    type="button"
+                    class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition hover:text-gray-700 focus:outline-none focus:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 dark:focus:text-gray-200"
+                    x-on:click="showPassword = !showPassword"
+                    x-bind:aria-label="showPassword ? 'Hide password' : 'Show password'"
+                    x-bind:title="showPassword ? 'Hide password' : 'Show password'"
+                >
+                    <svg x-show="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 4.5c-4.37 0-8.06 2.9-9.34 6.88a1.1 1.1 0 0 0 0 .24C1.94 15.6 5.63 18.5 10 18.5s8.06-2.9 9.34-6.88a1.1 1.1 0 0 0 0-.24C18.06 7.4 14.37 4.5 10 4.5Zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z" />
+                        <path d="M10 8.5A1.5 1.5 0 1 0 11.5 10 1.5 1.5 0 0 0 10 8.5Z" />
+                    </svg>
+                    <svg x-show="showPassword" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M3.28 2.22a.75.75 0 1 0-1.06 1.06l2.07 2.07A10.43 10.43 0 0 0 .66 11.38a1.1 1.1 0 0 0 0 .24C1.94 15.6 5.63 18.5 10 18.5a9.9 9.9 0 0 0 4.42-1.01l2.3 2.29a.75.75 0 1 0 1.06-1.06L3.28 2.22ZM10 16.99c-3.6 0-6.72-2.3-7.83-5.49a8.96 8.96 0 0 1 3.2-4.36l1.78 1.78A3.5 3.5 0 0 0 11.08 12l2.27 2.27a8.46 8.46 0 0 1-3.35.72Zm.05-10.49a3.4 3.4 0 0 1 3.45 3.45c0 .55-.13 1.08-.37 1.55l3.06 3.06a8.98 8.98 0 0 0 1.64-3.06 1.1 1.1 0 0 0 0-.24C16.56 8.4 13.74 6.27 10.45 6l-.4-.4Z" />
+                    </svg>
+                </button>
+            </div>
         </div>
 
         {{-- Confirm password --}}
-        <div class="mt-4">
+        <div class="mt-4" x-data="{ showPasswordConfirmation: false }">
             <x-label for="password_confirmation" value="{{ __('Confirm Password') }}" />
-            <x-input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
+            <div class="relative mt-1">
+                <x-input id="password_confirmation" class="block w-full pr-12" x-bind:type="showPasswordConfirmation ? 'text' : 'password'" name="password_confirmation" required autocomplete="new-password" />
+                <button
+                    type="button"
+                    class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition hover:text-gray-700 focus:outline-none focus:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 dark:focus:text-gray-200"
+                    x-on:click="showPasswordConfirmation = !showPasswordConfirmation"
+                    x-bind:aria-label="showPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'"
+                    x-bind:title="showPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'"
+                >
+                    <svg x-show="!showPasswordConfirmation" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 4.5c-4.37 0-8.06 2.9-9.34 6.88a1.1 1.1 0 0 0 0 .24C1.94 15.6 5.63 18.5 10 18.5s8.06-2.9 9.34-6.88a1.1 1.1 0 0 0 0-.24C18.06 7.4 14.37 4.5 10 4.5Zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z" />
+                        <path d="M10 8.5A1.5 1.5 0 1 0 11.5 10 1.5 1.5 0 0 0 10 8.5Z" />
+                    </svg>
+                    <svg x-show="showPasswordConfirmation" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M3.28 2.22a.75.75 0 1 0-1.06 1.06l2.07 2.07A10.43 10.43 0 0 0 .66 11.38a1.1 1.1 0 0 0 0 .24C1.94 15.6 5.63 18.5 10 18.5a9.9 9.9 0 0 0 4.42-1.01l2.3 2.29a.75.75 0 1 0 1.06-1.06L3.28 2.22ZM10 16.99c-3.6 0-6.72-2.3-7.83-5.49a8.96 8.96 0 0 1 3.2-4.36l1.78 1.78A3.5 3.5 0 0 0 11.08 12l2.27 2.27a8.46 8.46 0 0 1-3.35.72Zm.05-10.49a3.4 3.4 0 0 1 3.45 3.45c0 .55-.13 1.08-.37 1.55l3.06 3.06a8.98 8.98 0 0 0 1.64-3.06 1.1 1.1 0 0 0 0-.24C16.56 8.4 13.74 6.27 10.45 6l-.4-.4Z" />
+                    </svg>
+                </button>
+            </div>
         </div>
 
         {{-- Terms --}}

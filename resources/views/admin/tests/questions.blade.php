@@ -1,6 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
 
     <div class="main-panel">
         <div class="content-wrapper">
@@ -24,7 +25,7 @@
                 <div class="card-body">
                     <h3>Manage Questions for: {{ $test->name }}</h3>
 
-                    <form action="{{ route('admin.tests.questions.store', $test->id) }}" method="POST">
+                    <form action="{{ route($routePrefix.'.tests.questions.store', $test->id) }}" method="POST">
                         @csrf
                         <div class="mb-3">
                             <label for="question_text" class="form-label">Question</label>
@@ -66,13 +67,13 @@
                                 </div>
 
                                 <!-- Edit Button -->
-                                <a href="{{ route('admin.tests.questions.edit', [$test->id, $question->id]) }}"
+                                <a href="{{ route($routePrefix.'.tests.questions.edit', [$test->id, $question->id]) }}"
                                 class="btn btn-info btn-sm me-2">
                                     Edit
                                 </a>
 
                                 <!-- Delete Button -->
-                                <form action="{{ route('admin.tests.questions.delete', [$test->id, $question->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this question?');">
+                                <form action="{{ route($routePrefix.'.tests.questions.delete', [$test->id, $question->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this question?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm">Delete</button>

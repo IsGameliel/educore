@@ -1,6 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
 
 <div class="main-panel">
     <div class="content-wrapper">
@@ -22,7 +23,7 @@
         <!-- Edit Test Form -->
         <div class="card">
             <div class="card-body">
-                <form action="{{ route('admin.tests.update', $test->id) }}" method="POST">
+                <form action="{{ route($routePrefix.'.tests.update', $test->id) }}" method="POST">
                     @csrf
                     @method('PUT')
                     <div class="mb-3">

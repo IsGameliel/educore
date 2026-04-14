@@ -8,9 +8,12 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Department;
+use App\Support\ActivityLogger;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\CoursesExport;
 use PDF;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 
 
 class CourseRegistrationController extends Controller
@@ -88,7 +91,7 @@ class CourseRegistrationController extends Controller
         // Validate that the courses exist
         $courses = Courses::whereIn('id', $courseIds)->get();
         if ($courses->count() != count($courseIds)) {
-            return response()->json(['error' => 'One or more courses do not exist.'], 400);
+            return $this->courseRegistrationError($request, 'One or more courses do not exist.', 400);
         }
 
         // Step 1: Check if each course has prerequisites
@@ -102,9 +105,11 @@ class CourseRegistrationController extends Controller
                         ->exists();
 
                     if (!$hasPrerequisite) {
-                        return response()->json([
-                            'error' => 'You must complete all prerequisite courses before registering for: ' . $course->title
-                        ], 400);
+                        return $this->courseRegistrationError(
+                            $request,
+                            'You must complete all prerequisite courses before registering for: ' . $course->title,
+                            400
+                        );
                     }
                 }
             }
@@ -118,25 +123,58 @@ class CourseRegistrationController extends Controller
         $totalCourseCredits = $courses->sum('credit_unit');
 
         if (($totalCreditUnits + $totalCourseCredits) > $creditUnitLimit) {
-            return response()->json([
-                'error' => "Credit unit limit exceeded for this semester. Maximum allowed is $creditUnitLimit."
-            ], 400);
+            return $this->courseRegistrationError(
+                $request,
+                "Course unit exceeded. You can register a maximum of {$creditUnitLimit} units for this semester.",
+                400
+            );
         }
 
         // Step 4: Proceed with the bulk course registration
         foreach ($courses as $course) {
             // Create a new registration for each course
-            CourseRegistration::create([
+            $registration = CourseRegistration::create([
                 'user_id' => $userId,
+                'acted_by' => $userId,
                 'course_id' => $course->id,
                 'semester' => $semester, // Save as "First Semester" or "Second Semester"
+                'registration_date' => now(),
                 'status' => 'registered', // You can add more status options like 'pending', 'approved', etc.
             ]);
+
+            ActivityLogger::log(
+                $user,
+                'registration_created',
+                "{$user->name} registered {$course->code} - {$course->title} for {$semester} Semester",
+                [
+                    'subject' => $registration,
+                    'target_user' => $user,
+                    'department_id' => $course->department_id,
+                    'properties' => [
+                        'course_id' => $course->id,
+                        'course_code' => $course->code,
+                        'course_title' => $course->title,
+                        'semester' => $semester,
+                        'status' => 'registered',
+                    ],
+                ]
+            );
         }
 
         return redirect()->route('student.courses.registered', ['semester' => $semester])
         ->with('success', 'Courses successfully registered!');
 
+    }
+
+    private function courseRegistrationError(Request $request, string $message, int $status = 400): JsonResponse|RedirectResponse
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['error' => $message], $status);
+        }
+
+        return back()
+            ->withInput()
+            ->withErrors(['course_registration' => $message]);
     }
 
     /**
@@ -195,6 +233,28 @@ class CourseRegistrationController extends Controller
         }
 
         // Remove the registration (i.e., withdrawal)
+        $registration->acted_by = $userId;
+        $registration->save();
+
+        $course = $registration->course;
+        ActivityLogger::log(
+            Auth::user(),
+            'registration_withdrawn',
+            Auth::user()->name . ' withdrew from ' . ($course?->code ?? 'N/A') . ' - ' . ($course?->title ?? 'Unknown course'),
+            [
+                'subject' => $registration,
+                'target_user_id' => $userId,
+                'department_id' => $course?->department_id,
+                'properties' => [
+                    'course_id' => $course?->id,
+                    'course_code' => $course?->code,
+                    'course_title' => $course?->title,
+                    'semester' => $registration->semester,
+                    'status' => 'withdrawn',
+                ],
+            ]
+        );
+
         $registration->delete();
 
         return response()->json(['message' => 'Successfully withdrawn from the course.']);

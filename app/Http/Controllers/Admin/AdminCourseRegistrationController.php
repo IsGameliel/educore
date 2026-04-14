@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\CourseRegistration;
 use App\Models\Courses;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class AdminCourseRegistrationController extends Controller
@@ -96,6 +98,7 @@ class AdminCourseRegistrationController extends Controller
     // 4) Update/sync registration
     public function update(User $student, Request $request)
     {
+        $actor = Auth::user();
         $semester = $this->normalizeSemester($request->input('semester', 'First'));
 
         $data = $request->validate([
@@ -147,17 +150,47 @@ class AdminCourseRegistrationController extends Controller
         }
 
         // ✅ IMPORTANT: include $data inside the transaction
-        DB::transaction(function () use ($student, $semester, $courseIds, $data) {
+        DB::transaction(function () use ($student, $semester, $courseIds, $data, $actor) {
 
-            $existing = CourseRegistration::where('user_id', $student->id)
+            $existingRegistrations = CourseRegistration::with('course')
+                ->where('user_id', $student->id)
                 ->where('semester', $semester)
-                ->pluck('course_id')
-                ->toArray();
+                ->get()
+                ->keyBy('course_id');
+
+            $existing = $existingRegistrations->keys()->all();
 
             $toDelete = array_diff($existing, $courseIds);
             $toAdd = array_diff($courseIds, $existing);
 
             if (!empty($toDelete)) {
+                foreach ($toDelete as $courseId) {
+                    $registration = $existingRegistrations->get($courseId);
+
+                    if ($registration) {
+                        $registration->acted_by = $actor->id;
+                        $registration->save();
+
+                        ActivityLogger::log(
+                            $actor,
+                            'registration_removed',
+                            "Removed {$student->name} from {$registration->course?->code} - {$registration->course?->title} ({$semester} Semester)",
+                            [
+                                'subject' => $registration,
+                                'target_user' => $student,
+                                'department_id' => $registration->course?->department_id ?? $student->department_id,
+                                'properties' => [
+                                    'course_id' => $registration->course_id,
+                                    'course_code' => $registration->course?->code,
+                                    'course_title' => $registration->course?->title,
+                                    'semester' => $semester,
+                                    'status' => 'removed',
+                                ],
+                            ]
+                        );
+                    }
+                }
+
                 CourseRegistration::where('user_id', $student->id)
                     ->where('semester', $semester)
                     ->whereIn('course_id', $toDelete)
@@ -166,12 +199,33 @@ class AdminCourseRegistrationController extends Controller
 
             // ✅ Create new registrations
             foreach ($toAdd as $courseId) {
-                CourseRegistration::create([
+                $course = Courses::find($courseId);
+                $registration = CourseRegistration::create([
                     'user_id' => $student->id,
+                    'acted_by' => $actor->id,
                     'course_id' => $courseId,
                     'semester' => $semester,
+                    'registration_date' => now(),
                     'status' => 'registered', // default
                 ]);
+
+                ActivityLogger::log(
+                    $actor,
+                    'registration_created',
+                    "Registered {$student->name} for {$course?->code} - {$course?->title} ({$semester} Semester)",
+                    [
+                        'subject' => $registration,
+                        'target_user' => $student,
+                        'department_id' => $course?->department_id ?? $student->department_id,
+                        'properties' => [
+                            'course_id' => $courseId,
+                            'course_code' => $course?->code,
+                            'course_title' => $course?->title,
+                            'semester' => $semester,
+                            'status' => 'registered',
+                        ],
+                    ]
+                );
             }
 
             // ✅ NOW update status for all selected courses
@@ -179,11 +233,49 @@ class AdminCourseRegistrationController extends Controller
 
             foreach ($courseIds as $courseId) {
                 $status = $statuses[$courseId] ?? 'registered';
-
-                CourseRegistration::where('user_id', $student->id)
+                $registration = CourseRegistration::where('user_id', $student->id)
                     ->where('semester', $semester)
                     ->where('course_id', $courseId)
-                    ->update(['status' => $status]);
+                    ->first();
+
+                if (!$registration) {
+                    continue;
+                }
+
+                $previousStatus = $registration->status;
+                $registration->update([
+                    'status' => $status,
+                    'acted_by' => $actor->id,
+                ]);
+
+                if ($previousStatus !== $status) {
+                    $course = $registration->course;
+                    $action = match ($status) {
+                        'approved' => 'registration_approved',
+                        'rejected' => 'registration_rejected',
+                        'withdrawn' => 'registration_withdrawn',
+                        default => 'registration_updated',
+                    };
+
+                    ActivityLogger::log(
+                        $actor,
+                        $action,
+                        "Updated {$student->name}'s registration for {$course?->code} - {$course?->title} to {$status}",
+                        [
+                            'subject' => $registration,
+                            'target_user' => $student,
+                            'department_id' => $course?->department_id ?? $student->department_id,
+                            'properties' => [
+                                'course_id' => $courseId,
+                                'course_code' => $course?->code,
+                                'course_title' => $course?->title,
+                                'semester' => $semester,
+                                'old_status' => $previousStatus,
+                                'status' => $status,
+                            ],
+                        ]
+                    );
+                }
             }
         });
 

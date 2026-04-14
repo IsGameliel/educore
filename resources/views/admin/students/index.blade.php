@@ -67,6 +67,10 @@
                     <i class="mdi mdi-plus me-1"></i> Add New Student
                 </a>
 
+                <a href="{{ route('admin.students.import.form') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="mdi mdi-upload me-1"></i> Import Students
+                </a>
+
                 {{-- Export button: preserves filters and triggers excel export --}}
                 <form method="GET" action="{{ route('admin.students.index') }}" id="exportForm">
                     <input type="hidden" name="export" value="excel">
@@ -129,6 +133,7 @@
                         <thead>
                             <tr>
                                 <th>Name</th>
+                                <th>Matric No.</th>
                                 <th>Department</th>
                                 <th>Level</th>
                                 <th>Email</th>
@@ -139,6 +144,7 @@
                             @forelse($students as $student)
                                 <tr>
                                     <td class="fw-semibold">{{ $student->name }}</td>
+                                    <td>{{ $student->matric_number ?: 'Not set' }}</td>
                                     <td>{{ optional($student->department)->name }}</td>
                                     <td>{{ $student->level }} Level</td>
                                     <td>{{ $student->email }}</td>
@@ -157,7 +163,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-3">No students found.</td>
+                                    <td colspan="6" class="text-center text-muted py-3">No students found.</td>
                                 </tr>
                             @endforelse
                         </tbody>

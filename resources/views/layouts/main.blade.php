@@ -30,17 +30,23 @@
         <!-- Hardcoded mobile menu -->
         <div class="d-block d-lg-none px-3 py-3">
             <ul class="list-unstyled mb-0">
-                <li><a href="#home-section" class="nav-link">Home</a></li>
-                <li><a href="#courses-section" class="nav-link">About</a></li>
-                <li><a href="#programs-section" class="nav-link">Modules</a></li>
-                <li><a href="#teachers-section" class="nav-link">Services</a></li>
-                <li><a href="#teachers-section" class="nav-link">Features</a></li>
-                <li><a href="#teachers-section" class="nav-link">Pricing</a></li>
-                <li><a href="#teachers-section" class="nav-link">Contact</a></li>
+                <li><a href="/#home-section" class="nav-link">Home</a></li>
+                <li><a href="/#features-section" class="nav-link">About</a></li>
+                <li><a href="/#features-section" class="nav-link">Modules</a></li>
+                <li><a href="/#features-section" class="nav-link">Services</a></li>
+                <li><a href="/#features-section" class="nav-link">Features</a></li>
+                <li><a href="/#features-section" class="nav-link">Pricing</a></li>
+                <li><a href="/#contact-section" class="nav-link">Contact</a></li>
                 @guest
                     <li class="cta mt-2"><a href="{{ url('register') }}" class="nav-link"><span>Get started</span></a></li>
                 @else
-                    <li class="cta mt-2"><a href="{{ url('home') }}" class="nav-link"><span>Dashboard</span></a></li>
+                    <li class="mt-2"><a href="{{ url('home') }}" class="nav-link">Dashboard</a></li>
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="nav-link border-0 bg-transparent p-0 text-left">Logout</button>
+                        </form>
+                    </li>
                 @endguest
             </ul>
         </div>
@@ -51,20 +57,20 @@
         <div class="container-fluid">
             <div class="d-flex align-items-center">
                 <div class="site-logo mr-auto w-25">
-                    <a href="index.html">
+                    <a href="{{ url('/') }}">
                         <img src="{{ asset('asset/images/educore.png') }}" style="width: 60%;" alt="">
                     </a>
                 </div>
                 <div class="mx-auto text-center">
                     <nav class="site-navigation position-relative text-right" role="navigation">
                         <ul class="site-menu main-menu  mx-auto d-none d-lg-block m-0 p-0">
-                            <li><a href="#home-section" class="nav-link">Home</a></li>
-                            <li><a href="#courses-section" class="nav-link">About</a></li>
-                            <li><a href="#programs-section" class="nav-link">Modules</a></li>
-                            <li><a href="#teachers-section" class="nav-link">Services</a></li>
-                            <li><a href="#teachers-section" class="nav-link">Features</a></li>
-                            <li><a href="#teachers-section" class="nav-link">Pricing</a></li>
-                            <li><a href="#teachers-section" class="nav-link">Contact</a></li>
+                            <li><a href="/#home-section" class="nav-link">Home</a></li>
+                            <li><a href="/#features-section" class="nav-link">About</a></li>
+                            <li><a href="/#features-section" class="nav-link">Modules</a></li>
+                            <li><a href="/#features-section" class="nav-link">Services</a></li>
+                            <li><a href="/#features-section" class="nav-link">Features</a></li>
+                            <li><a href="/#features-section" class="nav-link">Pricing</a></li>
+                            <li><a href="/#contact-section" class="nav-link">Contact</a></li>
                         </ul>
                     </nav>
                 </div>
@@ -76,7 +82,18 @@
                             </ul>
                         @else
                             <ul class="site-menu main-menu  site-menu-dark mr-auto d-none d-lg-block m-0 p-0">
-                                <li class="cta"><a href="{{ url('home') }}" class="nav-link"><span>Dashboard</span></a></li>
+                                <li class="cta dropdown">
+                                    <a href="#" class="nav-link dropdown-toggle" id="landingAccountMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <span>Dashboard</span>
+                                    </a>
+                                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="landingAccountMenu">
+                                        <a class="dropdown-item" href="{{ url('home') }}">Dashboard</a>
+                                        <form method="POST" action="{{ route('logout') }}">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item">Logout</button>
+                                        </form>
+                                    </div>
+                                </li>
                             </ul>
                         @endguest
                     </nav>

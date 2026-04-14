@@ -26,7 +26,7 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'department_id' => ['nullable', 'exists:departments,id'], // Add validation for the department
             'level' => ['nullable', 'string'],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'], // Validate the photo
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:10240'], // Validate the photo up to 10 MB
             'matric_number' => ['nullable', 'string'],
             'entry_year' => ['nullable', 'integer', 'min:1900', 'max:' . date('Y')],
             ])->validateWithBag('updateProfileInformation');

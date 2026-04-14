@@ -11,6 +11,7 @@ class Department extends Model
         'name', // Add the department's name or any other fields you want to mass-assign
         'code', // If your department has a code or abbreviation, add it here
         'faculty_id', // If departments are related to a faculty, include this
+        'pass_mark', // minimum score required to pass for this department
     ];
 
     // Define the relationship with the Courses model (one department has many courses)

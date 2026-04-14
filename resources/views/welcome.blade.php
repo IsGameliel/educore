@@ -15,20 +15,67 @@
                             </div>
 
                             <div class="col-lg-5 ml-auto" data-aos="fade-up" data-aos-delay="500">
-                                <form action="" method="post" class="form-box">
+                                <form action="{{ route('register.store') }}" method="post" class="form-box">
+                                    @csrf
                                     <h3 class="h4 text-black mb-4">Sign Up</h3>
+
+                                    @if ($errors->any())
+                                        <div class="alert alert-danger">
+                                            <ul class="mb-0 pl-3">
+                                                @foreach ($errors->all() as $error)
+                                                    <li>{{ $error }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endif
+
                                     <div class="form-group">
-                                        <input type="text" class="form-control" placeholder="Email Addresss">
+                                        <input
+                                            type="text"
+                                            name="name"
+                                            class="form-control"
+                                            placeholder="Full Name"
+                                            value="{{ old('name') }}"
+                                            required
+                                            autocomplete="name"
+                                        >
                                     </div>
                                     <div class="form-group">
-                                        <input type="password" class="form-control" placeholder="Password">
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            class="form-control"
+                                            placeholder="Email Address"
+                                            value="{{ old('email') }}"
+                                            required
+                                            autocomplete="username"
+                                        >
                                     </div>
+                                    <input type="hidden" name="usertype" value="user">
                                     <div class="form-group mb-4">
-                                        <input type="password" class="form-control" placeholder="Re-type Password">
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            class="form-control mb-3"
+                                            placeholder="Password"
+                                            required
+                                            autocomplete="new-password"
+                                        >
+                                        <input
+                                            type="password"
+                                            name="password_confirmation"
+                                            class="form-control"
+                                            placeholder="Re-type Password"
+                                            required
+                                            autocomplete="new-password"
+                                        >
                                     </div>
                                     <div class="form-group">
                                         <input type="submit" class="btn btn-primary btn-pill" value="Sign up">
                                     </div>
+                                    <p class="mb-0 text-muted">
+                                        Need a student account? <a href="{{ route('register') }}">Use the full registration form</a>.
+                                    </p>
                                 </form>
 
                             </div>

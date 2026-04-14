@@ -14,12 +14,15 @@
         th { background-color: #f2f2f2f2;; }
         .summary { margin-top: 20px; }
         .footer { margin-top: 40px; text-align: center; font-size: 10pt; color: #555; }
+        .signatories { width: 100%; margin-top: 40px; border-collapse: collapse; }
+        .signatories td { width: 33.33%; border: none; text-align: center; padding-top: 30px; }
+        .sign-line { display: inline-block; width: 180px; border-top: 1px solid #000; padding-top: 6px; }
     </style>
 </head>
 <body>
     <div class="header">
         <img src="{{ public_path('images/university_logo.png') }}" alt="University Logo">
-        <h1>University of Example</h1>
+        <h1>{{ config('app.name', 'University') }}</h1>
         <h2>Official Academic Transcript</h2>
     </div>
 
@@ -27,7 +30,7 @@
         <p><strong>Name:</strong> {{ $student->name }}</p>
         <p><strong>Matric Number:</strong> {{ $student->matric_number }}</p>
         <p><strong>Department:</strong> {{ $department->name }}</p>
-        <p><strong>Program:</strong> {{ $student->program ?? 'N/A' }}</p>
+        {{-- <p><strong>Program:</strong> {{ $student->program ?? 'N/A' }}</p> --}}
         <p><strong>Level:</strong> {{ $results->first()->level }}</p>
         <p><strong>Session:</strong> {{ $results->first()->session }}</p>
         <p><strong>Semester:</strong> {{ $results->first()->semester }}</p>
@@ -39,9 +42,12 @@
                 <th>Course Code</th>
                 <th>Course Title</th>
                 <th>Credit Unit</th>
+                <th>CA</th>
+                <th>Exam</th>
                 <th>Score</th>
                 <th>Grade</th>
                 <th>Grade Point</th>
+                <th>Remark</th>
             </tr>
         </thead>
         <tbody>
@@ -50,9 +56,12 @@
                     <td>{{ $result->course_code }}</td>
                     <td>{{ $result->course_title }}</td>
                     <td>{{ $result->credit_unit }}</td>
+                    <td>{{ $result->ca_score ?? '-' }}</td>
+                    <td>{{ $result->exam_score ?? '-' }}</td>
                     <td>{{ $result->score }}</td>
                     <td>{{ $result->grade }}</td>
                     <td>{{ $result->grade_point }}</td>
+                    <td>{{ strtoupper($result->grade) === 'F' ? 'Fail' : 'Pass' }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -66,8 +75,16 @@
         @endif
     </div>
 
+    <table class="signatories">
+        <tr>
+            <td><span class="sign-line">Exam Officer</span></td>
+            <td><span class="sign-line">HOD</span></td>
+            <td><span class="sign-line">Dean</span></td>
+        </tr>
+    </table>
+
     <div class="footer">
-        <p>Issued by the Office of the Registrar, University of Example</p>
+        <p>Issued by the Office of the Registrar, {{ config('app.name', 'University') }}s</p>
         <p>Date Issued: {{ \Carbon\Carbon::now()->format('F d, Y') }}</p>
     </div>
 </body>

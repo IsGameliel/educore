@@ -1,6 +1,8 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
+@php($studentsEndpoint = url($routePrefix . '/results/get-students'))
 
 <div class="main-panel">
     <div class="content-wrapper">
@@ -27,8 +29,36 @@
                     @if (session('success'))
                         <div class="alert alert-success">{{ session('success') }}</div>
                     @endif
-                    <form action="{{ route('admin.results.store') }}" method="POST">
+                    @if ($errors->any())
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                    <form action="{{ route($routePrefix.'.results.store') }}" method="POST">
                         @csrf
+                        <div class="form-group">
+                            <label for="course_id">Course</label>
+                            <select name="course_id" id="course_id" class="form-control" required>
+                                <option value="">Select Course</option>
+                                @foreach ($courses as $course)
+                                    <option
+                                        value="{{ $course->id }}"
+                                        data-code="{{ $course->code }}"
+                                        data-title="{{ $course->title }}"
+                                        data-credit-unit="{{ $course->credit_unit }}"
+                                        data-department-id="{{ $course->department_id }}"
+                                        {{ old('course_id') == $course->id ? 'selected' : '' }}
+                                    >
+                                        {{ $course->code }} - {{ $course->title }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <div class="form-group">  
                             <label for="department_id">Department</label>
                             <select name="department_id" id="department_id" class="form-control" required>
@@ -49,7 +79,14 @@
 
                         <div class="form-group">
                             <label for="session">Session</label>
-                            <input type="text" name="session" class="form-control" value="{{ old('session', '2023/2024') }}" required>
+                            <select name="session" id="session" class="form-control" required>
+                                <option value="">Select Session</option>
+                                @foreach ($academicSessions as $academicSession)
+                                    <option value="{{ $academicSession }}" {{ old('session') === $academicSession ? 'selected' : '' }}>
+                                        {{ $academicSession }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <div class="form-group">
@@ -67,22 +104,33 @@
 
                         <div class="form-group">
                             <label for="course_code">Course Code</label>
-                            <input type="text" name="course_code" class="form-control" value="{{ old('course_code') }}" required>
+                            <input type="text" name="course_code" id="course_code" class="form-control" value="{{ old('course_code') }}" readonly>
                         </div>
 
                         <div class="form-group">
                             <label for="course_title">Course Title</label>
-                            <input type="text" name="course_title" class="form-control" value="{{ old('course_title') }}" required>
+                            <input type="text" name="course_title" id="course_title" class="form-control" value="{{ old('course_title') }}" readonly>
                         </div>
 
                         <div class="form-group">
                             <label for="credit_unit">Credit Unit</label>
-                            <input type="number" name="credit_unit" class="form-control" value="{{ old('credit_unit') }}" required>
+                            <input type="number" name="credit_unit" id="credit_unit" class="form-control" value="{{ old('credit_unit') }}" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ca_score">CA</label>
+                            <input type="number" name="ca_score" id="ca_score" class="form-control score-part" value="{{ old('ca_score') }}" step="0.01" min="0" max="100">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="exam_score">Exam</label>
+                            <input type="number" name="exam_score" id="exam_score" class="form-control score-part" value="{{ old('exam_score') }}" step="0.01" min="0" max="100">
                         </div>
 
                         <div class="form-group">
                             <label for="score">Score</label>
-                            <input type="number" name="score" class="form-control" value="{{ old('score') }}" step="0.01" required>
+                            <input type="number" name="score" id="score" class="form-control" value="{{ old('score') }}" step="0.01" min="0" max="100">
+                            <small class="text-muted">If CA or Exam is entered, Score is calculated automatically. Leave CA and Exam blank to enter Score directly.</small>
                         </div>
 
                         <button type="submit" class="btn btn-primary">Save Result</button>
@@ -100,13 +148,12 @@
 $(document).ready(function () {
 
     // Load students dynamically when department changes
-    $('#department_id').on('change', function () {
-        let departmentId = $(this).val();
+    function loadStudents(departmentId) {
         $('#student_id').html('<option value="">Loading...</option>');
 
         if (departmentId) {
             $.ajax({
-                url: "{{ url('/admin/results/get-students') }}/" + departmentId,
+                url: "{{ $studentsEndpoint }}/" + departmentId,
                 type: 'GET',
                 success: function (data) {
                     $('#student_id').empty().append('<option value="">Select Student</option>');
@@ -122,6 +169,10 @@ $(document).ready(function () {
         } else {
             $('#student_id').html('<option value="">Select Student</option>');
         }
+    }
+
+    $('#department_id').on('change', function () {
+        loadStudents($(this).val());
     });
 
     // Auto-fill level when student is selected
@@ -129,6 +180,36 @@ $(document).ready(function () {
         const level = this.options[this.selectedIndex].getAttribute('data-level');
         $('#level').val(level || '');
     });
+
+    $('#course_id').on('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        const departmentId = selectedOption.getAttribute('data-department-id') || '';
+
+        $('#course_code').val(selectedOption.getAttribute('data-code') || '');
+        $('#course_title').val(selectedOption.getAttribute('data-title') || '');
+        $('#credit_unit').val(selectedOption.getAttribute('data-credit-unit') || '');
+        $('#department_id').val(departmentId);
+        loadStudents(departmentId);
+    });
+
+    function updateScoreField() {
+        const caValue = $('#ca_score').val();
+        const examValue = $('#exam_score').val();
+        const hasCa = caValue !== '';
+        const hasExam = examValue !== '';
+        const scoreField = $('#score');
+
+        if (hasCa || hasExam) {
+            const total = (parseFloat(caValue || 0) + parseFloat(examValue || 0)).toFixed(2);
+            scoreField.val(total).prop('readonly', true);
+        } else {
+            scoreField.prop('readonly', false);
+        }
+    }
+
+    $('.score-part').on('input', updateScoreField);
+    updateScoreField();
+    $('#course_id').trigger('change');
 
 });
 </script>

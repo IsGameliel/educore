@@ -12,12 +12,18 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @include('partials.vite-assets')
 
         <!-- Styles -->
         @livewireStyles
     </head>
     <body class="font-sans antialiased">
+        @unless (file_exists(public_path('hot')) || file_exists(public_path('build/manifest.json')))
+            <div class="vite-warning">
+                Frontend assets are not built yet. Run <code>npm run dev</code> or <code>npm run build</code>, then refresh this page.
+            </div>
+        @endunless
+
         <x-banner />
 
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">

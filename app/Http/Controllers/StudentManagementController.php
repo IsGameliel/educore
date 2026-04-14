@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Department;
+use App\Imports\StudentImport;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use App\Exports\StudentsExport;
 use Maatwebsite\Excel\Facades\Excel;
+
 
 
 
@@ -28,9 +31,7 @@ class StudentManagementController extends Controller
         }
 
         if ($request->filled('department')) {
-            $query->whereHas('department', function ($q) use ($request) {
-                $q->where('name', $request->department);
-            });
+            $query->where('department_id', $request->department);
         }
 
         if ($request->filled('level')) {
@@ -58,6 +59,11 @@ class StudentManagementController extends Controller
         return view('admin.students.create', compact('departments'));
     }
 
+    public function showImportForm()
+    {
+        return view('admin.students.import');
+    }
+
     /**
      * Store a newly created resource in storage.
      */
@@ -79,6 +85,7 @@ class StudentManagementController extends Controller
             'password' => ['required', 'confirmed', 'min:8'], // Ensures password matches password_confirmation
             'level' => ['required', 'in:100,200,300,400,500'], // Ensures valid levels
             'department_id' => ['required', 'exists:departments,id'], // Validates department ID exists in DB
+            'matric_number' => ['nullable', 'string', 'max:255', 'unique:users,matric_number'],
         ]);
 
         // Transaction to store the user
@@ -90,6 +97,7 @@ class StudentManagementController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'usertype' => $role,
+                'matric_number' => $request->matric_number,
                 'level' => $request->level, // Save level
                 'department_id' => $request->department_id, // Save department
             ]);
@@ -102,6 +110,34 @@ class StudentManagementController extends Controller
         return redirect()
             ->route('admin.students.index')
             ->with('success', 'Student created successfully.');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        $import = new StudentImport();
+
+        Excel::import($import, $request->file('file'));
+
+        $message = "{$import->createdCount()} student account(s) created successfully.";
+
+        if ($import->emailedCount() > 0) {
+            $message .= " {$import->emailedCount()} welcome email(s) queued.";
+        }
+
+        if ($import->failedRows()) {
+            return redirect()
+                ->route('admin.students.import.form')
+                ->with('warning', $message)
+                ->with('import_errors', $import->failedRows());
+        }
+
+        return redirect()
+            ->route('admin.students.index')
+            ->with('success', $message);
     }
 
 
@@ -136,24 +172,42 @@ class StudentManagementController extends Controller
             'password' => ['nullable', 'confirmed', 'min:8'], // Password is optional, but must be confirmed if provided
             'level' => ['required', 'in:100,200,300,400,500'],
             'department_id' => ['required', 'exists:departments,id'],
+            'matric_number' => ['nullable', 'string', 'max:255', Rule::unique('users', 'matric_number')->ignore($id)],
         ]);
 
         // Retrieve the student by ID
         $student = User::findOrFail($id);
 
-        // Update the student's details
-        $student->update([
+        // Update basic details
+        $updateData = [
             'name' => $request->name,
             'email' => $request->email,
+            'matric_number' => $request->matric_number,
             'level' => $request->level,
             'department_id' => $request->department_id,
-        ]);
+        ];
 
-        // If a new password is provided, update it
+        // If a new password is provided, add it
         if ($request->filled('password')) {
-            $student->update([
-                'password' => Hash::make($request->password),
+            $updateData['password'] = Hash::make($request->password);
+        }
+
+        // Perform the update and verify it succeeded
+        try {
+            DB::transaction(function () use ($student, $updateData) {
+                $student->update($updateData);
+                // Force refresh from database to ensure update was persisted
+                $student->refresh();
+            });
+        } catch (\Exception $e) {
+            \Log::error('Error updating student: ' . $e->getMessage(), [
+                'student_id' => $id,
+                'data' => $updateData
             ]);
+            
+            return redirect()
+                ->route('admin.students.index')
+                ->with('error', 'Failed to update student: ' . $e->getMessage());
         }
 
         // Redirect back with success message

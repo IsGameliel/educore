@@ -9,6 +9,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Jetstream\HasTeams;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\Courses;
+use App\Models\ActivityLog;
 
 class User extends Authenticatable
 {
@@ -19,6 +21,7 @@ class User extends Authenticatable
         'email',
         'password',
         'usertype', // Assuming your users table has a role column
+        'matric_number',
         'department_id',
         'level',
     ];
@@ -27,6 +30,7 @@ class User extends Authenticatable
         'admin' => 'Admin',
         'student' => 'Student',
         'lecturer' => 'Lecturer',
+        'exam_officer' => 'Exam Officer',
         'vc' => 'VC',
         'registrar' => 'Registrar',
         'bursar' => 'Bursar',
@@ -62,7 +66,7 @@ class User extends Authenticatable
 
     public function getRoleNameAttribute(): string
     {
-        return self::ROLES[$this->role] ?? 'Unknown Role';
+        return self::ROLES[$this->usertype] ?? 'Unknown Role';
     }
 
     public function courseRegistrations()
@@ -84,5 +88,15 @@ class User extends Authenticatable
     public function classSchedules()
     {
         return $this->hasMany(ClassSchedule::class, 'lecturer', 'id');
+    }
+
+    public function assignedCourses()
+    {
+        return $this->belongsToMany(Courses::class, 'course_user', 'user_id', 'course_id')->withTimestamps();
+    }
+
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class, 'actor_id');
     }
 }

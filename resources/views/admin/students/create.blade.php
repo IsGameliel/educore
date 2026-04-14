@@ -41,6 +41,17 @@
                             </div>
                         </div>
 
+                        <!-- Matric Number -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="matric_number">Matric Number</label>
+                                <input type="text" name="matric_number" id="matric_number" class="form-control" value="{{ old('matric_number') }}" placeholder="Enter matric number">
+                                @error('matric_number')
+                                    <span class="text-danger">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+
                         <!-- Level -->
                         <div class="col-md-6">
                             <div class="form-group">

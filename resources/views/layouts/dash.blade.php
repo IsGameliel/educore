@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="{{ asset('dash/assets/css/style.css')}}">
     <!-- End layout styles -->
     <link rel="shortcut icon" href="{{ asset('dash/assets/images/favicon.png')}}" />
+    @stack('styles')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -48,6 +49,8 @@
     <div class="container-fluid page-body-wrapper">
         @if(Auth::user()->usertype == 'student')
             @include('partials/student_side')
+        @elseif(Auth::user()->usertype == 'lecturer')
+            @include('partials/lecturer_side')
         @else
             @include('partials/side')
         @endif

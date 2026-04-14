@@ -98,18 +98,19 @@
 
                         <div class="col-md-4">
                             <label class="form-label small">Filter by Department</label>
-                            <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <select name="department_id" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="">All Departments</option>
                                 @foreach($departments as $d)
-                                    <option value="{{ $d->id }}" {{ request('department') == $d->id ? 'selected' : '' }}>
+                                    <option value="{{ $d->id }}" {{ request('department_id', request('department')) == $d->id ? 'selected' : '' }}>
                                         {{ $d->name }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
 
-                        <div class="col-md-2">
+                        <div class="col-md-2 d-flex gap-2">
                             <button class="btn brand-cta btn-sm w-100">Apply</button>
+                            <a href="{{ route('admin.courses.index') }}" class="btn btn-outline-secondary btn-sm w-100">Reset</a>
                         </div>
                     </div>
                 </form>
@@ -151,7 +152,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-3">No students found.</td>
+                                    <td colspan="6" class="text-center text-muted py-3">No courses found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
