@@ -1,6 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
 
     <div class="main-panel">
         <div class="content-wrapper">
@@ -26,7 +27,7 @@
                     <ul class="list-group">
                         @foreach ($test->questions as $question)
                             <li class="list-group-item mb-4">
-                                <form action="{{ route('admin.tests.questions.update', [$test->id, $question->id]) }}" method="POST">
+                                <form action="{{ route($routePrefix.'.tests.questions.update', [$test->id, $question->id]) }}" method="POST">
                                     @csrf
                                     @method('PUT')
 
@@ -55,7 +56,11 @@
                                     </div>
 
                                     <button type="submit" class="btn btn-success">Update Question</button>
-                                    <a href="{{ route('admin.tests.questions.delete', [$test->id, $question->id]) }}" class="btn btn-danger">Delete Question</a>
+                                </form>
+                                <form action="{{ route($routePrefix.'.tests.questions.delete', [$test->id, $question->id]) }}" method="POST" class="mt-2" onsubmit="return confirm('Are you sure you want to delete this question?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger">Delete Question</button>
                                 </form>
                             </li>
                         @endforeach

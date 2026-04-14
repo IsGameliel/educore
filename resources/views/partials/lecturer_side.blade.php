@@ -29,7 +29,7 @@
             <div class="collapse" id="exams">
                 <ul class="nav flex-column sub-menu">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('admin.tests.index') }}">Tests</a>
+                        <a class="nav-link" href="{{ route('lecturer.tests.index') }}">Tests</a>
                     </li>
                     <!-- <li class="nav-item">
                         <a class="nav-link" href="#"> Questions </a>
@@ -50,10 +50,13 @@
                 <ul class="nav flex-column sub-menu">
                     
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('admin.results.index') }}"> Manage Grades & Results </a>
+                        <a class="nav-link" href="{{ route('lecturer.results.index') }}"> Manage Grades & Results </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('admin.results.create') }}"> Publish Results </a>
+                        <a class="nav-link" href="{{ route('lecturer.results.create') }}"> Add Result </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('lecturer.results.upload') }}"> Upload Results </a>
                     </li>
                 </ul>
             </div>

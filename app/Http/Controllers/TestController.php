@@ -6,6 +6,7 @@ use App\Models\{
     Tests, Questions, Responses, Department, Courses
 };
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class TestController extends Controller
@@ -355,46 +356,52 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
     }
 }
 
-    // Admin: Create Test
+    // Admin / Lecturer test management
     public function adminIndex()
     {
-        $tests = Tests::all();
+        $tests = $this->manageableTestsQuery(Auth::user())->get();
         return view('admin.tests.index', compact('tests'));
     }
 
     public function create()
     {
-        $departments = Department::all();
-        $courses = Courses::all();
+        $courses = $this->manageableCourses(Auth::user());
+        $departments = $courses->pluck('department')->filter()->unique('id')->sortBy('name')->values();
         return view('admin.tests.create', compact('departments', 'courses'));
     }
 
     public function store(Request $request)
     {
-        Tests::create($request->validate([
+        $validated = $request->validate([
             'name' => 'required|string',
             'subject' => 'required|string',
             'duration' => 'required|integer',
             'level' => 'required|string',
             'department_id' => 'required|exists:departments,id',
             'status' => 'required|boolean',
-        ]));
+        ]);
 
-        return redirect()->route('admin.tests.index')->with('success', 'Test created successfully');
+        $this->ensureCanManageTestPayload($validated['subject'], (int) $validated['department_id'], (string) $validated['level']);
+
+        Tests::create($validated);
+
+        return redirect()->route($this->testRouteName('index'))->with('success', 'Test created successfully');
     }
 
-    // Edit Test
     public function edit($id)
     {
         $test = Tests::findOrFail($id);
-        $departments = Department::all();
-        return view('admin.tests.edit', compact('test', 'departments'));
+        $this->ensureCanManageTest($test);
+        $courses = $this->manageableCourses(Auth::user());
+        $departments = $courses->pluck('department')->filter()->unique('id')->sortBy('name')->values();
+
+        return view('admin.tests.edit', compact('test', 'departments', 'courses'));
     }
 
-    // Update Test
     public function update(Request $request, $id)
     {
         $test = Tests::findOrFail($id);
+        $this->ensureCanManageTest($test);
 
         $validatedData = $request->validate([
             'name' => 'required|string',
@@ -405,20 +412,24 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
             'status' => 'required|boolean',
         ]);
 
+        $this->ensureCanManageTestPayload($validatedData['subject'], (int) $validatedData['department_id'], (string) $validatedData['level']);
+
         $test->update($validatedData);
 
-        return redirect()->route('admin.tests.index')->with('success', 'Test updated successfully');
+        return redirect()->route($this->testRouteName('index'))->with('success', 'Test updated successfully');
     }
 
     public function manageQuestions($testId)
     {
         $test = Tests::with('questions')->findOrFail($testId);
+        $this->ensureCanManageTest($test);
         return view('admin.tests.questions', compact('test'));
     }
 
     public function storeQuestions(Request $request, $testId)
     {
         $test = Tests::findOrFail($testId);
+        $this->ensureCanManageTest($test);
 
         $validated = $request->validate([
             'question_text' => 'required|string',
@@ -437,19 +448,19 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
         return back()->with('success', 'Question added successfully');
     }
 
-    // Edit Question
     public function editQuestion($testId, $questionId)
     {
         $test = Tests::findOrFail($testId);
+        $this->ensureCanManageTest($test);
         $question = $test->questions()->findOrFail($questionId);
 
         return view('admin.tests.edit-question', compact('test', 'question'));
     }
 
-    // Update Question
     public function updateQuestion(Request $request, $testId, $questionId)
     {
         $test = Tests::findOrFail($testId);
+        $this->ensureCanManageTest($test);
         $question = $test->questions()->findOrFail($questionId);
 
         $validatedData = $request->validate([
@@ -461,14 +472,98 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
 
         $question->update($validatedData);
 
-        return redirect()->route('admin.tests.questions', $testId)->with('success', 'Question updated successfully');
+        return redirect()->route($this->testRouteName('questions'), $testId)->with('success', 'Question updated successfully');
+    }
+
+    public function deleteQuestion($testId, $questionId)
+    {
+        $test = Tests::findOrFail($testId);
+        $this->ensureCanManageTest($test);
+        $question = $test->questions()->findOrFail($questionId);
+        $question->delete();
+
+        return redirect()->route($this->testRouteName('questions'), $testId)->with('success', 'Question deleted successfully');
     }
 
     public function viewResponses($testId)
     {
         $test = Tests::findOrFail($testId);
+        $this->ensureCanManageTest($test);
         $responses = Responses::where('test_id', $testId)->with('student')->get();
 
         return view('admin.tests.responses', compact('test', 'responses'));
+    }
+
+    protected function manageableCourses($user)
+    {
+        if ($user->usertype === 'lecturer') {
+            return $user->assignedCourses()->with('department')->orderBy('code')->get();
+        }
+
+        return Courses::with('department')->orderBy('code')->get();
+    }
+
+    protected function manageableTestsQuery($user)
+    {
+        $query = Tests::query();
+
+        if ($user->usertype !== 'lecturer') {
+            return $query;
+        }
+
+        $courses = $this->manageableCourses($user);
+
+        if ($courses->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function ($testQuery) use ($courses) {
+            foreach ($courses as $course) {
+                $testQuery->orWhere(function ($matchQuery) use ($course) {
+                    $matchQuery->where('subject', $course->title)
+                        ->where('department_id', $course->department_id)
+                        ->where('level', (string) $course->level);
+                });
+            }
+        });
+    }
+
+    protected function ensureCanManageTest(Tests $test): void
+    {
+        if (Auth::user()->usertype !== 'lecturer') {
+            return;
+        }
+
+        $allowed = Auth::user()->assignedCourses()
+            ->where('title', $test->subject)
+            ->where('department_id', $test->department_id)
+            ->where('level', $test->level)
+            ->exists();
+
+        if (! $allowed) {
+            abort(403, 'You are not assigned to this course.');
+        }
+    }
+
+    protected function ensureCanManageTestPayload(string $subject, int $departmentId, string $level): void
+    {
+        if (Auth::user()->usertype !== 'lecturer') {
+            return;
+        }
+
+        $allowed = Auth::user()->assignedCourses()
+            ->where('title', $subject)
+            ->where('department_id', $departmentId)
+            ->where('level', $level)
+            ->exists();
+
+        if (! $allowed) {
+            abort(403, 'You are not assigned to this course.');
+        }
+    }
+
+    protected function testRouteName(string $name): string
+    {
+        return (Auth::user()?->usertype === 'lecturer' ? 'lecturer' : 'admin') . '.tests.' . $name;
     }
 }

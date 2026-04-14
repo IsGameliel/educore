@@ -1,6 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
 
 <div class="main-panel">
     <div class="content-wrapper">
@@ -24,7 +25,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h4 class="card-title">List of Tests</h4>
-                    <a href="{{ route('admin.tests.create') }}" class="btn btn-gradient-primary btn-sm">
+                    <a href="{{ route($routePrefix.'.tests.create') }}" class="btn btn-gradient-primary btn-sm">
                         <i class="mdi mdi-plus"></i> Create New Test
                     </a>
                 </div>
@@ -55,15 +56,15 @@
                                     </td>
                                     <td>
                                         <div class="d-flex gap-2">
-                                            <a href="{{ route('admin.tests.questions', $test->id) }}"
+                                            <a href="{{ route($routePrefix.'.tests.questions', $test->id) }}"
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="mdi mdi-help"></i> Manage Questions
                                             </a>
-                                            <a href="{{ route('admin.tests.responses', $test->id) }}"
+                                            <a href="{{ route($routePrefix.'.tests.responses', $test->id) }}"
                                                class="btn btn-sm btn-outline-secondary">
                                                 <i class="mdi mdi-eye"></i> View Responses
                                             </a>
-                                            <a href="{{ route('admin.tests.edit', $test->id) }}"
+                                            <a href="{{ route($routePrefix.'.tests.edit', $test->id) }}"
                                                class="btn btn-sm btn-outline-info">
                                                 <i class="mdi mdi-pencil"></i> Edit Test
                                             </a>

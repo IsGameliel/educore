@@ -49,7 +49,8 @@
                             <option value="admin" {{ old('usertype', $staff->usertype) == 'admin' ? 'selected' : '' }}>Admin</option>
                             <option value="exam_officer" {{ old('usertype', $staff->usertype) == 'exam_officer' ? 'selected' : '' }}>Exam Officer</option>
                             <option value="lecturer" {{ old('usertype', $staff->usertype) == 'lecturer' ? 'selected' : '' }}>Lecturer</option>
-                            <option value="guest" {{ old('usertype', $staff->usertype) == 'guest' ? 'selected' : '' }}>guest</option>
+                            <option value="guest" {{ old('usertype', $staff->usertype) == 'guest' ? 'selected' : '' }}>Guest</option>
+                            <option value="student" {{ old('usertype', $staff->usertype) == 'student' ? 'selected' : '' }}>Student</option>
                         </select>
                     </div>
 

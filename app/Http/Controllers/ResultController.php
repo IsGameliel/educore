@@ -3,18 +3,24 @@
 namespace App\Http\Controllers;
 
 use App\Imports\ResultsImport;
+use App\Exports\ArrayExport;
+use App\Exports\ResultUploadTemplateExport;
+use App\Models\AcademicSession;
 use App\Models\Courses;
 use App\Models\Result;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use App\Support\ActivityLogger;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ResultController extends Controller
 {
@@ -46,12 +52,37 @@ class ResultController extends Controller
             $query->where('level', $request->level);
         }
 
-        $results = $query->get();
+        $results = $query->orderBy('session', 'desc')
+            ->orderBy('semester')
+            ->orderBy('user_id')
+            ->get();
+        $groupedResults = $results->groupBy(function ($item) {
+            return $item->user_id . '_' . $item->department_id . '_' . $item->session . '_' . $item->semester;
+        })->values();
+        $perPage = 10;
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $paginatedGroupedResults = new LengthAwarePaginator(
+            $groupedResults->slice(($currentPage - 1) * $perPage, $perPage)->values(),
+            $groupedResults->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]
+        );
         $students = User::where('usertype', 'student')->get();
         $departments = Department::all();
         $view = $actor->usertype === 'student' ? 'student.result.index' : 'admin.result.index';
+        $academicSessions = $this->getAcademicSessionOptions();
 
-        return view($view, compact('results', 'students', 'departments'));
+        return view($view, [
+            'results' => $results,
+            'groupedResults' => $paginatedGroupedResults,
+            'students' => $students,
+            'departments' => $departments,
+            'academicSessions' => $academicSessions,
+        ]);
     }
 
     public function export(Request $request)
@@ -99,6 +130,39 @@ class ResultController extends Controller
         return Excel::download(new \App\Exports\ArrayExport($exportData->toArray()), 'filtered_results.xlsx');
     }
 
+    public function downloadTemplate(Request $request)
+    {
+        $actor = Auth::user();
+        $selectedCourseIds = collect((array) $request->input('course_ids'))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        $courses = $this->getAccessibleCoursesForUser($actor)
+            ->whereIn('id', $selectedCourseIds)
+            ->values();
+
+        if ($courses->isEmpty()) {
+            return redirect()->back()->with('error', 'Select at least one course to download the template.');
+        }
+
+        return Excel::download(new ResultUploadTemplateExport($courses), 'result_upload_template.xlsx');
+    }
+
+    public function viewStoredTranscript(string $filename)
+    {
+        $safeFilename = basename($filename);
+        $relativePath = 'documents/transcripts/' . $safeFilename;
+
+        if (!Storage::disk('public')->exists($relativePath)) {
+            abort(404, 'Transcript file not found.');
+        }
+
+        return response()->file(Storage::disk('public')->path($relativePath), [
+            'Content-Type' => File::mimeType(Storage::disk('public')->path($relativePath)) ?: 'application/pdf',
+        ]);
+    }
+
     public function show(Request $request, $userId, $session, $semester)
     {
         $user = User::findOrFail($userId);
@@ -120,7 +184,11 @@ class ResultController extends Controller
         $results = $resultsQuery->get();
 
         if ($results->isEmpty()) {
-            $route = Auth::user()->usertype === 'student' ? 'student.results.index' : 'admin.results.index';
+            $route = match (Auth::user()->usertype) {
+                'student' => 'student.results.index',
+                'lecturer' => 'lecturer.results.index',
+                default => 'admin.results.index',
+            };
             return redirect()->route($route)->with('error', 'No results found.');
         }
 
@@ -156,8 +224,9 @@ class ResultController extends Controller
         $students = User::where('usertype', 'student')
             ->when(!$this->isPrivilegedResultManager($actor), fn ($query) => $query->whereIn('department_id', $departmentIds))
             ->get();
+        $academicSessions = $this->getAcademicSessionOptions();
 
-        return view('admin.result.create', compact('students', 'departments', 'courses'));
+        return view('admin.result.create', compact('students', 'departments', 'courses', 'academicSessions'));
     }
 
     public function editGroup(Request $request, $user_id, $session, $semester)
@@ -201,7 +270,7 @@ class ResultController extends Controller
         $actor = Auth::user();
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'session' => 'required|string|max:255',
+            'session' => $this->sessionValidationRules(),
             'semester' => 'required|in:First,Second',
             'course_id' => 'required|exists:courses,id',
             'ca_score' => 'nullable|numeric|min:0|max:100',
@@ -264,14 +333,15 @@ class ResultController extends Controller
             ]
         );
 
-        return redirect()->route('admin.results.index')->with('success', 'Result added successfully.');
+        return redirect()->route($this->resultRouteName('index'))->with('success', 'Result added successfully.');
     }
 
     public function edit(Result $result)
     {
         $this->ensureCanManageResultRecord($result);
         $students = User::where('usertype', 'student')->get();
-        return view('admin.result.edit', compact('result', 'students'));
+        $academicSessions = $this->getAcademicSessionOptions([$result->session]);
+        return view('admin.result.edit', compact('result', 'students', 'academicSessions'));
     }
 
     public function update(Request $request, Result $result)
@@ -279,7 +349,7 @@ class ResultController extends Controller
         $actor = Auth::user();
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'session' => 'required|string|max:255',
+            'session' => $this->sessionValidationRules(),
             'semester' => 'required|in:First,Second',
             'course_code' => 'required|string|max:255',
             'course_title' => 'required|string|max:255',
@@ -293,7 +363,7 @@ class ResultController extends Controller
         $this->ensureCanManageResultRecord($result);
         $user = User::where('usertype', 'student')->findOrFail($request->user_id);
         $department = Department::findOrFail($request->department_id ?? $result->department_id ?? $user->department_id);
-        $this->ensureCourseCodeIsManageable($request->course_code, $department->id);
+        $this->ensureCourseCodeIsManageable($request->course_code, $department->id, $request->semester);
         $score = $this->resolveResultScore(
             $request->score,
             $request->ca_score,
@@ -339,7 +409,7 @@ class ResultController extends Controller
             ]
         );
 
-        return redirect()->route('admin.results.index')->with('success', 'Result updated successfully.');
+        return redirect()->route($this->resultRouteName('index'))->with('success', 'Result updated successfully.');
     }
 
     public function updateGroup(Request $request, $user_id, $session, $semester)
@@ -369,7 +439,7 @@ class ResultController extends Controller
                 ->firstOrFail();
 
             $this->ensureCanManageResultRecord($result);
-            $this->ensureCourseCodeIsManageable($payload['course_code'], $departmentId);
+            $this->ensureCourseCodeIsManageable($payload['course_code'], $departmentId, $semester);
 
             $score = $this->resolveResultScore(
                 $payload['score'] ?? null,
@@ -408,7 +478,7 @@ class ResultController extends Controller
             );
         }
 
-        return redirect()->route('admin.results.editGroup', [
+        return redirect()->route($this->resultRouteName('editGroup'), [
             $user_id,
             $session,
             $semester,
@@ -439,7 +509,7 @@ class ResultController extends Controller
             ->get();
 
         if ($sourceResults->isEmpty()) {
-            return redirect()->route('admin.results.index')
+            return redirect()->route($this->resultRouteName('index'))
                 ->with('error', 'No results were found in the selected source department.');
         }
 
@@ -493,7 +563,7 @@ class ResultController extends Controller
 
         $targetDepartment = Department::find($targetDepartmentId);
 
-        return redirect()->route('admin.results.index')
+        return redirect()->route($this->resultRouteName('index'))
             ->with(
                 'success',
                 "{$copiedCount} result(s) copied to {$targetDepartment?->name}. {$skippedCount} duplicate result(s) were skipped."
@@ -513,7 +583,7 @@ class ResultController extends Controller
 
         $result->delete();
 
-        return redirect()->route('admin.results.editGroup', [
+        return redirect()->route($this->resultRouteName('editGroup'), [
             $userId,
             $session,
             $semester,
@@ -522,33 +592,122 @@ class ResultController extends Controller
             ->with('success', 'Result deleted successfully.');
     }
 
+    public function destroyGroup(Request $request, $user_id, $session, $semester)
+    {
+        $student = User::where('usertype', 'student')->findOrFail($user_id);
+        $session = urldecode($session);
+        $departmentId = $this->resolveDepartmentId($request, $student);
+
+        $resultsQuery = Result::where('user_id', $user_id)
+            ->where('session', $session)
+            ->where('semester', $semester)
+            ->where('department_id', $departmentId);
+
+        if (Auth::user()->usertype === 'lecturer') {
+            $this->applyAccessibleCourseScope($resultsQuery, Auth::user());
+        }
+
+        $results = $resultsQuery->get();
+
+        if ($results->isEmpty()) {
+            return redirect()->route($this->resultRouteName('index'))
+                ->with('error', 'No uploaded results were found for that student, session, and semester.');
+        }
+
+        foreach ($results as $result) {
+            $this->ensureCanManageResultRecord($result);
+            $result->delete();
+        }
+
+        return redirect()->route($this->resultRouteName('index'))
+            ->with('success', $results->count() . ' result(s) deleted successfully.');
+    }
+
     public function upload()
     {
         $actor = Auth::user();
         $courses = $this->getAccessibleCoursesForUser($actor);
-        $departmentIds = $courses->pluck('department_id')->unique()->values();
-        $students = User::where('usertype', 'student')
-            ->when(!$this->isPrivilegedResultManager($actor), fn ($query) => $query->whereIn('department_id', $departmentIds))
-            ->get();
+        $academicSessions = $this->getAcademicSessionOptions();
 
-        return view('admin.result.upload', compact('students', 'courses'));
+        return view('admin.result.upload', compact('courses', 'academicSessions'));
     }
 
     public function storeUpload(Request $request)
     {
         $actor = Auth::user();
         $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'course_id' => 'required|exists:courses,id',
-            'file' => 'required|file|mimes:csv,xlsx|max:2048',
+            'course_ids' => 'required|array|min:1',
+            'course_ids.*' => 'required|exists:courses,id',
+            'session' => $this->sessionValidationRules(),
+            'semester' => 'required|in:First,Second',
+            'file' => 'required|file|mimes:csv,xls,xlsx|max:5120',
         ]);
 
-        $course = $this->resolveManagedCourse($request->course_id);
+        $courses = collect($request->input('course_ids'))
+            ->map(fn ($courseId) => $this->resolveManagedCourse($courseId))
+            ->values();
 
-        Excel::import(new ResultsImport($request->user_id, $course, $actor->id), $request->file('file'));
+        $spreadsheet = IOFactory::load($request->file('file')->getRealPath());
+        $worksheets = collect($spreadsheet->getWorksheetIterator())
+            ->filter(function ($worksheet) {
+                $rows = $worksheet->toArray('', true, true, false);
 
-        return redirect()->route('admin.results.index')
-                         ->with('success', 'Results uploaded successfully. You can now generate the transcript.');
+                foreach ($rows as $row) {
+                    foreach ((array) $row as $value) {
+                        if (trim((string) $value) !== '') {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            })
+            ->values();
+
+        if ($worksheets->count() < $courses->count()) {
+            throw ValidationException::withMessages([
+                'file' => "The uploaded workbook has {$worksheets->count()} non-empty sheet(s), but " . $courses->count() . ' course(s) were selected.',
+            ]);
+        }
+
+        $report = [
+            'created' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+        ];
+
+        DB::transaction(function () use ($courses, $worksheets, $request, $actor, &$report) {
+            foreach ($courses as $index => $course) {
+                $worksheet = $worksheets->get($index);
+
+                if ($worksheet === null) {
+                    continue;
+                }
+
+                $import = new ResultsImport(
+                    $course,
+                    $actor->id,
+                    $request->session,
+                    $request->semester
+                );
+
+                $import->importRows(collect($worksheet->toArray('', true, true, false)));
+
+                $sheetReport = $import->getReport();
+                $report['created'] += $sheetReport['created'];
+                $report['updated'] += $sheetReport['updated'];
+                $report['skipped'] += $sheetReport['skipped'];
+            }
+        });
+
+        $message = "{$report['created']} result(s) uploaded and {$report['updated']} existing result(s) updated.";
+
+        if ($report['skipped'] > 0) {
+            $message .= " {$report['skipped']} row(s) were skipped.";
+        }
+
+        return redirect()->route($this->resultRouteName('index'))
+                         ->with('success', $message);
     }
 
     public function generateTranscriptForSemester(Request $request, $userId, $session, $semester)
@@ -742,13 +901,45 @@ class ResultController extends Controller
         return collect();
     }
 
+    protected function getAccessibleResultCoursesForUser(User $user)
+    {
+        if ($this->isPrivilegedResultManager($user)) {
+            return Courses::with('department')->orderBy('code')->get();
+        }
+
+        if ($user->usertype !== 'lecturer') {
+            return collect();
+        }
+
+        $assignedCourses = $user->assignedCourses()->get(['courses.id', 'courses.code', 'courses.semester', 'courses.level']);
+
+        if ($assignedCourses->isEmpty()) {
+            return collect();
+        }
+
+        return Courses::with('department')
+            ->where(function ($query) use ($assignedCourses) {
+                foreach ($assignedCourses as $course) {
+                    $query->orWhere(function ($courseQuery) use ($course) {
+                        $courseQuery->where('code', $course->code)
+                            ->where('semester', $course->semester)
+                            ->where('level', $course->level);
+                    });
+                }
+            })
+            ->orderBy('code')
+            ->get()
+            ->unique('id')
+            ->values();
+    }
+
     protected function applyAccessibleCourseScope($query, User $user)
     {
         if ($this->isPrivilegedResultManager($user) || $user->usertype !== 'lecturer') {
             return $query;
         }
 
-        $courses = $this->getAccessibleCoursesForUser($user);
+        $courses = $this->getAccessibleResultCoursesForUser($user);
 
         if ($courses->isEmpty()) {
             return $query->whereRaw('1 = 0');
@@ -758,7 +949,8 @@ class ResultController extends Controller
             foreach ($courses as $course) {
                 $courseQuery->orWhere(function ($matchQuery) use ($course) {
                     $matchQuery->where('department_id', $course->department_id)
-                        ->where('course_code', $course->code);
+                        ->where('course_code', $course->code)
+                        ->where('semester', $course->semester);
                 });
             }
         });
@@ -776,7 +968,7 @@ class ResultController extends Controller
         return $course;
     }
 
-    protected function ensureCourseCodeIsManageable($courseCode, $departmentId)
+    protected function ensureCourseCodeIsManageable($courseCode, $departmentId, $semester = null)
     {
         $actor = Auth::user();
 
@@ -784,10 +976,18 @@ class ResultController extends Controller
             return;
         }
 
-        $isAssigned = $actor->assignedCourses()
-            ->where('code', $courseCode)
-            ->where('department_id', $departmentId)
-            ->exists();
+        $isAssigned = $this->getAccessibleResultCoursesForUser($actor)
+            ->contains(function ($course) use ($courseCode, $departmentId, $semester) {
+                if ((int) $course->department_id !== (int) $departmentId) {
+                    return false;
+                }
+
+                if ($course->code !== $courseCode) {
+                    return false;
+                }
+
+                return $semester === null || $course->semester === $semester;
+            });
 
         if (!$isAssigned) {
             abort(403, 'You are not assigned to this course.');
@@ -796,12 +996,42 @@ class ResultController extends Controller
 
     protected function ensureCanManageResultRecord(Result $result)
     {
-        $this->ensureCourseCodeIsManageable($result->course_code, $result->department_id);
+        $this->ensureCourseCodeIsManageable($result->course_code, $result->department_id, $result->semester);
     }
 
     protected function resolveDepartmentId(Request $request, User $user)
     {
         return (int) ($request->input('department_id') ?: $user->department_id);
+    }
+
+    protected function resultRouteName(string $name): string
+    {
+        return (Auth::user()?->usertype === 'lecturer' ? 'lecturer' : 'admin') . '.results.' . $name;
+    }
+
+    protected function getAcademicSessionOptions(array $extraSessions = [])
+    {
+        return AcademicSession::query()
+            ->orderByDesc('start_year')
+            ->get()
+            ->pluck('name')
+            ->merge(collect($extraSessions)->filter())
+            ->unique()
+            ->values();
+    }
+
+    protected function sessionValidationRules(): array
+    {
+        return [
+            'required',
+            'string',
+            'max:9',
+            function (string $attribute, mixed $value, \Closure $fail) {
+                if (!AcademicSession::isValidFormat((string) $value)) {
+                    $fail('Academic session must be in the format 2021/2022 and the second year must be the next year.');
+                }
+            },
+        ];
     }
 
 

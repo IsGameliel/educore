@@ -103,53 +103,228 @@
                     </div>
                 </div>
                 <div class="row">
+                    <div class="col-12 grid-margin" id="academic-sessions-panel">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                                    <div>
+                                        <h4 class="card-title mb-1">Academic Sessions</h4>
+                                        <p class="text-muted mb-0">Create and update sessions in the format <strong>2021/2022</strong>.</p>
+                                    </div>
+                                </div>
+
+                                @if ($errors->has('name'))
+                                    <div class="alert alert-danger">
+                                        {{ $errors->first('name') }}
+                                    </div>
+                                @endif
+
+                                <div class="row g-4">
+                                    <div class="col-lg-4">
+                                        <div class="border rounded p-3 h-100">
+                                            <h5 class="mb-3">Create Session</h5>
+                                            <form method="POST" action="{{ route('admin.academic-sessions.store') }}">
+                                                @csrf
+                                                <div class="mb-3">
+                                                    <label for="session_name" class="form-label">Session</label>
+                                                    <input
+                                                        type="text"
+                                                        name="name"
+                                                        id="session_name"
+                                                        class="form-control"
+                                                        value="{{ old('name') }}"
+                                                        placeholder="e.g. 2021/2022"
+                                                        required
+                                                    >
+                                                    <small class="text-muted">Use consecutive years only.</small>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">Create Session</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-8">
+                                        <div class="border rounded p-3 h-100">
+                                            <h5 class="mb-3">Existing Sessions</h5>
+                                            <div class="table-responsive">
+                                                <table class="table table-hover align-middle mb-0">
+                                                    <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Session</th>
+                                                        <th>Update</th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    @forelse ($academicSessions as $academicSession)
+                                                        <tr>
+                                                            <td>{{ $loop->iteration }}</td>
+                                                            <td class="fw-semibold">{{ $academicSession->name }}</td>
+                                                            <td>
+                                                                <form method="POST" action="{{ route('admin.academic-sessions.update', $academicSession) }}" class="row g-2 align-items-center">
+                                                                    @csrf
+                                                                    @method('PUT')
+                                                                    <div class="col-md-8">
+                                                                        <input
+                                                                            type="text"
+                                                                            name="name"
+                                                                            class="form-control"
+                                                                            value="{{ old('name_' . $academicSession->id, $academicSession->name) }}"
+                                                                            placeholder="e.g. 2021/2022"
+                                                                            required
+                                                                        >
+                                                                    </div>
+                                                                    <div class="col-md-4 d-grid">
+                                                                        <button type="submit" class="btn btn-outline-primary btn-sm">Save</button>
+                                                                    </div>
+                                                                </form>
+                                                            </td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr>
+                                                            <td colspan="3" class="text-center text-muted">No academic sessions created yet.</td>
+                                                        </tr>
+                                                    @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 grid-margin">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 class="card-title mb-0">Department Course Allocation</h4>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="text-muted small">{{ $departmentCourseSummary->count() }} departments</span>
+                                        <button
+                                            class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#department-course-allocation"
+                                            aria-expanded="true"
+                                            aria-controls="department-course-allocation"
+                                        >
+                                            <i class="mdi mdi-chevron-up" data-collapse-icon></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="collapse show" id="department-course-allocation">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                            <tr>
+                                                <th>Department</th>
+                                                <th class="text-end">Assigned Courses</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody id="department-course-table-body">
+                                            @forelse ($departmentCourseSummary as $department)
+                                                <tr class="department-course-row">
+                                                    <td>{{ $department->name }}</td>
+                                                    <td class="text-end font-weight-bold">{{ $department->courses_count }}</td>
+                                                </tr>
+                                            @empty
+                                                <tr id="department-course-empty-row">
+                                                    <td colspan="2" class="text-center text-muted">No departments found.</td>
+                                                </tr>
+                                            @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    @if ($departmentCourseSummary->isNotEmpty())
+                                        <div class="d-flex justify-content-between align-items-center mt-3 gap-3 flex-wrap">
+                                            <small class="text-muted" id="department-course-pagination-status">
+                                                Showing 1-1 of {{ $departmentCourseSummary->count() }} departments
+                                            </small>
+                                            <div class="d-flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-secondary"
+                                                    id="department-course-prev"
+                                                >
+                                                    Previous
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-primary"
+                                                    id="department-course-next"
+                                                >
+                                                    Next
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
                     <div class="col-12 grid-margin">
                         <div class="card">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h4 class="card-title mb-0">Recent Activity</h4>
-                                    <span class="text-muted small">Result uploads and course registrations</span>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="text-muted small">Result uploads and course registrations</span>
+                                        <button
+                                            class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#recent-activity-table"
+                                            aria-expanded="true"
+                                            aria-controls="recent-activity-table"
+                                        >
+                                            <i class="mdi mdi-chevron-up" data-collapse-icon></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
-                                        <tr>
-                                            <th> User </th>
-                                            <th> Activity </th>
-                                            <th> Details </th>
-                                            <th> Status </th>
-                                            <th> Time </th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        @forelse ($recentActivities as $activity)
+                                <div class="collapse show" id="recent-activity-table">
+                                    <div class="table-responsive">
+                                        <table class="table">
+                                            <thead>
                                             <tr>
-                                                <td>{{ $activity['actor'] }}</td>
-                                                <td>{{ $activity['activity'] }}</td>
-                                                <td>{{ $activity['details'] }}</td>
-                                                <td>
-                                                    <label class="badge badge-gradient-{{ $activity['status_color'] }}">
-                                                        {{ $activity['status'] }}
-                                                    </label>
-                                                </td>
-                                                <td>
-                                                    @if ($activity['occurred_at'])
-                                                        {{ $activity['occurred_at']->format('M j, Y g:i A') }}
-                                                        <div class="text-muted small">{{ $activity['occurred_at']->diffForHumans() }}</div>
-                                                    @else
-                                                        <span class="text-muted">N/A</span>
-                                                    @endif
-                                                </td>
+                                                <th> User </th>
+                                                <th> Activity </th>
+                                                <th> Details </th>
+                                                <th> Status </th>
+                                                <th> Time </th>
                                             </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="5" class="text-center text-muted">
-                                                    No recent result uploads or course registrations found.
-                                                </td>
-                                            </tr>
-                                        @endforelse
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                            @forelse ($recentActivities as $activity)
+                                                <tr>
+                                                    <td>{{ $activity['actor'] }}</td>
+                                                    <td>{{ $activity['activity'] }}</td>
+                                                    <td>{{ $activity['details'] }}</td>
+                                                    <td>
+                                                        <label class="badge badge-gradient-{{ $activity['status_color'] }}">
+                                                            {{ $activity['status'] }}
+                                                        </label>
+                                                    </td>
+                                                    <td>
+                                                        @if ($activity['occurred_at'])
+                                                            {{ $activity['occurred_at']->format('M j, Y g:i A') }}
+                                                            <div class="text-muted small">{{ $activity['occurred_at']->diffForHumans() }}</div>
+                                                        @else
+                                                            <span class="text-muted">N/A</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="5" class="text-center text-muted">
+                                                        No recent result uploads or course registrations found.
+                                                    </td>
+                                                </tr>
+                                            @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -287,55 +462,41 @@
                         <div class="card">
                             <div class="card-body">
                                 <h4 class="card-title text-dark">Todo List</h4>
-                                <div class="add-items d-flex">
-                                    <input type="text" class="form-control todo-list-input" placeholder="What do you need to do today?">
-                                    <button class="add btn btn-gradient-primary font-weight-bold todo-list-add-btn" id="add-task">Add</button>
+                                <div class="add-items d-flex mb-3">
+                                    <input
+                                        type="text"
+                                        class="form-control todo-list-input"
+                                        id="todo-list-input"
+                                        placeholder="What do you need to do today?"
+                                        maxlength="150"
+                                    >
+                                    <button class="add btn btn-gradient-primary font-weight-bold todo-list-add-btn" id="add-task" type="button">Add</button>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small class="text-muted" id="todo-summary">0 tasks (0 remaining)</small>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-completed-tasks">Clear completed</button>
                                 </div>
                                 <div class="list-wrapper">
-                                    <ul class="d-flex flex-column-reverse todo-list todo-list-custom">
-                                        <li>
-                                            <div class="form-check">
-                                                <label class="form-check-label">
-                                                    <input class="checkbox" type="checkbox"> Meeting with Alisa </label>
-                                            </div>
-                                            <i class="remove mdi mdi-close-circle-outline"></i>
-                                        </li>
-                                        <li class="completed">
-                                            <div class="form-check">
-                                                <label class="form-check-label">
-                                                    <input class="checkbox" type="checkbox" checked> Call John </label>
-                                            </div>
-                                            <i class="remove mdi mdi-close-circle-outline"></i>
-                                        </li>
-                                        <li>
-                                            <div class="form-check">
-                                                <label class="form-check-label">
-                                                    <input class="checkbox" type="checkbox"> Create invoice </label>
-                                            </div>
-                                            <i class="remove mdi mdi-close-circle-outline"></i>
-                                        </li>
-                                        <li>
-                                            <div class="form-check">
-                                                <label class="form-check-label">
-                                                    <input class="checkbox" type="checkbox"> Print Statements </label>
-                                            </div>
-                                            <i class="remove mdi mdi-close-circle-outline"></i>
-                                        </li>
-                                        <li class="completed">
-                                            <div class="form-check">
-                                                <label class="form-check-label">
-                                                    <input class="checkbox" type="checkbox" checked> Prepare for presentation </label>
-                                            </div>
-                                            <i class="remove mdi mdi-close-circle-outline"></i>
-                                        </li>
-                                        <li>
-                                            <div class="form-check">
-                                                <label class="form-check-label">
-                                                    <input class="checkbox" type="checkbox"> Pick up kids from school </label>
-                                            </div>
-                                            <i class="remove mdi mdi-close-circle-outline"></i>
-                                        </li>
-                                    </ul>
+                                    <ul class="d-flex flex-column-reverse todo-list todo-list-custom" id="todo-list"></ul>
+                                    <div class="text-muted text-center py-3 d-none" id="todo-empty-state">
+                                        No tasks yet. Add one to get started.
+                                    </div>
+                                </div>
+                                <template id="todo-item-template">
+                                    <li>
+                                        <div class="form-check">
+                                            <label class="form-check-label">
+                                                <input class="checkbox todo-checkbox" type="checkbox">
+                                                <span class="todo-text"></span>
+                                            </label>
+                                        </div>
+                                        <button type="button" class="remove border-0 bg-transparent p-0" aria-label="Delete task">
+                                            <i class="mdi mdi-close-circle-outline"></i>
+                                        </button>
+                                    </li>
+                                </template>
+                                <div class="small text-muted mt-3">
+                                    Your tasks are saved in this browser for your account.
                                 </div>
                             </div>
                         </div>
@@ -349,10 +510,232 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const chartCanvas = document.getElementById('app-visitor-chart');
+            const todoStorageKey = 'educore.admin.todo.{{ auth()->id() ?? 'guest' }}';
+            const todoInput = document.getElementById('todo-list-input');
+            const todoAddButton = document.getElementById('add-task');
+            const todoList = document.getElementById('todo-list');
+            const todoTemplate = document.getElementById('todo-item-template');
+            const todoEmptyState = document.getElementById('todo-empty-state');
+            const todoSummary = document.getElementById('todo-summary');
+            const clearCompletedButton = document.getElementById('clear-completed-tasks');
+            const collapseTargets = [
+                'department-course-allocation',
+                'recent-activity-table',
+            ];
+            const departmentCourseRows = Array.from(document.querySelectorAll('.department-course-row'));
+            const departmentCoursePrevButton = document.getElementById('department-course-prev');
+            const departmentCourseNextButton = document.getElementById('department-course-next');
+            const departmentCourseStatus = document.getElementById('department-course-pagination-status');
+            const departmentCoursesPerPage = 6;
+            let departmentCoursePage = 0;
+            let todos = loadTodos();
+
+            collapseTargets.forEach(function (targetId) {
+                const collapseElement = document.getElementById(targetId);
+                const collapseButton = document.querySelector('[data-bs-target="#' + targetId + '"]');
+                const collapseIcon = collapseButton?.querySelector('[data-collapse-icon]');
+
+                if (!collapseElement || !collapseButton || !collapseIcon) {
+                    return;
+                }
+
+                collapseElement.addEventListener('show.bs.collapse', function () {
+                    collapseIcon.classList.remove('mdi-chevron-down');
+                    collapseIcon.classList.add('mdi-chevron-up');
+                    collapseButton.setAttribute('aria-expanded', 'true');
+                });
+
+                collapseElement.addEventListener('hide.bs.collapse', function () {
+                    collapseIcon.classList.remove('mdi-chevron-up');
+                    collapseIcon.classList.add('mdi-chevron-down');
+                    collapseButton.setAttribute('aria-expanded', 'false');
+                });
+            });
+
+            function loadTodos() {
+                try {
+                    const storedTodos = window.localStorage.getItem(todoStorageKey);
+                    const parsedTodos = storedTodos ? JSON.parse(storedTodos) : [];
+
+                    return Array.isArray(parsedTodos) ? parsedTodos : [];
+                } catch (error) {
+                    return [];
+                }
+            }
+
+            function saveTodos() {
+                window.localStorage.setItem(todoStorageKey, JSON.stringify(todos));
+            }
+
+            function updateTodoSummary() {
+                const completedCount = todos.filter(function (todo) {
+                    return todo.completed;
+                }).length;
+                const remainingCount = todos.length - completedCount;
+                const taskLabel = todos.length === 1 ? 'task' : 'tasks';
+
+                if (todoSummary) {
+                    todoSummary.textContent = todos.length + ' ' + taskLabel + ' (' + remainingCount + ' remaining)';
+                }
+
+                if (clearCompletedButton) {
+                    clearCompletedButton.disabled = completedCount === 0;
+                }
+            }
+
+            function renderTodos() {
+                if (!todoList || !todoTemplate) {
+                    return;
+                }
+
+                todoList.innerHTML = '';
+
+                if (!todos.length) {
+                    todoEmptyState?.classList.remove('d-none');
+                    updateTodoSummary();
+                    return;
+                }
+
+                todoEmptyState?.classList.add('d-none');
+
+                todos.forEach(function (todo) {
+                    const todoItemFragment = todoTemplate.content.cloneNode(true);
+                    const todoItem = todoItemFragment.querySelector('li');
+                    const checkbox = todoItemFragment.querySelector('.todo-checkbox');
+                    const text = todoItemFragment.querySelector('.todo-text');
+                    const removeButton = todoItemFragment.querySelector('.remove');
+
+                    todoItem.dataset.todoId = todo.id;
+                    todoItem.classList.toggle('completed', Boolean(todo.completed));
+                    checkbox.checked = Boolean(todo.completed);
+                    text.textContent = todo.text;
+
+                    checkbox.addEventListener('change', function () {
+                        todos = todos.map(function (item) {
+                            if (item.id === todo.id) {
+                                return {
+                                    id: item.id,
+                                    text: item.text,
+                                    completed: checkbox.checked,
+                                };
+                            }
+
+                            return item;
+                        });
+
+                        saveTodos();
+                        renderTodos();
+                    });
+
+                    removeButton.addEventListener('click', function () {
+                        todos = todos.filter(function (item) {
+                            return item.id !== todo.id;
+                        });
+
+                        saveTodos();
+                        renderTodos();
+                    });
+
+                    todoList.appendChild(todoItemFragment);
+                });
+
+                updateTodoSummary();
+            }
+
+            function addTodo() {
+                if (!todoInput) {
+                    return;
+                }
+
+                const value = todoInput.value.trim();
+
+                if (!value) {
+                    todoInput.focus();
+                    return;
+                }
+
+                todos.push({
+                    id: Date.now().toString(),
+                    text: value,
+                    completed: false,
+                });
+
+                saveTodos();
+                renderTodos();
+                todoInput.value = '';
+                todoInput.focus();
+            }
+
+            todoAddButton?.addEventListener('click', addTodo);
+
+            todoInput?.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addTodo();
+                }
+            });
+
+            clearCompletedButton?.addEventListener('click', function () {
+                todos = todos.filter(function (todo) {
+                    return !todo.completed;
+                });
+
+                saveTodos();
+                renderTodos();
+            });
+
+            renderTodos();
+            renderDepartmentCourses();
 
             if (!chartCanvas) {
                 return;
             }
+
+            function renderDepartmentCourses() {
+                if (!departmentCourseRows.length) {
+                    return;
+                }
+
+                const totalPages = Math.ceil(departmentCourseRows.length / departmentCoursesPerPage);
+                const startIndex = departmentCoursePage * departmentCoursesPerPage;
+                const endIndex = Math.min(startIndex + departmentCoursesPerPage, departmentCourseRows.length);
+
+                departmentCourseRows.forEach(function (row, index) {
+                    row.classList.toggle('d-none', index < startIndex || index >= endIndex);
+                });
+
+                if (departmentCourseStatus) {
+                    departmentCourseStatus.textContent = 'Showing ' + (startIndex + 1) + '-' + endIndex + ' of ' + departmentCourseRows.length + ' departments';
+                }
+
+                if (departmentCoursePrevButton) {
+                    departmentCoursePrevButton.disabled = departmentCoursePage === 0;
+                }
+
+                if (departmentCourseNextButton) {
+                    departmentCourseNextButton.disabled = departmentCoursePage >= totalPages - 1;
+                }
+            }
+
+            departmentCoursePrevButton?.addEventListener('click', function () {
+                if (departmentCoursePage === 0) {
+                    return;
+                }
+
+                departmentCoursePage -= 1;
+                renderDepartmentCourses();
+            });
+
+            departmentCourseNextButton?.addEventListener('click', function () {
+                const totalPages = Math.ceil(departmentCourseRows.length / departmentCoursesPerPage);
+
+                if (departmentCoursePage >= totalPages - 1) {
+                    return;
+                }
+
+                departmentCoursePage += 1;
+                renderDepartmentCourses();
+            });
 
             const visitorStatistics = @json($visitorStatistics);
             const labels = visitorStatistics.map(function (item) {

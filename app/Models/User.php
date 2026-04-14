@@ -21,6 +21,7 @@ class User extends Authenticatable
         'email',
         'password',
         'usertype', // Assuming your users table has a role column
+        'matric_number',
         'department_id',
         'level',
     ];

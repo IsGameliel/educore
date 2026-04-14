@@ -1,6 +1,8 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
+@php($studentsEndpoint = url($routePrefix . '/results/get-students'))
 
 <div class="main-panel">
     <div class="content-wrapper">
@@ -36,7 +38,7 @@
                             </ul>
                         </div>
                     @endif
-                    <form action="{{ route('admin.results.store') }}" method="POST">
+                    <form action="{{ route($routePrefix.'.results.store') }}" method="POST">
                         @csrf
                         <div class="form-group">
                             <label for="course_id">Course</label>
@@ -77,7 +79,14 @@
 
                         <div class="form-group">
                             <label for="session">Session</label>
-                            <input type="text" name="session" class="form-control" value="{{ old('session', '2023/2024') }}" required>
+                            <select name="session" id="session" class="form-control" required>
+                                <option value="">Select Session</option>
+                                @foreach ($academicSessions as $academicSession)
+                                    <option value="{{ $academicSession }}" {{ old('session') === $academicSession ? 'selected' : '' }}>
+                                        {{ $academicSession }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <div class="form-group">
@@ -144,7 +153,7 @@ $(document).ready(function () {
 
         if (departmentId) {
             $.ajax({
-                url: "{{ url('/admin/results/get-students') }}/" + departmentId,
+                url: "{{ $studentsEndpoint }}/" + departmentId,
                 type: 'GET',
                 success: function (data) {
                     $('#student_id').empty().append('<option value="">Select Student</option>');

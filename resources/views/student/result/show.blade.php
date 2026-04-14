@@ -86,8 +86,7 @@
 
         {{-- Actions --}}
         @if ($results->first()->transcript_path)
-            {{-- use the same logic as the admin view to avoid adding an extra "storage/" prefix --}}
-            <a href="{{ asset(ltrim($results->first()->transcript_path, '/')) }}" 
+            <a href="{{ route('documents.transcripts.show', ['filename' => basename($results->first()->transcript_path)]) }}" 
                 class="btn btn-primary mt-2" download>
                 Download Transcript
             </a>

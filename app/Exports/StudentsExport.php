@@ -25,12 +25,13 @@ class StudentsExport implements FromCollection, WithHeadings, WithMapping, WithE
     }
 
     /**
-     * Map each row to the desired columns: Name, Dept, Level, Email
+     * Map each row to the desired columns.
      */
     public function map($student): array
     {
         return [
             $student->name,
+            $student->matric_number,
             optional($student->department)->name,
             $student->level,
             $student->email,
@@ -41,6 +42,7 @@ class StudentsExport implements FromCollection, WithHeadings, WithMapping, WithE
     {
         return [
             'Student Name',
+            'Matric Number',
             'Department',
             'Level',
             'Email',
@@ -72,14 +74,15 @@ class StudentsExport implements FromCollection, WithHeadings, WithMapping, WithE
 
                 // Style headings row (row 4)
                 $headingRow = 4;
-                $sheet->getStyle("A{$headingRow}:D{$headingRow}")->getFont()->setBold(true);
-                $sheet->getStyle("A{$headingRow}:D{$headingRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("A{$headingRow}:E{$headingRow}")->getFont()->setBold(true);
+                $sheet->getStyle("A{$headingRow}:E{$headingRow}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
                 // Set column widths
                 $sheet->getColumnDimension('A')->setWidth(30);
-                $sheet->getColumnDimension('B')->setWidth(30);
-                $sheet->getColumnDimension('C')->setWidth(12);
-                $sheet->getColumnDimension('D')->setWidth(35);
+                $sheet->getColumnDimension('B')->setWidth(28);
+                $sheet->getColumnDimension('C')->setWidth(30);
+                $sheet->getColumnDimension('D')->setWidth(12);
+                $sheet->getColumnDimension('E')->setWidth(35);
 
                 // Optional: freeze top rows so headings always visible
                 $sheet->freezePane('A5');

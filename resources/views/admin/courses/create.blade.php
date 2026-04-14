@@ -1,5 +1,73 @@
 @extends('layouts.dash')
 
+@push('styles')
+    <style>
+        .department-picker {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .department-picker__search {
+            border: 0;
+            border-bottom: 1px solid #eef2f7;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0.9rem 1rem;
+        }
+
+        .department-picker__search:focus {
+            box-shadow: none;
+            border-color: #eef2f7;
+        }
+
+        .department-picker__list {
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .department-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.7rem 0.85rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .department-option:hover {
+            background: #f8f4ff;
+        }
+
+        .department-option input {
+            margin: 0;
+        }
+
+        .department-option__text {
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .department-picker__actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-top: 1px solid #eef2f7;
+            background: #fafbff;
+        }
+
+        .department-picker__empty {
+            padding: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+@endpush
+
 @section('content')
 
     <div class="main-panel">
@@ -57,13 +125,39 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="department_id">Department</label>
-                            <select name="department_id" id="department_id" class="form-control" required>
-                                <option value="">Choose Department</option>
-                                @foreach($departments as $department)
-                                    <option value="{{ $department->id }}">{{ $department->name }}</option>
-                                @endforeach
-                            </select>
+                            <label for="department_ids">Departments</label>
+                            <div class="department-picker">
+                                <input
+                                    type="text"
+                                    class="form-control department-picker__search"
+                                    id="department-search-create"
+                                    placeholder="Search departments"
+                                    autocomplete="off"
+                                >
+                                <div class="department-picker__list" id="department-list-create">
+                                    @foreach($departments as $department)
+                                        <label class="department-option" data-department-name="{{ strtolower($department->name) }}">
+                                            <input
+                                                type="checkbox"
+                                                name="department_ids[]"
+                                                value="{{ $department->id }}"
+                                                {{ in_array($department->id, old('department_ids', [])) ? 'checked' : '' }}
+                                            >
+                                            <span class="department-option__text">{{ $department->name }}</span>
+                                        </label>
+                                    @endforeach
+                                    <div class="department-picker__empty d-none">No matching departments found.</div>
+                                </div>
+                                <div class="department-picker__actions">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-select-all="#department-list-create">
+                                        Select All
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-clear-all="#department-list-create">
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted">One course record will be created for each checked department.</small>
                         </div>
                         <button type="submit" class="btn btn-success">Save</button>
                     </form>
@@ -73,4 +167,8 @@
         </div>
     </div>
 
+@endsection
+
+@section('scripts')
+    @include('admin.courses._department_picker_script')
 @endsection

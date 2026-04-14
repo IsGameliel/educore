@@ -11,6 +11,7 @@ use App\Models\CourseMaterial;
 use App\Models\Courses;
 use App\Models\ClassSchedule;
 use App\Models\ActivityLog;
+use App\Models\AcademicSession;
 
 class HomeController extends Controller
 {
@@ -65,6 +66,12 @@ class HomeController extends Controller
         $totalUsersCount = User::count();
         $departmentsCount = Department::count();
         $facultyCount = Faculty::count();
+        $academicSessions = AcademicSession::query()
+            ->orderByDesc('start_year')
+            ->get();
+        $departmentCourseSummary = Department::withCount('courses')
+            ->orderBy('name')
+            ->get(['id', 'name']);
         $visitorStatistics = collect([
             [
                 'label' => 'Students',
@@ -96,6 +103,8 @@ class HomeController extends Controller
             'totalUsersCount',
             'departmentsCount',
             'facultyCount',
+            'academicSessions',
+            'departmentCourseSummary',
             'visitorStatistics'
         ) + [
             'recentActivities' => $this->getRecentActivities($user),

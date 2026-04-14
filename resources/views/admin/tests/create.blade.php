@@ -1,6 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
 
 <div class="main-panel">
     <div class="content-wrapper">
@@ -22,7 +23,7 @@
         <!-- Create Test Form -->
         <div class="card">
             <div class="card-body">
-                <form action="{{ route('admin.tests.store') }}" method="POST">
+                <form action="{{ route($routePrefix.'.tests.store') }}" method="POST">
                     @csrf
                     <div class="mb-3">
                         <label for="name" class="form-label">Test Name</label>

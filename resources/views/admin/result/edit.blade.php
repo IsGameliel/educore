@@ -1,6 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
 
     <div class="main-panel">
         <div class="content-wrapper">
@@ -36,7 +37,7 @@
                 </ul>
             </div>
         @endif
-        <form action="{{ route('admin.results.update', $result) }}" method="POST">
+        <form action="{{ route($routePrefix.'.results.update', $result) }}" method="POST">
             @csrf
             @method('PUT')
             <input type="hidden" name="department_id" value="{{ old('department_id', $result->department_id) }}">
@@ -53,7 +54,14 @@
             </div>
             <div class="form-group">
                 <label for="session">Session</label>
-                <input type="text" name="session" class="form-control" value="{{ old('session', $result->session) }}" required>
+                <select name="session" id="session" class="form-control" required>
+                    <option value="">Select Session</option>
+                    @foreach ($academicSessions as $academicSession)
+                        <option value="{{ $academicSession }}" {{ old('session', $result->session) === $academicSession ? 'selected' : '' }}>
+                            {{ $academicSession }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
             <div class="form-group">
                 <label for="semester">Semester</label>

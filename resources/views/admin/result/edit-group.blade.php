@@ -1,6 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
 
 <div class="main-panel">
     <div class="content-wrapper">
@@ -36,7 +37,7 @@
                             </ul>
                         </div>
                     @endif
-                    <form action="{{ route('admin.results.updateGroup', [$user_id, $session, $semester, 'department_id' => $departmentId]) }}" method="POST">
+                    <form action="{{ route($routePrefix.'.results.updateGroup', [$user_id, $session, $semester, 'department_id' => $departmentId]) }}" method="POST">
                         @csrf
                         @method('PUT')
                         <input type="hidden" name="department_id" value="{{ $departmentId }}">
@@ -79,7 +80,7 @@
                                             <input type="text" name="results[{{ $result->id }}][grade]" class="form-control" value="{{ $result->grade }}" readonly>
                                         </td>
                                         <td class="text-center">
-                                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteResult('{{ $result->id }}', '{{ route('admin.results.destroy', $result->id) }}', '{{ $user_id }}', '{{ addslashes($session) }}', '{{ $semester }}', '{{ $departmentId }}')">Delete</button>
+                                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteResult('{{ $result->id }}', '{{ route($routePrefix.'.results.destroy', $result->id) }}', '{{ $user_id }}', '{{ addslashes($session) }}', '{{ $semester }}', '{{ $departmentId }}')">Delete</button>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -113,7 +114,7 @@
 
             if (res.ok) {
                 // reload the edit-group page to reflect changes
-                const redirectUrl = '{{ route('admin.results.editGroup', [$user_id, addslashes($session), $semester, 'department_id' => $departmentId]) }}'.replace(/%7Bid%7D/, userId);
+                const redirectUrl = '{{ route($routePrefix.'.results.editGroup', [$user_id, addslashes($session), $semester, 'department_id' => $departmentId]) }}'.replace(/%7Bid%7D/, userId);
                 // simple reload
                 location.reload();
             } else {

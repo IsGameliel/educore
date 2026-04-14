@@ -12,6 +12,8 @@ use App\Support\ActivityLogger;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\CoursesExport;
 use PDF;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 
 
 class CourseRegistrationController extends Controller
@@ -89,7 +91,7 @@ class CourseRegistrationController extends Controller
         // Validate that the courses exist
         $courses = Courses::whereIn('id', $courseIds)->get();
         if ($courses->count() != count($courseIds)) {
-            return response()->json(['error' => 'One or more courses do not exist.'], 400);
+            return $this->courseRegistrationError($request, 'One or more courses do not exist.', 400);
         }
 
         // Step 1: Check if each course has prerequisites
@@ -103,9 +105,11 @@ class CourseRegistrationController extends Controller
                         ->exists();
 
                     if (!$hasPrerequisite) {
-                        return response()->json([
-                            'error' => 'You must complete all prerequisite courses before registering for: ' . $course->title
-                        ], 400);
+                        return $this->courseRegistrationError(
+                            $request,
+                            'You must complete all prerequisite courses before registering for: ' . $course->title,
+                            400
+                        );
                     }
                 }
             }
@@ -119,9 +123,11 @@ class CourseRegistrationController extends Controller
         $totalCourseCredits = $courses->sum('credit_unit');
 
         if (($totalCreditUnits + $totalCourseCredits) > $creditUnitLimit) {
-            return response()->json([
-                'error' => "Credit unit limit exceeded for this semester. Maximum allowed is $creditUnitLimit."
-            ], 400);
+            return $this->courseRegistrationError(
+                $request,
+                "Course unit exceeded. You can register a maximum of {$creditUnitLimit} units for this semester.",
+                400
+            );
         }
 
         // Step 4: Proceed with the bulk course registration
@@ -158,6 +164,17 @@ class CourseRegistrationController extends Controller
         return redirect()->route('student.courses.registered', ['semester' => $semester])
         ->with('success', 'Courses successfully registered!');
 
+    }
+
+    private function courseRegistrationError(Request $request, string $message, int $status = 400): JsonResponse|RedirectResponse
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['error' => $message], $status);
+        }
+
+        return back()
+            ->withInput()
+            ->withErrors(['course_registration' => $message]);
     }
 
     /**
