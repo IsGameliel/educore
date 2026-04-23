@@ -41,8 +41,19 @@ class AdminCourseRegistrationController extends Controller
         $students = User::query()
             ->where('usertype', 'student')
             ->when($request->filled('department_id'), fn($q) => $q->where('department_id', $request->department_id))
+            ->when($request->filled('q'), function ($query) use ($request) {
+                $search = trim((string) $request->q);
+
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('matric_number', 'like', "%{$search}%");
+                });
+            })
+            ->with('department')
             ->orderBy('name')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
         return view('admin.course_registrations.index', compact('students'));
     }

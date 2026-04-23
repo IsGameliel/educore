@@ -291,7 +291,7 @@ class ResultsImport implements ToCollection
 
         if (!($hasMatric && $hasCa && $hasExam)) {
             throw ValidationException::withMessages([
-                'file' => 'Row 8 must contain the result table header with columns like Matric. No., CA, Exam, Total, Grade.',
+                'file' => 'Row 8 must contain the result table header with columns like Matric No., Name, CA, Exam, Total.',
             ]);
         }
 
@@ -335,7 +335,7 @@ class ResultsImport implements ToCollection
 
         if ($map['matric_number'] === null || $map['ca_score'] === null || $map['exam_score'] === null) {
             throw ValidationException::withMessages([
-                'file' => 'The uploaded sheet is missing one or more required columns: Matric. No., CA, Exam.',
+                'file' => 'The uploaded sheet is missing one or more required columns: Matric No., CA, Exam.',
             ]);
         }
 

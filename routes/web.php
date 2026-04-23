@@ -8,7 +8,7 @@ use App\Http\Controllers\{
     BursarController, HomeController, CourseRegistrationController, CourseController,
     FacultyController, DepartmentController, ClassScheduleController, StudentScheduleController,
     CourseMaterialController, TestController, StudentManagementController, StaffManagementController,
-    CustomProfileController, ResultController, AcademicSessionController
+    CustomProfileController, ResultController, AcademicSessionController, DashboardWidgetController
 };
 
 // Public Routes
@@ -53,6 +53,16 @@ Route::middleware([
         ->name('documents.transcripts.show');
 
     Route::get('/home', [HomeController::class, 'index'])->name('dashboard');
+
+    Route::prefix('dashboard/widgets')->name('dashboard.widgets.')->group(function () {
+        Route::post('/todos', [DashboardWidgetController::class, 'storeTodo'])->name('todos.store');
+        Route::patch('/todos/{todo}', [DashboardWidgetController::class, 'updateTodo'])->name('todos.update');
+        Route::delete('/todos/{todo}', [DashboardWidgetController::class, 'destroyTodo'])->name('todos.destroy');
+        Route::delete('/todos/completed/clear', [DashboardWidgetController::class, 'clearCompletedTodos'])->name('todos.clearCompleted');
+        Route::post('/projects', [DashboardWidgetController::class, 'storeProject'])->name('projects.store');
+        Route::patch('/projects/{project}', [DashboardWidgetController::class, 'updateProject'])->name('projects.update');
+        Route::delete('/projects/{project}', [DashboardWidgetController::class, 'destroyProject'])->name('projects.destroy');
+    });
 
     // -------------------------
     // STUDENT ROUTES

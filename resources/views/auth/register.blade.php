@@ -333,9 +333,9 @@
             }
 
             function formatLevelLabel(level) {
-                if (level === '100') return 'Undergraduate';
-                if (level === '200') return 'Postgraduate';
-                if (level === '300') return 'Doctorate';
+                if (level === '100') return '100';
+                if (level === '200') return '200';
+                if (level === '300') return '300';
                 return `${level} Level`;
             }
 

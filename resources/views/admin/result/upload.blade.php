@@ -117,8 +117,8 @@
                             <li>Top section can remain the same as your current sheet format.</li>
                             <li>The result table heading must start on <strong>row 8</strong> of each worksheet.</li>
                             <li>All sheet entries start from <strong>column A</strong>.</li>
-                            <li>Result table headers: <strong>S/NO</strong>, <strong>MATRIC. NO.</strong>, <strong>CA(30)</strong>, <strong>EXAM(70)</strong>, <strong>TOTAL(100)</strong>, <strong>GRADE</strong>.</li>
-                            <li>Student names are pulled automatically from the database using the uploaded matric number.</li>
+                            <li>Result table headers: <strong>S/NO</strong>, <strong>MATRIC NO.</strong>, <strong>NAME</strong>, <strong>CA</strong>, <strong>EXAM</strong>, <strong>Total</strong>.</li>
+                            <li>The <strong>NAME</strong> column is optional and can be left blank; student records are matched by matric number.</li>
                             <li>Enter the academic session and semester on this page before uploading.</li>
                             <li>The selected course order should match the worksheet order in the uploaded workbook.</li>
                         </ul>
@@ -127,30 +127,30 @@
                             <table class="table table-bordered mb-0">
                                 <thead>
                                     <tr>
-                                        <th>S/NO.</th>
-                                        <th>MATRIC. NO.</th>
-                                        <th>CA(30)</th>
-                                        <th>EXAM(70)</th>
-                                        <th>TOTAL(100)</th>
-                                        <th>GRADE</th>
+                                        <th>S/NO</th>
+                                        <th>MATRIC NO.</th>
+                                        <th>NAME</th>
+                                        <th>CA</th>
+                                        <th>EXAM</th>
+                                        <th>Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
                                         <td>1</td>
                                         <td>MUI/SBMS/NS/24/0001</td>
+                                        <td></td>
                                         <td>18</td>
                                         <td>30</td>
                                         <td>48</td>
-                                        <td>D</td>
                                     </tr>
                                     <tr>
                                         <td>2</td>
                                         <td>MUI/SBMS/NS/24/0002</td>
+                                        <td></td>
                                         <td>22</td>
                                         <td>38</td>
                                         <td>60</td>
-                                        <td>C</td>
                                     </tr>
                                 </tbody>
                             </table>

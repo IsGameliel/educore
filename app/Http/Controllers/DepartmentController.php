@@ -5,8 +5,10 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\DepartmentImport;
 use App\Models\{
-    Department, Faculty
+    Department, Faculty, Result
 };
+use App\Support\ActivityLogger;
+use Illuminate\Support\Facades\Log;
 
 class DepartmentController extends Controller
 {
@@ -87,16 +89,82 @@ class DepartmentController extends Controller
      */
     public function updatePassMarks(Request $request)
     {
+        Log::info('updatePassMarks method entered', ['request_all' => $request->all()]);
+
         $data = $request->validate([
             'pass_marks' => 'required|array',
             'pass_marks.*' => 'nullable|integer|min:0|max:100',
         ]);
 
+        Log::info('updatePassMarks called', $data);
+
+        $actor = Auth::user();
+
         foreach ($data['pass_marks'] as $deptId => $mark) {
             $dept = Department::find($deptId);
             if ($dept) {
-                $dept->pass_mark = $mark ?? 0;
-                $dept->save();
+                $oldPassMark = $dept->pass_mark;
+                $newPassMark = $mark ?? 0;
+
+                // Always log pass mark update attempt
+                Log::info('Processing dept', ['dept_id' => $deptId, 'old' => $oldPassMark, 'new' => $newPassMark]);
+
+                if ($oldPassMark != $newPassMark) {
+                    $dept->pass_mark = $newPassMark;
+                    $dept->save();
+
+                    // Log pass mark update for the department
+                    try {
+                        ActivityLogger::log(
+                            $actor,
+                            'pass_mark_updated',
+                            "Pass mark for {$dept->name} updated from {$oldPassMark} to {$newPassMark}",
+                            [
+                                'department_id' => $deptId,
+                                'properties' => [
+                                    'old_pass_mark' => $oldPassMark,
+                                    'new_pass_mark' => $newPassMark,
+                                ],
+                            ]
+                        );
+                        Log::info('Activity logged successfully');
+                    } catch (\Exception $e) {
+                        Log::error('Failed to log activity', ['error' => $e->getMessage()]);
+                    }
+
+                    Log::info('Logged pass_mark_updated for dept', ['dept_id' => $deptId, 'old' => $oldPassMark, 'new' => $newPassMark]);
+
+                    // Recalculate results for this department
+
+                    // Recalculate results for this department
+                    $results = Result::where('department_id', $deptId)->get();
+                    foreach ($results as $result) {
+                        $gradeData = Result::calculateGradeAndPoint($result->score, $newPassMark);
+                        if ($result->grade !== $gradeData['grade'] || $result->grade_point != $gradeData['grade_point']) {
+                            $result->update([
+                                'grade' => $gradeData['grade'],
+                                'grade_point' => $gradeData['grade_point'],
+                            ]);
+
+                            ActivityLogger::log(
+                                $actor,
+                                'result_updated',
+                                "Result grade updated for {$result->user->name} in {$result->course_code} due to pass mark change from {$oldPassMark} to {$newPassMark}",
+                                [
+                                    'subject' => $result,
+                                    'target_user' => $result->user,
+                                    'department_id' => $deptId,
+                                    'properties' => [
+                                        'course_code' => $result->course_code,
+                                        'course_title' => $result->course_title,
+                                        'semester' => $result->semester,
+                                        'session' => $result->session,
+                                    ],
+                                ]
+                            );
+                        }
+                    }
+                }
             }
         }
 

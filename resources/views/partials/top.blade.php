@@ -92,48 +92,51 @@
             <li class="nav-item dropdown">
                 <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-bs-toggle="dropdown">
                     <i class="mdi mdi-bell-outline"></i>
-                    <span class="count-symbol bg-danger"></span>
+                    @if(($studentUpdateNotificationCount ?? 0) > 0)
+                        <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="top: 18px; right: -2px; font-size: 0.62rem; min-width: 1.15rem;">
+                            {{ $studentUpdateNotificationCount > 9 ? '9+' : $studentUpdateNotificationCount }}
+                        </span>
+                    @else
+                        <span class="count-symbol bg-secondary"></span>
+                    @endif
                 </a>
                 <div class="dropdown-menu dropdown-menu-end navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
                     <h6 class="p-3 mb-0">Notifications</h6>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item preview-item">
-                        <div class="preview-thumbnail">
-                            <div class="preview-icon bg-success">
-                                <i class="mdi mdi-calendar"></i>
+
+                    @forelse(($studentUpdateNotifications ?? collect()) as $notification)
+                        <a class="dropdown-item preview-item" href="{{ route('dashboard') }}">
+                            <div class="preview-thumbnail">
+                                <div class="preview-icon bg-{{ $notification['status_color'] }}">
+                                    <i class="mdi {{ $notification['icon'] ?? 'mdi-bell-outline' }}"></i>
+                                </div>
                             </div>
-                        </div>
-                        <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                            <h6 class="preview-subject font-weight-normal mb-1">Event today</h6>
-                            <p class="text-gray ellipsis mb-0"> Just a reminder that you have an event today </p>
-                        </div>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item preview-item">
-                        <div class="preview-thumbnail">
-                            <div class="preview-icon bg-warning">
-                                <i class="mdi mdi-cog"></i>
+                            <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
+                                <h6 class="preview-subject font-weight-normal mb-1">
+                                    {{ $notification['title'] }}
+                                    <span class="badge badge-gradient-{{ $notification['status_color'] }} ms-1">{{ $notification['status'] }}</span>
+                                </h6>
+                                <p class="text-gray ellipsis mb-0">{{ $notification['details'] }}</p>
+                                <p class="text-gray mb-0 small">
+                                    {{ optional($notification['occurred_at'])->diffForHumans() }}
+                                    @if($notification['course_code'])
+                                        · {{ $notification['course_code'] }}
+                                    @endif
+                                </p>
                             </div>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                    @empty
+                        <div class="px-3 py-4 text-center">
+                            <i class="mdi mdi-bell-outline text-muted" style="font-size: 32px;"></i>
+                            <p class="text-muted mb-0 mt-2">No new updates yet.</p>
                         </div>
-                        <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                            <h6 class="preview-subject font-weight-normal mb-1">Settings</h6>
-                            <p class="text-gray ellipsis mb-0"> Update dashboard </p>
-                        </div>
+                        <div class="dropdown-divider"></div>
+                    @endforelse
+
+                    <a href="{{ route('dashboard') }}" class="dropdown-item text-center">
+                        View dashboard updates
                     </a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item preview-item">
-                        <div class="preview-thumbnail">
-                            <div class="preview-icon bg-info">
-                                <i class="mdi mdi-link-variant"></i>
-                            </div>
-                        </div>
-                        <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                            <h6 class="preview-subject font-weight-normal mb-1">Launch Admin</h6>
-                            <p class="text-gray ellipsis mb-0"> New admin wow! </p>
-                        </div>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <h6 class="p-3 mb-0 text-center">See all notifications</h6>
                 </div>
             </li>
             <li class="nav-item nav-logout d-none d-lg-block">

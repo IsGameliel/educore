@@ -24,9 +24,9 @@ class ResultUploadTemplateSheet implements FromArray, WithTitle
             ['Course code', $this->course->code],
             ['Course title', $this->course->title],
             ['Semester', $this->course->semester],
-            ['S/NO', 'MATRIC. NO.', 'CA(30)', 'EXAM(70)', 'TOTAL(100)', 'GRADE'],
-            [1, 'MUI/SBMS/NS/24/0001', 18, 30, 48, 'D'],
-            [2, 'MUI/SBMS/NS/24/0002', 22, 38, 60, 'C'],
+            ['S/NO', 'MATRIC NO.', 'NAME', 'CA', 'EXAM', 'Total'],
+            [1, 'MUI/SBMS/NS/24/0001', '', 18, 30, 48],
+            [2, 'MUI/SBMS/NS/24/0002', '', 22, 38, 60],
         ];
     }
 

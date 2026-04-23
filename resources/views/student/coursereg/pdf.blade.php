@@ -146,12 +146,31 @@
     font-size: 13px;
   }
 
+  tfoot td{
+    padding: 10px;
+    border: 1px solid var(--line);
+    font-size: 13px;
+    font-weight: 700;
+    background: #f9fafb;
+  }
+
   .code{
     font-weight: 700;
   }
   .unit{
     text-align: center;
     font-weight: 700;
+  }
+
+  .total-label{
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+
+  .total-unit{
+    text-align: center;
+    color: var(--blue);
   }
 
   /* Badge: avoid flex/chips, use simple inline-block */
@@ -307,6 +326,16 @@
             </tr>
           @endforelse
         </tbody>
+
+        @if($courses->isNotEmpty())
+          <tfoot>
+            <tr>
+              <td colspan="2" class="total-label">Total Course Unit Registered</td>
+              <td class="total-unit">{{ $totalCreditUnits ?? $courses->sum(fn ($registration) => $registration->course?->credit_unit ?? 0) }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        @endif
       </table>
     </div>
 

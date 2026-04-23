@@ -306,11 +306,14 @@ class CourseRegistrationController extends Controller
             return response()->json(['error' => 'No courses found for the selected semester.'], 404);
         }
 
+        $totalCreditUnits = $courses->sum(fn ($registration) => $registration->course?->credit_unit ?? 0);
+
         // Prepare data for the PDF
         $pdfData = [
             'user' => $user,
             'semester' => ucfirst($semester), // Capitalize "first semester" or "second semester"
             'courses' => $courses,
+            'totalCreditUnits' => $totalCreditUnits,
             'department' => $user->department->name ?? 'N/A', // Assuming a relationship exists
             'level' => $user->level ?? 'N/A', // Replace with the appropriate attribute
         ];
