@@ -1,244 +1,422 @@
-<x-guest-layout>
-<x-authentication-card>
-<x-slot name="logo">
-    <x-authentication-card-logo />
-</x-slot>
-
-    <x-validation-errors class="mb-4" />
-
-    {{-- Alpine root: role, selectedDepartment (id), level, departments data --}}
-    <form method="POST" action="{{ route('register') }}"
-          x-data="registrationForm()"
-          x-init="init()"
-          class="space-y-4">
-        @csrf
-
-        {{-- Role selection --}}
-        <div class="mt-4">
-            <x-label for="role" value="{{ __('I am registering as:') }}" />
-            <div class="flex space-x-6 mt-2">
-                <label for="role_user" class="flex items-center cursor-pointer">
-                    <input type="radio" name="usertype" id="role_user" value="user" x-model="role"
-                           class="rounded border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600" required>
-                    <span class="ms-2 text-sm text-gray-600 dark:text-gray-400 font-semibold">{{ __('General User') }}</span>
-                </label>
-
-                <label for="role_student" class="flex items-center cursor-pointer">
-                    <input type="radio" name="usertype" id="role_student" value="student" x-model="role"
-                           class="rounded border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600">
-                    <span class="ms-2 text-sm text-gray-600 dark:text-gray-400 font-semibold">{{ __('Student') }}</span>
-                </label>
-            </div>
-        </div>
-
-        {{-- Name --}}
-        <div>
-            <x-label for="name" value="{{ __('Name') }}" />
-            <x-input id="name" class="block mt-1 w-full" type="text" name="name"
-                     :value="old('name')" required autofocus autocomplete="name" />
-        </div>
-
-        {{-- Email --}}
-        <div class="mt-4">
-            <x-label for="email" value="{{ __('Email') }}" />
-            <x-input id="email" class="block mt-1 w-full" type="email" name="email"
-                     :value="old('email')" required autocomplete="username" />
-        </div>
-
-        {{-- Department (student only) --}}
-        <div class="mt-4" x-cloak x-show="role === 'student'"
-             x-transition:enter.duration.300ms x-transition:leave.duration.200ms>
-            <x-label for="department" value="{{ __('Department') }}" />
-            <div class="mt-1 relative">
-                <select id="department" name="department"
-                        x-model.number="selectedDepartment"
-                        @change="onDepartmentChange"
-                        class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 py-2 px-3 pr-10 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="">{{ __('-- Select Department --') }}</option>
-
-                    @foreach($departments as $department)
-                        <option value="{{ $department->id }}" @if(old('department') == $department->id) selected @endif>
-                            {{ $department->name }}
-                        </option>
-                    @endforeach
-                </select>
-
-                <p class="mt-2 text-xs text-gray-500">
-                    {{ __('Select your department to load appropriate levels.') }}
-                </p>
-            </div>
-        </div>
-
-        {{-- Level (student only) --}}
-        <div class="mt-4" x-cloak x-show="role === 'student'"
-             x-transition:enter.duration.300ms x-transition:leave.duration.200ms>
-            <x-label for="level" value="{{ __('Level') }}" />
-            <div class="mt-1 relative">
-                <select id="level" name="level" x-model="level"
-                        class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 py-2 px-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        x-bind:disabled="allowedLevels.length === 0">
-                    <option value="">{{ __('-- Select Level --') }}</option>
-                    <template x-for="lv in allowedLevels" :key="lv">
-                        <option :value="lv" x-text="lv + ' Level'"></option>
-                    </template>
-                </select>
-
-                <p class="mt-2 text-xs text-gray-500" x-text="allowedLevels.length ? '' : 'Select a department to load levels.'"></p>
-            </div>
-        </div>
-
-        {{-- Password --}}
-        <div class="mt-4" x-data="{ showPassword: false }">
-            <x-label for="password" value="{{ __('Password') }}" />
-            <div class="relative mt-1">
-                <x-input id="password" class="block w-full pr-12" x-bind:type="showPassword ? 'text' : 'password'" name="password" required autocomplete="new-password" />
-                <button
-                    type="button"
-                    class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition hover:text-gray-700 focus:outline-none focus:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 dark:focus:text-gray-200"
-                    x-on:click="showPassword = !showPassword"
-                    x-bind:aria-label="showPassword ? 'Hide password' : 'Show password'"
-                    x-bind:title="showPassword ? 'Hide password' : 'Show password'"
-                >
-                    <svg x-show="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M10 4.5c-4.37 0-8.06 2.9-9.34 6.88a1.1 1.1 0 0 0 0 .24C1.94 15.6 5.63 18.5 10 18.5s8.06-2.9 9.34-6.88a1.1 1.1 0 0 0 0-.24C18.06 7.4 14.37 4.5 10 4.5Zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z" />
-                        <path d="M10 8.5A1.5 1.5 0 1 0 11.5 10 1.5 1.5 0 0 0 10 8.5Z" />
-                    </svg>
-                    <svg x-show="showPassword" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M3.28 2.22a.75.75 0 1 0-1.06 1.06l2.07 2.07A10.43 10.43 0 0 0 .66 11.38a1.1 1.1 0 0 0 0 .24C1.94 15.6 5.63 18.5 10 18.5a9.9 9.9 0 0 0 4.42-1.01l2.3 2.29a.75.75 0 1 0 1.06-1.06L3.28 2.22ZM10 16.99c-3.6 0-6.72-2.3-7.83-5.49a8.96 8.96 0 0 1 3.2-4.36l1.78 1.78A3.5 3.5 0 0 0 11.08 12l2.27 2.27a8.46 8.46 0 0 1-3.35.72Zm.05-10.49a3.4 3.4 0 0 1 3.45 3.45c0 .55-.13 1.08-.37 1.55l3.06 3.06a8.98 8.98 0 0 0 1.64-3.06 1.1 1.1 0 0 0 0-.24C16.56 8.4 13.74 6.27 10.45 6l-.4-.4Z" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        {{-- Confirm password --}}
-        <div class="mt-4" x-data="{ showPasswordConfirmation: false }">
-            <x-label for="password_confirmation" value="{{ __('Confirm Password') }}" />
-            <div class="relative mt-1">
-                <x-input id="password_confirmation" class="block w-full pr-12" x-bind:type="showPasswordConfirmation ? 'text' : 'password'" name="password_confirmation" required autocomplete="new-password" />
-                <button
-                    type="button"
-                    class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition hover:text-gray-700 focus:outline-none focus:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 dark:focus:text-gray-200"
-                    x-on:click="showPasswordConfirmation = !showPasswordConfirmation"
-                    x-bind:aria-label="showPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'"
-                    x-bind:title="showPasswordConfirmation ? 'Hide password confirmation' : 'Show password confirmation'"
-                >
-                    <svg x-show="!showPasswordConfirmation" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M10 4.5c-4.37 0-8.06 2.9-9.34 6.88a1.1 1.1 0 0 0 0 .24C1.94 15.6 5.63 18.5 10 18.5s8.06-2.9 9.34-6.88a1.1 1.1 0 0 0 0-.24C18.06 7.4 14.37 4.5 10 4.5Zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z" />
-                        <path d="M10 8.5A1.5 1.5 0 1 0 11.5 10 1.5 1.5 0 0 0 10 8.5Z" />
-                    </svg>
-                    <svg x-show="showPasswordConfirmation" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M3.28 2.22a.75.75 0 1 0-1.06 1.06l2.07 2.07A10.43 10.43 0 0 0 .66 11.38a1.1 1.1 0 0 0 0 .24C1.94 15.6 5.63 18.5 10 18.5a9.9 9.9 0 0 0 4.42-1.01l2.3 2.29a.75.75 0 1 0 1.06-1.06L3.28 2.22ZM10 16.99c-3.6 0-6.72-2.3-7.83-5.49a8.96 8.96 0 0 1 3.2-4.36l1.78 1.78A3.5 3.5 0 0 0 11.08 12l2.27 2.27a8.46 8.46 0 0 1-3.35.72Zm.05-10.49a3.4 3.4 0 0 1 3.45 3.45c0 .55-.13 1.08-.37 1.55l3.06 3.06a8.98 8.98 0 0 0 1.64-3.06 1.1 1.1 0 0 0 0-.24C16.56 8.4 13.74 6.27 10.45 6l-.4-.4Z" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        {{-- Terms --}}
-        @if (Laravel\Jetstream\Jetstream::hasTermsAndPrivacyPolicyFeature())
-            <div class="mt-4">
-                <x-label for="terms">
-                    <div class="flex items-center">
-                        <x-checkbox name="terms" id="terms" required />
-
-                        <div class="ms-2">
-                            {!! __('I agree to the :terms_of_service and :privacy_policy', [
-                                    'terms_of_service' => '<a target="_blank" href="'.route('terms.show').'" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">'.__('Terms of Service').'</a>',
-                                    'privacy_policy' => '<a target="_blank" href="'.route('policy.show').'" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">'.__('Privacy Policy').'</a>',
-                            ]) !!}
-                        </div>
-                    </div>
-                </x-label>
-            </div>
-        @endif
-
-        {{-- Actions --}}
-        <div class="flex items-center justify-end mt-6">
-            <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('login') }}">
-                {{ __('Already registered?') }}
-            </a>
-
-            <x-button class="ms-4">
-                {{ __('Register') }}
-            </x-button>
-        </div>
-    </form>
-
-    {{-- Alpine script --}}
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Sign Up | Educore</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script>
-        function registrationForm() {
-            return {
-                // initial values (server old() are applied here)
-                role: "{{ old('role', 'user') }}",
-                // departments: array of {id, name} from server
-                departments: @json($departments->map(fn($d) => ['id' => $d->id, 'name' => $d->name])),
-                // selectedDepartment is numeric id or empty string
-                selectedDepartment: "{{ old('department', '') }}" ? Number("{{ old('department', '') }}") : '',
-                // level value (e.g., 100, 200, etc.) - old kept if valid later
-                level: "{{ old('level', '') }}" ? String("{{ old('level', '') }}") : '',
-                allowedLevels: [],
-
-                // categorization by name (case-insensitive)
-                getCategoryByName(name) {
-                    if (!name) return 'regular';
-                    const lower = name.toLowerCase();
-
-                    // medicine-related keywords
-                    const medKeys = ['medicine', 'medcine', 'nurs', 'nutrition', 'diet', 'laboratory', 'lab', 'public health', 'health'];
-                    for (const k of medKeys) {
-                        if (lower.includes(k)) return 'medicine';
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary-container": "#8caee9",
+                        "on-tertiary-fixed-variant": "#6c3a04",
+                        "secondary-container": "#9ff6ab",
+                        "surface-dim": "#d9d9e3",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#e1e2ec",
+                        "on-error": "#ffffff",
+                        "tertiary": "#452200",
+                        "tertiary-fixed": "#ffdcc2",
+                        "on-surface-variant": "#43474f",
+                        "surface-tint": "#3c5f95",
+                        "surface": "#faf8ff",
+                        "on-tertiary-container": "#e49e62",
+                        "surface-container": "#ededf7",
+                        "inverse-surface": "#2e3038",
+                        "secondary-fixed": "#9ff6ab",
+                        "outline-variant": "#c3c6d1",
+                        "outline": "#737780",
+                        "inverse-on-surface": "#f0f0fa",
+                        "error-container": "#ffdad6",
+                        "secondary": "#116d32",
+                        "primary": "#002b59",
+                        "primary-container": "#1a4175",
+                        "on-primary-fixed": "#001b3d",
+                        "on-background": "#191b22",
+                        "on-primary": "#ffffff",
+                        "on-secondary-container": "#1b7337",
+                        "inverse-primary": "#a9c7ff",
+                        "tertiary-container": "#653500",
+                        "secondary-fixed-dim": "#84d991",
+                        "error": "#ba1a1a",
+                        "background": "#faf8ff",
+                        "surface-container-low": "#f2f3fd",
+                        "on-secondary-fixed-variant": "#005322",
+                        "on-tertiary-fixed": "#2e1500",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e1e2ec",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#002109",
+                        "surface-container-high": "#e7e7f1",
+                        "on-primary-fixed-variant": "#21477b",
+                        "tertiary-fixed-dim": "#ffb77b",
+                        "on-surface": "#191b22",
+                        "primary-fixed": "#d6e3ff",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "surface-bright": "#faf8ff"
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.125rem",
+                        lg: "0.25rem",
+                        xl: "0.5rem",
+                        full: "0.75rem"
+                    },
+                    fontFamily: {
+                        headline: ["Manrope"],
+                        body: ["Inter"],
+                        label: ["Inter"]
                     }
-
-                    // engineering keyword
-                    if (lower.includes('engineering')) return 'engineering';
-
-                    // fallback
-                    return 'regular';
-                },
-
-                // compute allowed level numbers based on category
-                computeAllowedLevels(category) {
-                    let max = 400;
-                    if (category === 'medicine') max = 600;
-                    else if (category === 'engineering') max = 500;
-
-                    const arr = [];
-                    for (let v = 100; v <= max; v += 100) arr.push(v);
-                    return arr;
-                },
-
-                // called on init and when department changes
-                updateAllowedLevels() {
-                    // find department object by id
-                    const dep = this.departments.find(d => Number(d.id) === Number(this.selectedDepartment));
-                    const name = dep ? dep.name : '';
-                    const category = this.getCategoryByName(name);
-
-                    const newAllowed = this.computeAllowedLevels(category);
-
-                    // S2 behavior: keep current level if still valid, otherwise reset
-                    if (this.level && newAllowed.includes(Number(this.level))) {
-                        this.allowedLevels = newAllowed;
-                        // keep level as string
-                        this.level = String(this.level);
-                    } else {
-                        this.allowedLevels = newAllowed;
-                        this.level = '';
-                    }
-                },
-
-                onDepartmentChange() {
-                    this.updateAllowedLevels();
-                },
-
-                init() {
-                    // initialize allowedLevels on load (if department preselected)
-                    this.updateAllowedLevels();
-
-                    // If old level exists but wasn't in allowedLevels, it will be cleared by updateAllowedLevels()
                 }
-            };
-        }
+            }
+        };
     </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
 
-</x-authentication-card>
-</x-guest-layout>
+        [data-cloak] {
+            display: none !important;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="flex min-h-screen flex-col bg-surface text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+    <nav class="fixed top-0 z-50 w-full bg-[#faf8ff]/80 backdrop-blur-xl">
+        <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 font-['Manrope'] tracking-tight lg:px-8">
+            <a class="flex items-center gap-2 text-xl font-bold tracking-tighter text-[#002b59] dark:text-white" href="{{ url('/') }}">
+                <span class="material-symbols-outlined text-primary">auto_stories</span> Educore
+            </a>
+            <div class="hidden items-center gap-12 md:flex">
+                <a class="text-[#191b22]/70 transition-colors hover:text-[#1A4175]" href="{{ url('/pricing') }}">Pricing</a>
+                <a class="text-[#191b22]/70 transition-colors hover:text-[#1A4175]" href="{{ url('/faq') }}">FAQ</a>
+                <a class="text-[#191b22]/70 transition-colors hover:text-[#1A4175]" href="{{ url('/resources') }}">Resources</a>
+                <a class="text-[#191b22]/70 transition-colors hover:text-[#1A4175]" href="{{ url('/support') }}">Support</a>
+            </div>
+            <div class="flex items-center gap-6">
+                <a class="font-semibold text-[#191b22]/70 transition-colors hover:text-[#1A4175]" href="{{ route('login') }}">Login</a>
+                <a class="rounded-lg bg-gradient-to-br from-primary to-primary-container px-6 py-2.5 font-bold text-on-primary shadow-sm transition-transform hover:-translate-y-0.5" href="{{ route('register') }}">Sign Up</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow px-6 pb-20 pt-32">
+        <div class="mx-auto grid max-w-7xl grid-cols-1 items-center gap-20 lg:grid-cols-2">
+            <div class="hidden space-y-8 lg:block">
+                <div class="space-y-4">
+                    <span class="inline-flex items-center gap-2 rounded-full bg-secondary-container/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-on-secondary-container">
+                        <span class="material-symbols-outlined text-sm">school</span> Academic Excellence
+                    </span>
+                    <h1 class="text-6xl font-extrabold leading-[1.1] tracking-tighter text-primary">
+                        Your Journey <br /> Towards Mastery <br /> Begins Here.
+                    </h1>
+                </div>
+                <p class="max-w-md text-lg leading-relaxed text-on-surface-variant">
+                    Join the modern ecosystem for scholars and educators. A refined space designed for clarity, data-driven insights, and academic growth.
+                </p>
+                <div class="grid grid-cols-2 gap-8 pt-6">
+                    <div class="space-y-2">
+                        <div class="text-3xl font-bold text-primary">240+</div>
+                        <div class="text-sm text-on-surface-variant">Affiliated Institutions</div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="text-3xl font-bold text-primary">1.2M</div>
+                        <div class="text-sm text-on-surface-variant">Active Learners</div>
+                    </div>
+                </div>
+                <div class="relative mt-12 h-64 overflow-hidden rounded-2xl bg-surface-container shadow-2xl">
+                    <img alt="Modern university library" class="absolute inset-0 h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDj6DZ-UjWMPrOZQmFO6yd1e_JTa44PRPFWL2-JyUCV1j80YjtSstIcnyCBS3Nq86f68lXEvVDVwKraYHX_p31xXWkXnc_q3_2QTT48wp9Lp3VOi_YXd-0yBuCSTd-nG1NK2Een6sKd__TVDd0t7_frojb4THaA89o7C7pPVSarKamQ2sFk5YBf99qa3echYqnVStX95mEK9txWNc383LCKSi7WMV4jJBL0ya--yPojCPd5m3PPkRVnbcxIwnxF6EC62r8oEvA-L-z2" />
+                    <div class="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
+                </div>
+            </div>
+
+            <div class="flex w-full justify-center">
+                <div
+                    class="w-full max-w-xl rounded-[2rem] border-none bg-surface-container-lowest p-8 shadow-none md:p-12"
+                >
+                    <div class="mb-10">
+                        <h2 class="mb-2 text-3xl font-bold tracking-tight text-primary">Create Account</h2>
+                        <p class="text-on-surface-variant">Join the global community of Modern Scholars.</p>
+                    </div>
+
+                    @if ($errors->any())
+                        <div class="mb-6 rounded-xl border border-error-container bg-error-container px-5 py-4 text-sm text-on-error-container">
+                            <ul class="space-y-1">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <div class="mb-10 flex rounded-xl bg-surface-container-low p-1.5">
+                        <button
+                            type="button"
+                            class="toggle-button flex-1 rounded-lg px-4 py-3 transition-all"
+                            data-role="student"
+                            id="studentToggle"
+                        >
+                            Student
+                        </button>
+                        <button
+                            type="button"
+                            class="toggle-button flex-1 rounded-lg px-4 py-3 transition-all"
+                            data-role="user"
+                            id="staffToggle"
+                        >
+                            Staff
+                        </button>
+                    </div>
+
+                    <form class="space-y-6" method="POST" action="{{ route('register') }}">
+                        @csrf
+                        <input type="hidden" id="usertypeInput" name="usertype" value="{{ old('usertype', 'user') }}" />
+
+                        <div class="grid grid-cols-1 gap-6">
+                            <div class="space-y-2">
+                                <label class="block px-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Full Name</label>
+                                <input class="w-full rounded-xl border-none bg-surface-container-highest px-6 py-4 transition-all placeholder:text-outline/50 focus:border-b-2 focus:border-primary focus:ring-0" name="name" placeholder="Dr. Julian Vane" type="text" value="{{ old('name') }}" required autocomplete="name" autofocus />
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="block px-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Institutional Email</label>
+                                <input class="w-full rounded-xl border-none bg-surface-container-highest px-6 py-4 transition-all placeholder:text-outline/50 focus:border-b-2 focus:border-primary focus:ring-0" name="email" placeholder="j.vane@university.edu" type="email" value="{{ old('email') }}" required autocomplete="username" />
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-6 md:grid-cols-2" id="studentFields" data-cloak>
+                                <div class="space-y-2">
+                                    <label class="block px-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Department</label>
+                                    <select
+                                        id="departmentField"
+                                        class="w-full appearance-none rounded-xl border-none bg-surface-container-highest px-6 py-4 transition-all focus:border-b-2 focus:border-primary focus:ring-0"
+                                        name="department"
+                                    >
+                                        <option value="">Select Department</option>
+                                        @foreach($departments as $department)
+                                            <option value="{{ $department->id }}" @selected(old('department') == $department->id)>{{ $department->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="block px-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Level</label>
+                                    <select
+                                        id="levelField"
+                                        class="w-full appearance-none rounded-xl border-none bg-surface-container-highest px-6 py-4 transition-all focus:border-b-2 focus:border-primary focus:ring-0"
+                                        name="level"
+                                    >
+                                        <option value="">Select Level</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <div class="space-y-2">
+                                    <label class="block px-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Password</label>
+                                    <div class="relative">
+                                        <input class="w-full rounded-xl border-none bg-surface-container-highest px-6 py-4 pr-14 transition-all placeholder:text-outline/50 focus:border-b-2 focus:border-primary focus:ring-0" id="passwordField" name="password" placeholder="********" type="password" required autocomplete="new-password" />
+                                        <button
+                                            type="button"
+                                            class="absolute inset-y-0 right-0 flex items-center px-4 text-on-surface-variant password-toggle"
+                                            data-target="passwordField"
+                                        >
+                                            <span class="material-symbols-outlined">visibility</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="block px-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Confirm Password</label>
+                                    <div class="relative">
+                                        <input class="w-full rounded-xl border-none bg-surface-container-highest px-6 py-4 pr-14 transition-all placeholder:text-outline/50 focus:border-b-2 focus:border-primary focus:ring-0" id="passwordConfirmationField" name="password_confirmation" placeholder="********" type="password" required autocomplete="new-password" />
+                                        <button
+                                            type="button"
+                                            class="absolute inset-y-0 right-0 flex items-center px-4 text-on-surface-variant password-toggle"
+                                            data-target="passwordConfirmationField"
+                                        >
+                                            <span class="material-symbols-outlined">visibility</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (Laravel\Jetstream\Jetstream::hasTermsAndPrivacyPolicyFeature())
+                            <div class="pt-2">
+                                <label class="flex items-start gap-3 text-sm text-on-surface-variant" for="terms">
+                                    <input class="mt-1 rounded border-outline-variant text-primary focus:ring-primary" id="terms" name="terms" type="checkbox" required />
+                                    <span>
+                                        {!! __('I agree to the :terms_of_service and :privacy_policy', [
+                                            'terms_of_service' => '<a target="_blank" href="'.route('terms.show').'" class="font-semibold text-primary underline decoration-primary-container/30">'.__('Terms of Service').'</a>',
+                                            'privacy_policy' => '<a target="_blank" href="'.route('policy.show').'" class="font-semibold text-primary underline decoration-primary-container/30">'.__('Privacy Policy').'</a>',
+                                        ]) !!}
+                                    </span>
+                                </label>
+                            </div>
+                        @endif
+
+                        <div class="pt-6">
+                            <button class="w-full rounded-xl bg-gradient-to-br from-primary to-primary-container py-5 text-lg font-bold text-on-primary shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl" type="submit">
+                                Create My Account
+                            </button>
+                            <p class="mt-6 text-center text-sm text-on-surface-variant">
+                                Already registered?
+                                <a class="font-semibold text-primary underline decoration-primary-container/30" href="{{ route('login') }}">Login here</a>.
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="flex w-full flex-col items-center justify-between gap-6 bg-[#f2f3fd] px-12 py-12 font-['Inter'] text-sm md:flex-row">
+        <div class="mb-6 md:mb-0">
+            <span class="font-['Manrope'] text-lg font-bold text-[#1A4175]">Educore</span>
+            <p class="mt-2 text-[#191b22]/60">&copy; 2024 Educore Management Systems. All rights reserved.</p>
+        </div>
+        <div class="flex gap-8">
+            <a class="text-[#191b22]/60 transition-colors hover:text-[#1A4175] underline" href="#">Privacy Policy</a>
+            <a class="text-[#191b22]/60 transition-colors hover:text-[#1A4175]" href="#">Terms of Service</a>
+            <a class="text-[#191b22]/60 transition-colors hover:text-[#1A4175]" href="#">Contact Support</a>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const departments = @json($departments->map(fn($d) => ['id' => $d->id, 'name' => $d->name]));
+            const toggleButtons = document.querySelectorAll('.toggle-button');
+            const usertypeInput = document.getElementById('usertypeInput');
+            const studentFields = document.getElementById('studentFields');
+            const departmentField = document.getElementById('departmentField');
+            const levelField = document.getElementById('levelField');
+            const oldLevel = "{{ old('level', '') }}";
+
+            function getCategoryByName(name) {
+                if (!name) return 'regular';
+                const lower = name.toLowerCase();
+                const medKeys = ['medicine', 'medcine', 'nurs', 'nutrition', 'diet', 'laboratory', 'lab', 'public health', 'health'];
+
+                for (const key of medKeys) {
+                    if (lower.includes(key)) return 'medicine';
+                }
+
+                if (lower.includes('engineering')) return 'engineering';
+                return 'regular';
+            }
+
+            function computeAllowedLevels(category) {
+                let max = 400;
+                if (category === 'medicine') max = 600;
+                else if (category === 'engineering') max = 500;
+
+                const levels = [];
+                for (let value = 100; value <= max; value += 100) {
+                    levels.push(String(value));
+                }
+
+                return levels;
+            }
+
+            function formatLevelLabel(level) {
+                if (level === '100') return 'Undergraduate';
+                if (level === '200') return 'Postgraduate';
+                if (level === '300') return 'Doctorate';
+                return `${level} Level`;
+            }
+
+            function updateToggleStyles(role) {
+                toggleButtons.forEach((button) => {
+                    const active = button.dataset.role === role;
+                    button.classList.toggle('bg-surface-container-lowest', active);
+                    button.classList.toggle('text-primary', active);
+                    button.classList.toggle('font-bold', active);
+                    button.classList.toggle('shadow-sm', active);
+                    button.classList.toggle('text-on-surface-variant', !active);
+                    button.classList.toggle('font-medium', !active);
+                });
+            }
+
+            function populateLevels() {
+                const selectedDepartment = departments.find((department) => Number(department.id) === Number(departmentField.value));
+                const allowedLevels = computeAllowedLevels(getCategoryByName(selectedDepartment ? selectedDepartment.name : ''));
+                const currentValue = levelField.value || oldLevel;
+
+                levelField.innerHTML = '<option value="">Select Level</option>';
+
+                allowedLevels.forEach((level) => {
+                    const option = document.createElement('option');
+                    option.value = level;
+                    option.textContent = formatLevelLabel(level);
+
+                    if (currentValue === level) {
+                        option.selected = true;
+                    }
+
+                    levelField.appendChild(option);
+                });
+
+                if (!allowedLevels.includes(levelField.value)) {
+                    levelField.value = '';
+                }
+
+                levelField.disabled = usertypeInput.value !== 'student' || allowedLevels.length === 0;
+            }
+
+            function switchRole(role) {
+                usertypeInput.value = role;
+                updateToggleStyles(role);
+
+                if (role === 'student') {
+                    studentFields.removeAttribute('data-cloak');
+                    studentFields.style.display = '';
+                    departmentField.disabled = false;
+                    populateLevels();
+                    return;
+                }
+
+                studentFields.style.display = 'none';
+                departmentField.value = '';
+                departmentField.disabled = true;
+                levelField.innerHTML = '<option value="">Select Level</option>';
+                levelField.value = '';
+                levelField.disabled = true;
+            }
+
+            toggleButtons.forEach((button) => {
+                button.addEventListener('click', function () {
+                    switchRole(button.dataset.role);
+                });
+            });
+
+            departmentField.addEventListener('change', populateLevels);
+
+            document.querySelectorAll('.password-toggle').forEach((button) => {
+                button.addEventListener('click', function () {
+                    const target = document.getElementById(button.dataset.target);
+                    const icon = button.querySelector('.material-symbols-outlined');
+                    const nextType = target.type === 'password' ? 'text' : 'password';
+                    target.type = nextType;
+                    icon.textContent = nextType === 'password' ? 'visibility' : 'visibility_off';
+                });
+            });
+
+            switchRole(usertypeInput.value || 'user');
+        });
+    </script>
+</body>
+</html>

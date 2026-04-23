@@ -16,6 +16,26 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/pricing', function () {
+    return view('pricing');
+});
+
+Route::get('/faq', function () {
+    return view('faq');
+});
+
+Route::get('/resources', function () {
+    return view('resources');
+});
+
+Route::get('/support', function () {
+    return view('support');
+});
+
+Route::get('/request-demo', function () {
+    return view('request-demo');
+});
+
 Route::get('/register', function () {
     $departments = Department::orderBy('name')->get(['id', 'name']);
     return view('auth.register', compact('departments'));
