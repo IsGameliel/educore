@@ -63,6 +63,7 @@ class StudentUpdateFeed
         $meta = self::meta($activity->action);
 
         return [
+            'id' => $activity->id,
             'actor' => $activity->actor?->name ?? 'System',
             'title' => $meta['label'],
             'details' => $activity->description,

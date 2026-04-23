@@ -93,11 +93,12 @@
                 <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-bs-toggle="dropdown">
                     <i class="mdi mdi-bell-outline"></i>
                     @if(($studentUpdateNotificationCount ?? 0) > 0)
-                        <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="top: 18px; right: -2px; font-size: 0.62rem; min-width: 1.15rem;">
+                        <span class="position-absolute translate-middle badge rounded-pill bg-danger notification-count-badge" data-notification-count style="top: 18px; right: -2px; font-size: 0.62rem; min-width: 1.15rem;">
                             {{ $studentUpdateNotificationCount > 9 ? '9+' : $studentUpdateNotificationCount }}
                         </span>
+                        <span class="count-symbol bg-secondary notification-count-default d-none" data-notification-default-indicator></span>
                     @else
-                        <span class="count-symbol bg-secondary"></span>
+                        <span class="count-symbol bg-secondary notification-count-default" data-notification-default-indicator></span>
                     @endif
                 </a>
                 <div class="dropdown-menu dropdown-menu-end navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
@@ -105,7 +106,22 @@
                     <div class="dropdown-divider"></div>
 
                     @forelse(($studentUpdateNotifications ?? collect()) as $notification)
-                        <a class="dropdown-item preview-item" href="{{ route('dashboard') }}">
+                        <button
+                            type="button"
+                            class="dropdown-item preview-item student-notification-item"
+                            data-bs-toggle="modal"
+                            data-bs-target="#studentNotificationModal"
+                            data-notification-id="{{ $notification['id'] }}"
+                            data-notification-title="{{ $notification['title'] }}"
+                            data-notification-status="{{ $notification['status'] }}"
+                            data-notification-status-color="{{ $notification['status_color'] }}"
+                            data-notification-details="{{ $notification['details'] }}"
+                            data-notification-actor="{{ $notification['actor'] }}"
+                            data-notification-course="{{ $notification['course_code'] ?? '' }}"
+                            data-notification-semester="{{ $notification['semester'] ?? '' }}"
+                            data-notification-time="{{ optional($notification['occurred_at'])->diffForHumans() }}"
+                            data-notification-icon="{{ $notification['icon'] ?? 'mdi-bell-outline' }}"
+                        >
                             <div class="preview-thumbnail">
                                 <div class="preview-icon bg-{{ $notification['status_color'] }}">
                                     <i class="mdi {{ $notification['icon'] ?? 'mdi-bell-outline' }}"></i>
@@ -124,7 +140,7 @@
                                     @endif
                                 </p>
                             </div>
-                        </a>
+                        </button>
                         <div class="dropdown-divider"></div>
                     @empty
                         <div class="px-3 py-4 text-center">
@@ -155,3 +171,149 @@
         </button>
     </div>
 </nav>
+
+@if(Auth::user()->usertype === 'student')
+    <div class="modal fade" id="studentNotificationModal" tabindex="-1" aria-labelledby="studentNotificationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-bottom-0 pb-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle text-white student-notification-modal-icon bg-gradient-primary" style="width: 46px; height: 46px;">
+                            <i class="mdi mdi-bell-outline"></i>
+                        </span>
+                        <div>
+                            <h5 class="modal-title mb-1" id="studentNotificationModalLabel">Notification</h5>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge badge-gradient-primary" data-modal-status>Updated</span>
+                                <small class="text-muted" data-modal-time></small>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p class="text-muted mb-3" data-modal-details></p>
+
+                    <div class="border rounded p-3 bg-light">
+                        <div class="row g-3 small">
+                            <div class="col-12">
+                                <span class="text-muted d-block">Updated By</span>
+                                <strong data-modal-actor>System</strong>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted d-block">Course</span>
+                                <strong data-modal-course>General update</strong>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted d-block">Semester</span>
+                                <strong data-modal-semester>Not specified</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const userId = @json(Auth::id());
+            const storageKey = `student_notification_reads_${userId}`;
+            const notificationItems = Array.from(document.querySelectorAll('.student-notification-item'));
+            const countBadge = document.querySelector('[data-notification-count]');
+            const defaultIndicator = document.querySelector('[data-notification-default-indicator]');
+            const notificationModalElement = document.getElementById('studentNotificationModal');
+
+            if (!notificationItems.length || !notificationModalElement) {
+                return;
+            }
+
+            function safeReadMap() {
+                try {
+                    const raw = window.localStorage.getItem(storageKey);
+                    return raw ? JSON.parse(raw) : {};
+                } catch (error) {
+                    return {};
+                }
+            }
+
+            function writeReadMap(value) {
+                window.localStorage.setItem(storageKey, JSON.stringify(value));
+            }
+
+            function getUnreadCount() {
+                const readMap = safeReadMap();
+
+                return notificationItems.filter(function (item) {
+                    return !readMap[item.dataset.notificationId];
+                }).length;
+            }
+
+            function renderNotificationCount() {
+                const unreadCount = getUnreadCount();
+
+                if (countBadge) {
+                    if (unreadCount > 0) {
+                        countBadge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+                        countBadge.classList.remove('d-none');
+                    } else {
+                        countBadge.classList.add('d-none');
+                    }
+                }
+
+                if (defaultIndicator) {
+                    defaultIndicator.classList.toggle('d-none', unreadCount > 0);
+                }
+            }
+
+            function markAsRead(notificationId) {
+                if (!notificationId) {
+                    return;
+                }
+
+                const readMap = safeReadMap();
+                readMap[notificationId] = true;
+                writeReadMap(readMap);
+                renderNotificationCount();
+            }
+
+            const modalFields = {
+                title: notificationModalElement.querySelector('#studentNotificationModalLabel'),
+                status: notificationModalElement.querySelector('[data-modal-status]'),
+                time: notificationModalElement.querySelector('[data-modal-time]'),
+                details: notificationModalElement.querySelector('[data-modal-details]'),
+                actor: notificationModalElement.querySelector('[data-modal-actor]'),
+                course: notificationModalElement.querySelector('[data-modal-course]'),
+                semester: notificationModalElement.querySelector('[data-modal-semester]'),
+                iconWrap: notificationModalElement.querySelector('.student-notification-modal-icon'),
+                icon: notificationModalElement.querySelector('.student-notification-modal-icon i')
+            };
+
+            notificationItems.forEach(function (item) {
+                item.addEventListener('click', function () {
+                    const statusColor = item.dataset.notificationStatusColor || 'primary';
+
+                    modalFields.title.textContent = item.dataset.notificationTitle || 'Notification';
+                    modalFields.status.textContent = item.dataset.notificationStatus || 'Updated';
+                    modalFields.status.className = `badge badge-gradient-${statusColor}`;
+                    modalFields.time.textContent = item.dataset.notificationTime || '';
+                    modalFields.details.textContent = item.dataset.notificationDetails || 'No details available.';
+                    modalFields.actor.textContent = item.dataset.notificationActor || 'System';
+                    modalFields.course.textContent = item.dataset.notificationCourse || 'General update';
+                    modalFields.semester.textContent = item.dataset.notificationSemester ? `${item.dataset.notificationSemester} Semester` : 'Not specified';
+                    modalFields.iconWrap.className = `d-inline-flex align-items-center justify-content-center rounded-circle text-white student-notification-modal-icon bg-gradient-${statusColor}`;
+                    modalFields.iconWrap.style.width = '46px';
+                    modalFields.iconWrap.style.height = '46px';
+                    modalFields.icon.className = `mdi ${item.dataset.notificationIcon || 'mdi-bell-outline'}`;
+
+                    markAsRead(item.dataset.notificationId);
+                });
+            });
+
+            renderNotificationCount();
+        });
+    </script>
+@endif
