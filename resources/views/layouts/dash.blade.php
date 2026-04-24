@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>{{ config('app.name', 'Laravel') }}</title>
+    @include('partials.vite-assets')
     <!-- plugins:css -->
     <link rel="stylesheet" href="{{ asset('dash/assets/vendors/mdi/css/materialdesignicons.min.css')}}">
     <link rel="stylesheet" href="{{ asset('dash/assets/vendors/ti-icons/css/themify-icons.css')}}">
@@ -21,6 +22,7 @@
     <link rel="stylesheet" href="{{ asset('dash/assets/css/style.css')}}">
     <!-- End layout styles -->
     <link rel="shortcut icon" href="{{ asset('dash/assets/images/favicon.png')}}" />
+    @livewireStyles
     @stack('styles')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -87,6 +89,8 @@
 <!-- Custom js for this page -->
 <script src="{{ asset('dash/assets/js/dashboard.js')}}"></script>
 <!-- End custom js for this page -->
+@stack('modals')
+@livewireScripts
 @yield('scripts')
 </body>
 </html>

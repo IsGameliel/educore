@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use App\Exports\StudentsExport;
+use App\Support\AccountCredentialMailer;
 use Maatwebsite\Excel\Facades\Excel;
 
 
@@ -88,8 +89,11 @@ class StudentManagementController extends Controller
             'matric_number' => ['nullable', 'string', 'max:255', 'unique:users,matric_number'],
         ]);
 
+        $plainPassword = $request->password;
+        $createdStudent = null;
+
         // Transaction to store the user
-        DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request, &$createdStudent) {
             $role = 'student'; // Assign default role as student
 
             $user = User::create([
@@ -104,7 +108,13 @@ class StudentManagementController extends Controller
 
             // Create default team for Jetstream (if necessary)
             $this->createTeam($user);
+
+            $createdStudent = $user;
         });
+
+        if ($createdStudent) {
+            AccountCredentialMailer::send($createdStudent, $plainPassword, 'created');
+        }
 
         // Redirect back to the index page with a success message
         return redirect()
@@ -178,6 +188,8 @@ class StudentManagementController extends Controller
         // Retrieve the student by ID
         $student = User::findOrFail($id);
 
+        $plainPassword = $request->filled('password') ? $request->password : null;
+
         // Update basic details
         $updateData = [
             'name' => $request->name,
@@ -209,6 +221,8 @@ class StudentManagementController extends Controller
                 ->route('admin.students.index')
                 ->with('error', 'Failed to update student: ' . $e->getMessage());
         }
+
+        AccountCredentialMailer::send($student, $plainPassword, 'updated');
 
         // Redirect back with success message
         return redirect()
