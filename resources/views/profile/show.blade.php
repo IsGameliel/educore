@@ -303,10 +303,15 @@
     $displayUser = $currentUser;
     $profileLabel = $displayUser->matric_number ?: strtoupper(substr((string) $displayUser->usertype, 0, 3)) . '-' . $displayUser->id;
 @endphp
-<body class="bg-surface-container-low text-on-surface antialiased">
+<body class="bg-surface-container-low text-on-surface antialiased" x-data="{ mobileMenuOpen: false }">
     <header class="bg-white border-b border-slate-200 fixed top-0 w-full z-50 h-16 shadow-sm flex items-center justify-between px-6 antialiased">
         <div class="flex items-center gap-8">
-            <span class="text-xl font-extrabold tracking-tight text-indigo-600">Educore</span>
+            <div class="flex items-center gap-3">
+                <button class="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors" type="button" x-on:click="mobileMenuOpen = true" aria-label="Open sidebar">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+                <span class="text-xl font-extrabold tracking-tight text-indigo-600">Educore</span>
+            </div>
             <nav class="hidden md:flex space-x-6">
                 <a class="text-slate-500 font-medium hover:bg-slate-50 transition-colors px-3 py-1 rounded" href="{{ url('home') }}">Dashboard</a>
                 <a class="text-slate-500 font-medium hover:bg-slate-50 transition-colors px-3 py-1 rounded" href="#">Courses</a>
@@ -353,6 +358,57 @@
             </a>
         </div>
     </aside>
+
+    <div
+        class="lg:hidden"
+        x-show="mobileMenuOpen"
+        x-cloak
+        style="display: none;"
+    >
+        <div class="fixed inset-0 z-40 bg-slate-950/50" x-on:click="mobileMenuOpen = false"></div>
+
+        <aside
+            class="fixed left-0 top-0 bottom-0 z-50 w-72 max-w-[85vw] bg-white border-r border-slate-200 shadow-xl flex flex-col p-4 space-y-2 text-sm"
+            x-show="mobileMenuOpen"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="-translate-x-full"
+            x-transition:enter-end="translate-x-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="translate-x-0"
+            x-transition:leave-end="-translate-x-full"
+        >
+            <div class="flex items-center justify-between mb-4 px-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                        {{ strtoupper(substr($displayUser->name, 0, 1)) }}
+                    </div>
+                    <div>
+                        <p class="text-lg font-bold text-slate-900 leading-none">Educore Portal</p>
+                        <p class="text-slate-500 text-xs mt-1">{{ $profileLabel }}</p>
+                    </div>
+                </div>
+                <button class="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors" type="button" x-on:click="mobileMenuOpen = false" aria-label="Close sidebar">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" href="{{ url('home') }}" x-on:click="mobileMenuOpen = false">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            <a class="flex items-center gap-3 px-4 py-3 bg-indigo-50 text-indigo-600 rounded-lg font-bold transition-colors" href="{{ route('profile.show') }}" x-on:click="mobileMenuOpen = false">
+                <span class="material-symbols-outlined">person</span>
+                <span>Profile</span>
+            </a>
+
+            <div class="mt-auto pt-4 border-t border-slate-200">
+                <a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg" href="{{ url('home') }}" x-on:click="mobileMenuOpen = false">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    <span>Back to Dashboard</span>
+                </a>
+            </div>
+        </aside>
+    </div>
 
     <main class="lg:ml-64 pt-16 min-h-screen profile-shell">
         <div class="max-w-7xl mx-auto px-6 py-10 space-y-10">
@@ -445,5 +501,6 @@
     </main>
 
     @livewireScripts
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </body>
 </html>
