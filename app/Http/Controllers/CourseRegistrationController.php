@@ -234,19 +234,8 @@ class CourseRegistrationController extends Controller
     public function getRegisteredCourses(Request $request, $semester)
     {
         $userId = Auth::id();
+        $semester = $this->normalizeSemester($request->query('semester', $semester));
         $session = $request->query('session', $this->getCurrentAcademicSession());
-
-        // Normalize Semester
-        if ($semester == 1 || strtolower($semester) == "1") {
-            $semester = "First";
-        } elseif ($semester == 2 || strtolower($semester) == "2") {
-            $semester = "Second";
-        }
-
-        // If still not valid, default to First
-        if (!in_array($semester, ["First", "Second"])) {
-            $semester = "First";
-        }
 
         $courses = CourseRegistration::with('course')
             ->where('user_id', $userId)
@@ -254,7 +243,21 @@ class CourseRegistrationController extends Controller
             ->where('session', $session)
             ->get();
 
-        return view('student.coursereg.index', compact('courses', 'semester', 'session'));
+        $availableSessions = AcademicSession::query()
+            ->orderByDesc('start_year')
+            ->pluck('name')
+            ->merge(
+                CourseRegistration::query()
+                    ->where('user_id', $userId)
+                    ->whereNotNull('session')
+                    ->distinct()
+                    ->pluck('session')
+            )
+            ->filter()
+            ->unique()
+            ->values();
+
+        return view('student.coursereg.index', compact('courses', 'semester', 'session', 'availableSessions'));
     }
 
 

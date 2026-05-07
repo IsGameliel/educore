@@ -1,5 +1,6 @@
 @php
     $routeName = request()->route()?->getName() ?? '';
+    $studentRegisteredCourseUrl = route('student.courses.registered', ['semester' => 'First']) . '?session=' . urlencode(\App\Models\AcademicSession::currentName() ?? (now()->month >= 8 ? now()->year . '/' . (now()->year + 1) : (now()->year - 1) . '/' . now()->year));
 @endphp
 
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
@@ -42,7 +43,7 @@
                         <a class="nav-link {{ request()->is('student/courses/registration') ? 'active' : '' }}" href="{{ url('student/courses/registration') }}">Course Registeration</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->is('student/courses/*') && !request()->is('student/courses/registration') ? 'active' : '' }}" href="{{ url('student/courses/{semester}') }}">View Registered Course</a>
+                        <a class="nav-link {{ request()->is('student/courses/*') && !request()->is('student/courses/registration') ? 'active' : '' }}" href="{{ $studentRegisteredCourseUrl }}">View Registered Course</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ $routeName === 'student.schedule' ? 'active' : '' }}" href="{{ route('student.schedule')}}">Class Timetable</a>
