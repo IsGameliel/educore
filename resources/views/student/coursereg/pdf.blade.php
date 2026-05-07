@@ -291,6 +291,11 @@
         </div>
 
         <div class="meta-item">
+          <strong>Session</strong>
+          <span>{{ $session }}</span>
+        </div>
+
+        <div class="meta-item">
           <strong>Semester</strong>
           <span>{{ $semester }}</span>
         </div>

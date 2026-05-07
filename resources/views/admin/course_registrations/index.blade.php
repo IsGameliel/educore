@@ -81,7 +81,7 @@
                     </span>
                     <span class="page-title-text">Course Registrations</span>
                 </h3>
-                <p class="helper-text mb-0">Manage each student's registered courses per semester.</p>
+                <p class="helper-text mb-0">Manage each student's registered courses per session and semester.</p>
             </div>
 
             <nav aria-label="breadcrumb">
@@ -115,6 +115,13 @@
                     </div>
 
                     <form method="GET" action="{{ route('admin.course-registrations.index') }}" class="d-flex flex-column flex-sm-row gap-2">
+                        <select name="session" class="form-control">
+                            @foreach($academicSessions as $academicSession)
+                                <option value="{{ $academicSession }}" {{ $currentSession === $academicSession ? 'selected' : '' }}>
+                                    {{ $academicSession }}
+                                </option>
+                            @endforeach
+                        </select>
                         <input
                             type="text"
                             name="q"
@@ -153,7 +160,7 @@
                                     </td>
                                     <td class="text-end">
                                         <a
-                                            href="{{ route('admin.course-registrations.show', $student->id) }}?semester=First"
+                                            href="{{ route('admin.course-registrations.show', $student->id) }}?semester=First&session={{ urlencode($currentSession) }}"
                                             class="btn btn-sm btn-brand"
                                         >
                                             <i class="mdi mdi-pencil-box-outline me-1"></i> Manage

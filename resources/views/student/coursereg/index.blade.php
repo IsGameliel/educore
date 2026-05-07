@@ -37,8 +37,12 @@
                     </div>
                 </form> --}}
 
+                    <div class="mb-3">
+                        <strong>Academic Session:</strong> {{ $session }}
+                    </div>
+
                     @if(count($courses) === 0)
-                        <div class="alert alert-warning">No courses registered for Semester: {{ $semester }}</div>
+                        <div class="alert alert-warning">No courses registered for {{ $semester }} Semester in {{ $session }}</div>
                     @else
                     <table class="table table-bordered mt-4">
                         <thead>
@@ -64,11 +68,11 @@
                     </table>
 
                     <div class="mt-3">
-                        <a href="{{ route('student.courses.download.pdf', ['semester' => $semester]) }}" class="btn btn-primary">
+                        <a href="{{ route('student.courses.download.pdf', ['semester' => $semester, 'session' => $session]) }}" class="btn btn-primary">
                             Download PDF
                         </a>
 
-                        <a href="{{ route('student.courses.download.excel', ['semester' => $semester]) }}" class="btn btn-success">
+                        <a href="{{ route('student.courses.download.excel', ['semester' => $semester, 'session' => $session]) }}" class="btn btn-success">
                             Download Excel
                         </a>
                     </div>

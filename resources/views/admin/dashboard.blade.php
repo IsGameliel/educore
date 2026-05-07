@@ -109,7 +109,12 @@
                                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                                     <div>
                                         <h4 class="card-title mb-1">Academic Sessions</h4>
-                                        <p class="text-muted mb-0">Create and update sessions in the format <strong>2021/2022</strong>.</p>
+                                        <p class="text-muted mb-0">Create, update, and choose the active session students will use for course registration.</p>
+                                        <div class="mt-2">
+                                            <span class="badge badge-gradient-primary">
+                                                Active Session: {{ $currentAcademicSession?->name ?? 'Not set' }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -151,7 +156,9 @@
                                                     <tr>
                                                         <th>#</th>
                                                         <th>Session</th>
+                                                        <th>Status</th>
                                                         <th>Update</th>
+                                                        <th>Activation</th>
                                                     </tr>
                                                     </thead>
                                                     <tbody>
@@ -159,6 +166,13 @@
                                                         <tr>
                                                             <td>{{ $loop->iteration }}</td>
                                                             <td class="fw-semibold">{{ $academicSession->name }}</td>
+                                                            <td>
+                                                                @if($academicSession->is_active)
+                                                                    <span class="badge badge-gradient-success">Active</span>
+                                                                @else
+                                                                    <span class="badge badge-light">Inactive</span>
+                                                                @endif
+                                                            </td>
                                                             <td>
                                                                 <form method="POST" action="{{ route('admin.academic-sessions.update', $academicSession) }}" class="row g-2 align-items-center">
                                                                     @csrf
@@ -178,10 +192,20 @@
                                                                     </div>
                                                                 </form>
                                                             </td>
+                                                            <td>
+                                                                @if($academicSession->is_active)
+                                                                    <button type="button" class="btn btn-sm btn-success" disabled>Current Session</button>
+                                                                @else
+                                                                    <form method="POST" action="{{ route('admin.academic-sessions.activate', $academicSession) }}">
+                                                                        @csrf
+                                                                        <button type="submit" class="btn btn-outline-primary btn-sm">Make Active</button>
+                                                                    </form>
+                                                                @endif
+                                                            </td>
                                                         </tr>
                                                     @empty
                                                         <tr>
-                                                            <td colspan="3" class="text-center text-muted">No academic sessions created yet.</td>
+                                                            <td colspan="5" class="text-center text-muted">No academic sessions created yet.</td>
                                                         </tr>
                                                     @endforelse
                                                     </tbody>

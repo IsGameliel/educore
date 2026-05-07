@@ -180,6 +180,7 @@ Route::middleware([
         Route::prefix('academic-sessions')->name('academic-sessions.')->group(function () {
             Route::post('/', [AcademicSessionController::class, 'store'])->name('store');
             Route::put('/{academicSession}', [AcademicSessionController::class, 'update'])->name('update');
+            Route::post('/{academicSession}/activate', [AcademicSessionController::class, 'activate'])->name('activate');
         });
 
         Route::prefix('results')->name('results.')->group(function () {

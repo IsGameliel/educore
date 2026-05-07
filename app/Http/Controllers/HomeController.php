@@ -72,8 +72,10 @@ class HomeController extends Controller
         $departmentsCount = Department::count();
         $facultyCount = Faculty::count();
         $academicSessions = AcademicSession::query()
+            ->orderByDesc('is_active')
             ->orderByDesc('start_year')
             ->get();
+        $currentAcademicSession = AcademicSession::current();
         $departmentCourseSummary = Department::withCount('courses')
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -109,6 +111,7 @@ class HomeController extends Controller
             'departmentsCount',
             'facultyCount',
             'academicSessions',
+            'currentAcademicSession',
             'departmentCourseSummary',
             'visitorStatistics'
         ) + $this->getDashboardWidgets($user) + [

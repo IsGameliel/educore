@@ -45,13 +45,17 @@
                     <form action="{{ route('student.courses.register') }}" method="POST">
                         @csrf <!-- CSRF token for form submission -->
 
+                        <div class="form-group">
+                            <label>Academic Session:</label>
+                            <input type="text" class="form-control" value="{{ $currentSession }}" readonly>
+                        </div>
+
                         <!-- Semester Field -->
                         <div class="form-group">
                             <label for="semester">Select Semester:</label>
                             <select name="semester" id="semester" class="form-control" required>
-                                <option value="First" @selected(old('semester') === 'First')>First</option>
-                                <option value="Second" @selected(old('semester') === 'Second')>Second</option>
-                                <!-- Add other semesters as needed -->
+                                <option value="First" @selected(($defaultSemester ?? old('semester', 'First')) === 'First')>First</option>
+                                <option value="Second" @selected(($defaultSemester ?? old('semester', 'First')) === 'Second')>Second</option>
                             </select>
                         </div>
 
@@ -60,10 +64,10 @@
                             <label for="level">Select Level:</label>
                             <select name="level" id="level" class="form-control" required>
                                 <option value="">-- Select Level --</option>
-                                <option value="100" @selected(old('level') === '100')>100 Level</option>
-                                <option value="200" @selected(old('level') === '200')>200 Level</option>
-                                <option value="300" @selected(old('level') === '300')>300 Level</option>
-                                <option value="400" @selected(old('level') === '400')>400 Level</option>
+                                <option value="100" @selected(old('level', (string) auth()->user()->level) === '100')>100 Level</option>
+                                <option value="200" @selected(old('level', (string) auth()->user()->level) === '200')>200 Level</option>
+                                <option value="300" @selected(old('level', (string) auth()->user()->level) === '300')>300 Level</option>
+                                <option value="400" @selected(old('level', (string) auth()->user()->level) === '400')>400 Level</option>
                             </select>
                         </div>
 
@@ -71,7 +75,23 @@
                         <div class="form-group">
                             <label for="courses">Select Courses:</label>
                             <select name="course_ids[]" id="courses" class="form-control" multiple required>
-                                <option value="">Select level first</option>
+                                @forelse($courses as $course)
+                                    <option
+                                        value="{{ $course->id }}"
+                                        data-credit-unit="{{ $course->credit_unit }}"
+                                        @selected(in_array($course->id, old('course_ids', [])))
+                                    >
+                                        {{ $course->code }} - {{ $course->title }} ({{ $course->credit_unit }} credits)
+                                        @if($course->prerequisites->isNotEmpty())
+                                            - Prerequisite:
+                                            @foreach($course->prerequisites as $prerequisite)
+                                                {{ $prerequisite->title }}{{ !$loop->last ? ', ' : '' }}
+                                            @endforeach
+                                        @endif
+                                    </option>
+                                @empty
+                                    <option value="">No courses available for this semester</option>
+                                @endforelse
                             </select>
                         </div>
 
@@ -129,6 +149,40 @@
 
     let courseCreditMapping = {}; // Store course_id => credit_unit
 
+    function refreshCourseCreditsFromDom() {
+        courseCreditMapping = {};
+
+        $('#courses option').each(function () {
+            const courseId = String($(this).val() || '');
+
+            if (!courseId) {
+                return;
+            }
+
+            courseCreditMapping[courseId] = parseInt($(this).data('credit-unit') || 0, 10);
+        });
+    }
+
+    function updateCreditTotals() {
+        let selected = $('#courses').val() || [];
+        let totalCredits = 0;
+
+        selected.forEach(courseId => {
+            totalCredits += parseInt(courseCreditMapping[courseId] || 0);
+        });
+
+        $('#totalCredits').text(totalCredits);
+
+        let level = $('#level').val();
+        let maxLimit = creditLimits[level];
+
+        if (maxLimit && totalCredits > maxLimit) {
+            $('#creditWarning').show();
+        } else {
+            $('#creditWarning').hide();
+        }
+    }
+
     $('#level, #semester').on('change', function () {
         let level = $('#level').val();
         let semester = $('#semester').val();
@@ -152,8 +206,8 @@
                             }
 
                             $('#courses').append(
-                                `<option value="${course.id}">
-                                    ${course.title} (${course.credit_unit} credits)${prerequisites}
+                                `<option value="${course.id}" data-credit-unit="${course.credit_unit}">
+                                    ${course.code} - ${course.title} (${course.credit_unit} credits)${prerequisites}
                                 </option>`
                             );
                         });
@@ -161,7 +215,8 @@
                         $('#courses').append('<option value="">No courses available</option>');
                     }
 
-                    $('#courses').trigger('change');
+                    refreshCourseCreditsFromDom();
+                    updateCreditTotals();
                 }
             });
         }
@@ -170,24 +225,15 @@
 
     // Calculate credits when courses are selected
     $('#courses').on('change', function () {
-        let selected = $(this).val() || [];
-        let totalCredits = 0;
-
-        selected.forEach(courseId => {
-            totalCredits += parseInt(courseCreditMapping[courseId] || 0);
-        });
-
-        $('#totalCredits').text(totalCredits);
-
-        let level = $('#level').val();
-        let maxLimit = creditLimits[level];
-
-        if (totalCredits > maxLimit) {
-            $('#creditWarning').show();
-        } else {
-            $('#creditWarning').hide();
-        }
+        updateCreditTotals();
     });
+
+    refreshCourseCreditsFromDom();
+    updateCreditTotals();
+
+    if (!{{ old('course_ids') ? 'true' : 'false' }}) {
+        $('#level').trigger('change');
+    }
 </script>
 
 

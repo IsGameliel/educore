@@ -111,7 +111,7 @@
                     </span>
                     <span class="page-title-text">Registered Courses</span>
                 </h3>
-                <p class="helper-text mb-0">{{ $student->name }} - {{ $semester }} Semester</p>
+                <p class="helper-text mb-0">{{ $student->name }} - {{ $semester }} Semester - {{ $session }}</p>
             </div>
 
             <a href="{{ route('admin.course-registrations.index') }}" class="btn btn-outline-secondary btn-sm">
@@ -144,28 +144,43 @@
                             <span class="student-chip">Dept: {{ optional($student->department)->name ?? 'N/A' }}</span>
                             <span class="student-chip">Level: {{ $student->level ?? 'N/A' }}</span>
                             <span class="student-chip">Matric: {{ $student->matric_number ?? 'N/A' }}</span>
+                            <span class="student-chip">Session: {{ $session }}</span>
                         </div>
                     </div>
 
-                    <div class="d-flex flex-wrap gap-2">
+                    <div class="d-flex flex-column align-items-xl-end gap-2">
+                        <form method="GET" action="{{ route('admin.course-registrations.show', $student->id) }}" class="d-flex flex-column flex-sm-row gap-2">
+                            <input type="hidden" name="semester" value="{{ $semester }}">
+                            <select name="session" class="form-control form-control-sm">
+                                @foreach($academicSessions as $academicSession)
+                                    <option value="{{ $academicSession }}" {{ $session === $academicSession ? 'selected' : '' }}>
+                                        {{ $academicSession }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Load Session</button>
+                        </form>
+
+                        <div class="d-flex flex-wrap gap-2">
                         <a
-                            href="{{ route('admin.course-registrations.show', $student->id) }}?semester=First"
+                            href="{{ route('admin.course-registrations.show', $student->id) }}?semester=First&session={{ urlencode($session) }}"
                             class="btn btn-sm semester-link {{ $semester === 'First' ? 'active' : '' }}"
                         >
                             First Semester
                         </a>
                         <a
-                            href="{{ route('admin.course-registrations.show', $student->id) }}?semester=Second"
+                            href="{{ route('admin.course-registrations.show', $student->id) }}?semester=Second&session={{ urlencode($session) }}"
                             class="btn btn-sm semester-link {{ $semester === 'Second' ? 'active' : '' }}"
                         >
                             Second Semester
                         </a>
                         <a
-                            href="{{ route('admin.course-registrations.edit', $student->id) }}?semester={{ $semester }}"
+                            href="{{ route('admin.course-registrations.edit', $student->id) }}?semester={{ $semester }}&session={{ urlencode($session) }}"
                             class="btn btn-sm btn-success"
                         >
                             <i class="mdi mdi-pencil me-1"></i> Edit Courses
                         </a>
+                    </div>
                     </div>
                 </div>
 
@@ -199,7 +214,7 @@
                             @empty
                                 <tr>
                                     <td colspan="4" class="text-center text-muted py-4">
-                                        No registered courses for {{ $semester }} Semester.
+                                        No registered courses for {{ $semester }} Semester in {{ $session }}.
                                     </td>
                                 </tr>
                             @endforelse

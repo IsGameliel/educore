@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CourseRegistration;
 use App\Models\Courses;
 use App\Models\User;
+use App\Models\AcademicSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Department;
@@ -45,10 +46,17 @@ class CourseRegistrationController extends Controller
     {
         $user = Auth::user(); // Get the authenticated student
         $departmentId = $user->department_id;
-        $courses = Courses::where('department_id', $departmentId)->where('level', $user->level)->get();
+        $defaultSemester = $this->normalizeSemester(old('semester', 'First'));
+        $currentSession = $this->getCurrentAcademicSession();
+        $courses = Courses::where('department_id', $departmentId)
+            ->where('level', $user->level)
+            ->where('semester', $defaultSemester)
+            ->with('prerequisites')
+            ->orderBy('code')
+            ->get();
         $departments = Department::all();
 
-        return view('student.coursereg.create', compact('courses', 'departments'));
+        return view('student.coursereg.create', compact('courses', 'departments', 'defaultSemester', 'currentSession'));
     }
 
     public function getCoursesByLevel(Request $request)
@@ -56,12 +64,13 @@ class CourseRegistrationController extends Controller
         $user = Auth::user();
         $departmentId = $user->department_id;
         $level = $request->level;
-        $semester = $request->semester;
+        $semester = $this->normalizeSemester($request->semester);
 
         $courses = Courses::where('department_id', $departmentId)
             ->where('level', $level)
             ->where('semester', $semester)
             ->with('prerequisites')
+            ->orderBy('code')
             ->get();
 
         return response()->json($courses);
@@ -84,14 +93,45 @@ class CourseRegistrationController extends Controller
     {
         $user = Auth::user(); // Get the authenticated student
         $userId = $user->id;
-        $semester = $request->input('semester');
+        $semester = $this->normalizeSemester($request->input('semester'));
         $level = $request->input('level');
-        $courseIds = $request->input('course_ids');
+        $session = $this->getCurrentAcademicSession();
+        $courseIds = collect($request->input('course_ids', []))
+            ->filter(fn ($courseId) => filled($courseId))
+            ->values()
+            ->all();
 
-        // Validate that the courses exist
-        $courses = Courses::whereIn('id', $courseIds)->get();
+        if (empty($courseIds)) {
+            return $this->courseRegistrationError($request, 'Please select at least one course.', 422);
+        }
+
+        // Validate that the selected courses belong to the student's department, level, and semester.
+        $courses = Courses::whereIn('id', $courseIds)
+            ->where('department_id', $user->department_id)
+            ->where('level', $level)
+            ->where('semester', $semester)
+            ->get();
+
         if ($courses->count() != count($courseIds)) {
-            return $this->courseRegistrationError($request, 'One or more courses do not exist.', 400);
+            return $this->courseRegistrationError(
+                $request,
+                'One or more selected courses are not available for your level or selected semester.',
+                422
+            );
+        }
+
+        $alreadyRegisteredCourse = CourseRegistration::where('user_id', $userId)
+            ->where('semester', $semester)
+            ->where('session', $session)
+            ->whereIn('course_id', $courseIds)
+            ->first();
+
+        if ($alreadyRegisteredCourse) {
+            return $this->courseRegistrationError(
+                $request,
+                'One or more selected courses have already been registered for this semester and session.',
+                422
+            );
         }
 
         // Step 1: Check if each course has prerequisites
@@ -116,7 +156,7 @@ class CourseRegistrationController extends Controller
         }
 
         // Step 2: Get the total credit units already registered for this semester
-        $totalCreditUnits = CourseRegistration::getTotalCreditUnitsForSemester($userId, $semester);
+        $totalCreditUnits = CourseRegistration::getTotalCreditUnitsForSemester($userId, $semester, $session);
 
         // Step 3: Check if the total credit units exceed the allowed limit for the student level
         $creditUnitLimit = $this->getCreditUnitLimitForLevel($level);
@@ -138,6 +178,7 @@ class CourseRegistrationController extends Controller
                 'acted_by' => $userId,
                 'course_id' => $course->id,
                 'semester' => $semester, // Save as "First Semester" or "Second Semester"
+                'session' => $session,
                 'registration_date' => now(),
                 'status' => 'registered', // You can add more status options like 'pending', 'approved', etc.
             ]);
@@ -155,13 +196,14 @@ class CourseRegistrationController extends Controller
                         'course_code' => $course->code,
                         'course_title' => $course->title,
                         'semester' => $semester,
+                        'session' => $session,
                         'status' => 'registered',
                     ],
                 ]
             );
         }
 
-        return redirect()->route('student.courses.registered', ['semester' => $semester])
+        return redirect()->route('student.courses.registered', ['semester' => $semester, 'session' => $session])
         ->with('success', 'Courses successfully registered!');
 
     }
@@ -189,9 +231,10 @@ class CourseRegistrationController extends Controller
      * Show the list of courses the student is registered for in a specific semester.
      */
 
-    public function getRegisteredCourses($semester)
+    public function getRegisteredCourses(Request $request, $semester)
     {
         $userId = Auth::id();
+        $session = $request->query('session', $this->getCurrentAcademicSession());
 
         // Normalize Semester
         if ($semester == 1 || strtolower($semester) == "1") {
@@ -208,9 +251,10 @@ class CourseRegistrationController extends Controller
         $courses = CourseRegistration::with('course')
             ->where('user_id', $userId)
             ->where('semester', $semester)
+            ->where('session', $session)
             ->get();
 
-        return view('student.coursereg.index', compact('courses', 'semester'));
+        return view('student.coursereg.index', compact('courses', 'semester', 'session'));
     }
 
 
@@ -222,10 +266,14 @@ class CourseRegistrationController extends Controller
     {
         $userId = Auth::user()->id;
         $courseId = $request->input('course_id');
+        $semester = $this->normalizeSemester($request->input('semester'));
+        $session = $request->input('session', $this->getCurrentAcademicSession());
 
         // Check if the student is registered for the course
         $registration = CourseRegistration::where('user_id', $userId)
             ->where('course_id', $courseId)
+            ->where('semester', $semester)
+            ->where('session', $session)
             ->first();
 
         if (!$registration) {
@@ -267,12 +315,14 @@ class CourseRegistrationController extends Controller
     {
         $userId = Auth::user()->id;
         $courseId = $request->input('course_id');
-        $semester = $request->input('semester');
+        $semester = $this->normalizeSemester($request->input('semester'));
+        $session = $request->input('session', $this->getCurrentAcademicSession());
 
         // Check if the student is already registered for the course
         $existingRegistration = CourseRegistration::where('user_id', $userId)
             ->where('course_id', $courseId)
             ->where('semester', $semester)
+            ->where('session', $session)
             ->first();
 
         if ($existingRegistration) {
@@ -291,14 +341,14 @@ class CourseRegistrationController extends Controller
     public function downloadCoursesPdf(Request $request)
     {
         $user = Auth::user(); // Get the authenticated user
-        $semester = $request->input('semester'); // Get the semester from the request
+        $semester = $this->normalizeSemester($request->input('semester'));
+        $session = $request->input('session', $this->getCurrentAcademicSession());
 
         // Fetch the courses registered by the user for the given semester
         $courses = CourseRegistration::with('course')
             ->where('user_id', $user->id)
-            ->whereHas('course', function ($query) use ($semester) {
-                $query->where('semester', $semester);
-            })
+            ->where('semester', $semester)
+            ->where('session', $session)
             ->get();
 
         // Check if courses were fetched
@@ -312,6 +362,7 @@ class CourseRegistrationController extends Controller
         $pdfData = [
             'user' => $user,
             'semester' => ucfirst($semester), // Capitalize "first semester" or "second semester"
+            'session' => $session,
             'courses' => $courses,
             'totalCreditUnits' => $totalCreditUnits,
             'department' => $user->department->name ?? 'N/A', // Assuming a relationship exists
@@ -332,14 +383,31 @@ class CourseRegistrationController extends Controller
     public function downloadCoursesExcel(Request $request)
     {
         $userId = Auth::id();
-        $semester = $this->getSemesterName($request->input('semester'));
+        $semester = $this->normalizeSemester($request->input('semester'));
+        $session = $request->input('session', $this->getCurrentAcademicSession());
 
         $courses = CourseRegistration::with('course')
             ->where('user_id', $userId)
             ->where('semester', $semester)
+            ->where('session', $session)
             ->get();
 
         return Excel::download(new CoursesExport($courses), "registered_courses_{$semester}.xlsx");
+    }
+
+    private function getCurrentAcademicSession(): string
+    {
+        $activeAcademicSession = AcademicSession::currentName();
+
+        if ($activeAcademicSession) {
+            return $activeAcademicSession;
+        }
+
+        $year = (int) now()->format('Y');
+        $month = (int) now()->format('n');
+        $startYear = $month >= 8 ? $year : $year - 1;
+
+        return $startYear . '/' . ($startYear + 1);
     }
 
 

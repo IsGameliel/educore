@@ -90,10 +90,10 @@
                     </span>
                     <span class="page-title-text">Edit Registration</span>
                 </h3>
-                <p class="helper-text mb-0">{{ $student->name }} - {{ $semester }} Semester</p>
+                <p class="helper-text mb-0">{{ $student->name }} - {{ $semester }} Semester - {{ $session }}</p>
             </div>
 
-            <a href="{{ route('admin.course-registrations.show', $student->id) }}?semester={{ $semester }}" class="btn btn-outline-secondary btn-sm">
+            <a href="{{ route('admin.course-registrations.show', $student->id) }}?semester={{ $semester }}&session={{ urlencode($session) }}" class="btn btn-outline-secondary btn-sm">
                 <i class="mdi mdi-arrow-left me-1"></i> Back
             </a>
         </div>
@@ -120,22 +120,37 @@
                             <span class="student-chip">Dept: {{ optional($student->department)->name ?? 'N/A' }}</span>
                             <span class="student-chip">Level: {{ $student->level ?? 'N/A' }}</span>
                             <span class="student-chip">Matric: {{ $student->matric_number ?? 'N/A' }}</span>
+                            <span class="student-chip">Session: {{ $session }}</span>
                         </div>
                     </div>
 
-                    <div class="d-flex flex-wrap gap-2">
+                    <div class="d-flex flex-column align-items-xl-end gap-2">
+                        <form method="GET" action="{{ route('admin.course-registrations.edit', $student->id) }}" class="d-flex flex-column flex-sm-row gap-2">
+                            <input type="hidden" name="semester" value="{{ $semester }}">
+                            <select name="session" class="form-control form-control-sm">
+                                @foreach($academicSessions as $academicSession)
+                                    <option value="{{ $academicSession }}" {{ $session === $academicSession ? 'selected' : '' }}>
+                                        {{ $academicSession }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Load Session</button>
+                        </form>
+
+                        <div class="d-flex flex-wrap gap-2">
                         <a
-                            href="{{ route('admin.course-registrations.edit', $student->id) }}?semester=First"
+                            href="{{ route('admin.course-registrations.edit', $student->id) }}?semester=First&session={{ urlencode($session) }}"
                             class="btn btn-sm semester-link {{ $semester === 'First' ? 'active' : '' }}"
                         >
                             First Semester
                         </a>
                         <a
-                            href="{{ route('admin.course-registrations.edit', $student->id) }}?semester=Second"
+                            href="{{ route('admin.course-registrations.edit', $student->id) }}?semester=Second&session={{ urlencode($session) }}"
                             class="btn btn-sm semester-link {{ $semester === 'Second' ? 'active' : '' }}"
                         >
                             Second Semester
                         </a>
+                    </div>
                     </div>
                 </div>
 
@@ -144,6 +159,7 @@
                     @method('PUT')
 
                     <input type="hidden" name="semester" value="{{ $semester }}">
+                    <input type="hidden" name="session" value="{{ $session }}">
 
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
@@ -217,7 +233,7 @@
                     </div>
 
                     <div class="mt-4 d-flex flex-column flex-sm-row align-items-sm-center justify-content-end gap-2">
-                        <a href="{{ route('admin.course-registrations.show', $student->id) }}?semester={{ $semester }}"
+                        <a href="{{ route('admin.course-registrations.show', $student->id) }}?semester={{ $semester }}&session={{ urlencode($session) }}"
                            class="btn btn-outline-secondary">
                             Cancel
                         </a>

@@ -10,6 +10,11 @@ class AcademicSession extends Model
         'name',
         'start_year',
         'end_year',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
     public function getDisplayNameAttribute(): string
@@ -34,5 +39,23 @@ class AcademicSession extends Model
             'start_year' => (int) ($matches['start'] ?? 0),
             'end_year' => (int) ($matches['end'] ?? 0),
         ];
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public static function current(): ?self
+    {
+        return static::query()
+            ->active()
+            ->orderByDesc('start_year')
+            ->first();
+    }
+
+    public static function currentName(): ?string
+    {
+        return static::current()?->name;
     }
 }
