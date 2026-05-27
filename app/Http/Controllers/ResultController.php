@@ -163,10 +163,10 @@ class ResultController extends Controller
         ]);
     }
 
-    public function show(Request $request, $userId, $session, $semester)
+    public function show(Request $request, $userId, $sessionOrSemester, $semester = null)
     {
         $user = User::findOrFail($userId);
-        $session = urldecode($session);
+        [$session, $semester] = $this->resolveSessionAndSemester($request, $sessionOrSemester, $semester);
         $departmentId = $this->resolveDepartmentId($request, $user);
 
         if (Auth::user()->usertype === 'student' && Auth::id() !== $user->id) {
@@ -229,10 +229,10 @@ class ResultController extends Controller
         return view('admin.result.create', compact('students', 'departments', 'courses', 'academicSessions'));
     }
 
-    public function editGroup(Request $request, $user_id, $session, $semester)
+    public function editGroup(Request $request, $user_id, $sessionOrSemester, $semester = null)
     {
         $student = User::findOrFail($user_id);
-        $session = urldecode($session);
+        [$session, $semester] = $this->resolveSessionAndSemester($request, $sessionOrSemester, $semester);
         $departmentId = $this->resolveDepartmentId($request, $student);
         $results = Result::where('user_id', $user_id)
             ->where('session', $session)
@@ -412,7 +412,7 @@ class ResultController extends Controller
         return redirect()->route($this->resultRouteName('index'))->with('success', 'Result updated successfully.');
     }
 
-    public function updateGroup(Request $request, $user_id, $session, $semester)
+    public function updateGroup(Request $request, $user_id, $sessionOrSemester, $semester = null)
     {
         $actor = Auth::user();
         $validated = $request->validate([
@@ -426,7 +426,7 @@ class ResultController extends Controller
         ]);
 
         $student = User::where('usertype', 'student')->findOrFail($user_id);
-        $session = urldecode($session);
+        [$session, $semester] = $this->resolveSessionAndSemester($request, $sessionOrSemester, $semester);
         $departmentId = $this->resolveDepartmentId($request, $student);
         $department = Department::findOrFail($departmentId);
 
@@ -478,11 +478,11 @@ class ResultController extends Controller
             );
         }
 
-        return redirect()->route($this->resultRouteName('editGroup'), [
+        return redirect()->route($this->resultRouteName('editGroup.bySemester'), [
             $user_id,
-            $session,
             $semester,
             'department_id' => $departmentId,
+            'session' => $session,
         ])
             ->with('success', 'Results updated successfully.');
     }
@@ -583,19 +583,19 @@ class ResultController extends Controller
 
         $result->delete();
 
-        return redirect()->route($this->resultRouteName('editGroup'), [
+        return redirect()->route($this->resultRouteName('editGroup.bySemester'), [
             $userId,
-            $session,
             $semester,
             'department_id' => $departmentId,
+            'session' => $session,
         ])
             ->with('success', 'Result deleted successfully.');
     }
 
-    public function destroyGroup(Request $request, $user_id, $session, $semester)
+    public function destroyGroup(Request $request, $user_id, $sessionOrSemester, $semester = null)
     {
         $student = User::where('usertype', 'student')->findOrFail($user_id);
-        $session = urldecode($session);
+        [$session, $semester] = $this->resolveSessionAndSemester($request, $sessionOrSemester, $semester);
         $departmentId = $this->resolveDepartmentId($request, $student);
 
         $resultsQuery = Result::where('user_id', $user_id)
@@ -710,10 +710,10 @@ class ResultController extends Controller
                          ->with('success', $message);
     }
 
-    public function generateTranscriptForSemester(Request $request, $userId, $session, $semester)
+    public function generateTranscriptForSemester(Request $request, $userId, $sessionOrSemester, $semester = null)
     {
         $user = User::findOrFail($userId);
-        $session = urldecode($session);
+        [$session, $semester] = $this->resolveSessionAndSemester($request, $sessionOrSemester, $semester);
         $departmentId = $this->resolveDepartmentId($request, $user);
 
         // fetch all results for that user/session/semester
@@ -1002,6 +1002,24 @@ class ResultController extends Controller
     protected function resolveDepartmentId(Request $request, User $user)
     {
         return (int) ($request->input('department_id') ?: $user->department_id);
+    }
+
+    protected function resolveSessionAndSemester(Request $request, $sessionOrSemester, $semester = null): array
+    {
+        if ($semester === null) {
+            $semester = $sessionOrSemester;
+            $session = $request->query('session', $request->input('session'));
+        } else {
+            $session = $sessionOrSemester;
+        }
+
+        $session = urldecode((string) $session);
+
+        if ($session === '') {
+            abort(404, 'Academic session is required.');
+        }
+
+        return [$session, $semester];
     }
 
     protected function resultRouteName(string $name): string

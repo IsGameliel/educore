@@ -1,7 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
-    <div class="container">
+    <div class="container" style="margin-top: 86px;">
         <h2>My Results</h2>
 
         @if (session('success'))
@@ -33,7 +33,7 @@
                         <td>{{ $first->semester }}</td>
                         <td>{{ $first->level }}</td>
                         <td>
-                            <a href="{{ route('student.results.show', [$first->user_id, urlencode($first->session), $first->semester]) }}" 
+                            <a href="{{ route('student.results.show.bySemester', [$first->user_id, $first->semester, 'session' => $first->session]) }}" 
                                class="btn btn-sm btn-primary">
                                View
                             </a>

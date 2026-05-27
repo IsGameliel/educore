@@ -123,7 +123,7 @@
                             <a href="{{ route($routePrefix.'.results.upload') }}" class="btn btn-primary">Upload Results</a>
 
                             @if(request('session') && request('semester') && $canManageTranscripts)
-                                <form method="POST" action="{{ route('admin.results.transcripts.bulk', [request('session'), request('semester')]) }}" class="d-inline">
+                                <form method="POST" action="{{ route('admin.results.transcripts.bulk.bySemester', [request('semester'), 'session' => request('session')]) }}" class="d-inline">
                                     @csrf
                                     <button type="submit" class="btn btn-success">Generate All Transcripts for {{ request('session') }} {{ request('semester') }}</button>
                                 </form>
@@ -171,7 +171,7 @@
                                         </td>
                                         @unless ($isLecturer)
                                             <td>
-                                                <form method="POST" action="{{ route($routePrefix.'.results.transcript.generate', [$first->user_id, urlencode($first->session), $first->semester]) }}">
+                                                <form method="POST" action="{{ route($routePrefix.'.results.transcript.generate.bySemester', [$first->user_id, $first->semester, 'session' => $first->session]) }}">
                                                     @csrf
                                                     <input type="hidden" name="department_id" value="{{ $first->department_id }}">
                                                     <button type="submit" class="btn btn-sm btn-success">
@@ -208,12 +208,12 @@
                                             </td>
                                         @endunless
                                         <td>
-                                            <a href="{{ route($routePrefix.'.results.editGroup', [$first->user_id, $first->session, $first->semester, 'department_id' => $first->department_id]) }}" class="btn btn-sm btn-warning">
+                                            <a href="{{ route($routePrefix.'.results.editGroup.bySemester', [$first->user_id, $first->semester, 'session' => $first->session, 'department_id' => $first->department_id]) }}" class="btn btn-sm btn-warning">
                                                 {{ $isLecturer ? 'Edit' : 'Edit All' }}
                                             </a>
 
                                             @if ($isLecturer)
-                                                <form method="POST" action="{{ route($routePrefix.'.results.destroyGroup', [$first->user_id, $first->session, $first->semester]) }}" class="d-inline" onsubmit="return confirm('Delete all uploaded results for this student, session, and semester?');">
+                                                <form method="POST" action="{{ route($routePrefix.'.results.destroyGroup.bySemester', [$first->user_id, $first->semester, 'session' => $first->session]) }}" class="d-inline" onsubmit="return confirm('Delete all uploaded results for this student, session, and semester?');">
                                                     @csrf
                                                     @method('DELETE')
                                                     <input type="hidden" name="department_id" value="{{ $first->department_id }}">

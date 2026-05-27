@@ -93,11 +93,17 @@ Route::middleware([
 
         Route::prefix('results')->name('results.')->group(function () {
             Route::get('/', [ResultController::class, 'index'])->name('index');
+            Route::get('/{userId}/{semester}', [ResultController::class, 'show'])
+                ->where(['userId' => '[0-9]+', 'semester' => 'First|Second'])
+                ->name('show.bySemester');
             Route::get('/{userId}/{session}/{semester}', [ResultController::class, 'show'])
                 ->where(['userId' => '[0-9]+', 'session' => '.*'])
                 ->name('show');
 
             // ✅ Student transcript route
+            Route::get('/{userId}/{semester}/transcript', [ResultController::class, 'generateTranscriptForSemester'])
+                ->where(['userId' => '[0-9]+', 'semester' => 'First|Second'])
+                ->name('transcript.bySemester');
             Route::get('/{userId}/{session}/{semester}/transcript', [ResultController::class, 'generateTranscriptForSemester'])
                 ->where('session', '.*')
                 ->name('transcript');
@@ -186,16 +192,28 @@ Route::middleware([
         Route::prefix('results')->name('results.')->group(function () {
             Route::get('/', [ResultController::class, 'index'])->name('index');
             // put specific editing endpoints before the general show route
+            Route::get('/edit-group/{user_id}/{semester}', [ResultController::class, 'editGroup'])
+                ->where('semester', 'First|Second')
+                ->name('editGroup.bySemester');
             Route::get('/edit-group/{user_id}/{session}/{semester}', [ResultController::class, 'editGroup'])
                 ->where('session', '.*')
                 ->name('editGroup');
+            Route::put('/update-group/{user_id}/{semester}', [ResultController::class, 'updateGroup'])
+                ->where('semester', 'First|Second')
+                ->name('updateGroup.bySemester');
             Route::put('/update-group/{user_id}/{session}/{semester}', [ResultController::class, 'updateGroup'])
                 ->where('session', '.*')
                 ->name('updateGroup');
+            Route::delete('/group/{user_id}/{semester}', [ResultController::class, 'destroyGroup'])
+                ->where('semester', 'First|Second')
+                ->name('destroyGroup.bySemester');
             Route::delete('/group/{user_id}/{session}/{semester}', [ResultController::class, 'destroyGroup'])
                 ->where('session', '.*')
                 ->name('destroyGroup');
 
+            Route::get('/{userId}/{semester}', [ResultController::class, 'show'])
+                ->where(['userId' => '[0-9]+', 'semester' => 'First|Second'])
+                ->name('show.bySemester');
             Route::get('/{userId}/{session}/{semester}', [ResultController::class, 'show'])
                 ->where(['userId' => '[0-9]+', 'session' => '.*'])
                 ->name('show');
@@ -215,6 +233,9 @@ Route::middleware([
                 Route::post('/upload', [ResultController::class, 'storeUpload'])->name('storeUpload');
 
                 // ✅ Single student transcript
+                Route::post('/{userId}/{semester}/transcript', [ResultController::class, 'generateTranscriptForSemester'])
+                    ->where(['userId' => '[0-9]+', 'semester' => 'First|Second'])
+                    ->name('transcript.generate.bySemester');
                 Route::post('/{userId}/{session}/{semester}/transcript', [ResultController::class, 'generateTranscriptForSemester'])
                     ->where('session', '.*')
                     ->name('transcript.generate');
@@ -222,6 +243,9 @@ Route::middleware([
                     ->name('transcript.full');
 
                 // ✅ Bulk transcripts
+                Route::post('/{semester}/transcripts', [ResultController::class, 'generateTranscriptsForAll'])
+                    ->where('semester', 'First|Second')
+                    ->name('transcripts.bulk.bySemester');
                 Route::post('/{session}/{semester}/transcripts', [ResultController::class, 'generateTranscriptsForAll'])
                     ->where('session', '.*')
                     ->name('transcripts.bulk');
@@ -252,18 +276,30 @@ Route::middleware([
             Route::post('/upload', [ResultController::class, 'storeUpload'])->name('storeUpload');
             Route::get('/template/download', [ResultController::class, 'downloadTemplate'])->name('template.download');
             Route::get('/get-students/{department_id}', [ResultController::class, 'getStudentsByDepartment'])->name('students');
+            Route::get('/edit-group/{user_id}/{semester}', [ResultController::class, 'editGroup'])
+                ->where('semester', 'First|Second')
+                ->name('editGroup.bySemester');
             Route::get('/edit-group/{user_id}/{session}/{semester}', [ResultController::class, 'editGroup'])
                 ->where('session', '.*')
                 ->name('editGroup');
+            Route::put('/update-group/{user_id}/{semester}', [ResultController::class, 'updateGroup'])
+                ->where('semester', 'First|Second')
+                ->name('updateGroup.bySemester');
             Route::put('/update-group/{user_id}/{session}/{semester}', [ResultController::class, 'updateGroup'])
                 ->where('session', '.*')
                 ->name('updateGroup');
+            Route::delete('/group/{user_id}/{semester}', [ResultController::class, 'destroyGroup'])
+                ->where('semester', 'First|Second')
+                ->name('destroyGroup.bySemester');
             Route::delete('/group/{user_id}/{session}/{semester}', [ResultController::class, 'destroyGroup'])
                 ->where('session', '.*')
                 ->name('destroyGroup');
             Route::get('/{result}/edit', [ResultController::class, 'edit'])->name('edit');
             Route::put('/{result}', [ResultController::class, 'update'])->name('update');
             Route::delete('/{result}', [ResultController::class, 'destroy'])->name('destroy');
+            Route::get('/{userId}/{semester}', [ResultController::class, 'show'])
+                ->where(['userId' => '[0-9]+', 'semester' => 'First|Second'])
+                ->name('show.bySemester');
             Route::get('/{userId}/{session}/{semester}', [ResultController::class, 'show'])
                 ->where(['userId' => '[0-9]+', 'session' => '.*'])
                 ->name('show');
