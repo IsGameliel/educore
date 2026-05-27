@@ -57,7 +57,8 @@ it('lets admins choose the active academic session used for student course regis
         ->assertSessionHas('success', 'Active academic session set to 2025/2026.');
 
     expect($firstSession->fresh()?->is_active)->toBeFalse()
-        ->and($secondSession->fresh()?->is_active)->toBeTrue();
+        ->and($secondSession->fresh()?->is_active)->toBeTrue()
+        ->and($student->fresh()?->level)->toBe('200');
 
     $this->actingAs($student)
         ->post(route('student.courses.register'), [
@@ -68,4 +69,38 @@ it('lets admins choose the active academic session used for student course regis
         ->assertRedirect(route('student.courses.registered', ['semester' => 'First', 'session' => '2025/2026']));
 
     expect(CourseRegistration::where('user_id', $student->id)->first()?->session)->toBe('2025/2026');
+});
+
+it('promotes students when the active academic session is updated to a later year and caps at 500 level', function () {
+    $activeSession = AcademicSession::create([
+        'name' => '2024/2025',
+        'start_year' => 2024,
+        'end_year' => 2025,
+        'is_active' => true,
+    ]);
+
+    $admin = User::factory()->create([
+        'usertype' => 'admin',
+    ]);
+
+    $studentAt100 = User::factory()->create([
+        'usertype' => 'student',
+        'level' => '100',
+    ]);
+
+    $studentAt500 = User::factory()->create([
+        'usertype' => 'student',
+        'level' => '500',
+    ]);
+
+    $this->actingAs($admin)
+        ->put(route('admin.academic-sessions.update', $activeSession), [
+            'name' => '2025/2026',
+        ])
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHas('success', 'Academic session updated successfully.');
+
+    expect($activeSession->fresh()?->name)->toBe('2025/2026')
+        ->and($studentAt100->fresh()?->level)->toBe('200')
+        ->and($studentAt500->fresh()?->level)->toBe('500');
 });
