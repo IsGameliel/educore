@@ -69,6 +69,13 @@
             </a>
         </li>
 
+        <li class="nav-item">
+            <a class="nav-link {{ $routeName === 'profile.show' ? 'active' : '' }}" href="{{ route('profile.show') }}">
+                <span class="menu-title">Profile</span>
+                <i class="mdi mdi-account-circle menu-icon"></i>
+            </a>
+        </li>
+
         <li class="admin-section-heading">
             <span class="admin-section-heading__label">Administration</span>
         </li>

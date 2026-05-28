@@ -12,6 +12,9 @@ use App\Models\Courses;
 use App\Models\ClassSchedule;
 use App\Models\ActivityLog;
 use App\Models\AcademicSession;
+use App\Models\DashboardProject;
+use App\Models\DashboardTodo;
+use App\Support\StudentUpdateFeed;
 
 class HomeController extends Controller
 {
@@ -44,7 +47,9 @@ class HomeController extends Controller
                     return $schedule;
                 });
 
-            return view('student.dashboard', compact('courseMaterialsCount', 'courseCount', 'schedules'));
+            $recentUpdates = StudentUpdateFeed::forUser($user);
+
+            return view('student.dashboard', compact('courseMaterialsCount', 'courseCount', 'schedules', 'recentUpdates') + $this->getDashboardWidgets($user));
         }
 
         elseif ($user->usertype == 'admin') {
@@ -67,8 +72,10 @@ class HomeController extends Controller
         $departmentsCount = Department::count();
         $facultyCount = Faculty::count();
         $academicSessions = AcademicSession::query()
+            ->orderByDesc('is_active')
             ->orderByDesc('start_year')
             ->get();
+        $currentAcademicSession = AcademicSession::current();
         $departmentCourseSummary = Department::withCount('courses')
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -104,10 +111,25 @@ class HomeController extends Controller
             'departmentsCount',
             'facultyCount',
             'academicSessions',
+            'currentAcademicSession',
             'departmentCourseSummary',
             'visitorStatistics'
-        ) + [
+        ) + $this->getDashboardWidgets($user) + [
             'recentActivities' => $this->getRecentActivities($user),
+        ];
+    }
+
+    private function getDashboardWidgets(User $user): array
+    {
+        return [
+            'dashboardTodos' => DashboardTodo::where('user_id', $user->id)
+                ->latest()
+                ->get(),
+            'dashboardProjects' => DashboardProject::where('user_id', $user->id)
+                ->orderByRaw('due_date IS NULL')
+                ->orderBy('due_date')
+                ->latest('id')
+                ->get(),
         ];
     }
 
@@ -151,8 +173,15 @@ class HomeController extends Controller
     private function getActivityMeta(string $action): array
     {
         return match ($action) {
-            'result_uploaded' => ['label' => 'Result Upload', 'status' => 'Uploaded', 'color' => 'success'],
-            'result_updated' => ['label' => 'Result Edit', 'status' => 'Updated', 'color' => 'warning'],
+            'course_created' => ['label' => 'Course Update', 'status' => 'Added', 'color' => 'info'],
+            'course_updated' => ['label' => 'Course Update', 'status' => 'Changed', 'color' => 'warning'],
+            'material_uploaded' => ['label' => 'Lecture Material', 'status' => 'Uploaded', 'color' => 'primary'],
+            'material_updated' => ['label' => 'Lecture Material', 'status' => 'Updated', 'color' => 'warning'],
+            'test_published' => ['label' => 'Test Notification', 'status' => 'Published', 'color' => 'danger'],
+            'test_updated' => ['label' => 'Test Notification', 'status' => 'Updated', 'color' => 'warning'],
+            'result_uploaded' => ['label' => 'Result Published', 'status' => 'Published', 'color' => 'success'],
+            'result_updated' => ['label' => 'Result Updated', 'status' => 'Updated', 'color' => 'warning'],
+            'pass_mark_updated' => ['label' => 'Pass Mark Updated', 'status' => 'Updated', 'color' => 'warning'],
             'registration_created' => ['label' => 'Course Registration', 'status' => 'Registered', 'color' => 'info'],
             'registration_approved' => ['label' => 'Registration Approval', 'status' => 'Approved', 'color' => 'success'],
             'registration_rejected' => ['label' => 'Registration Review', 'status' => 'Rejected', 'color' => 'danger'],
@@ -161,4 +190,5 @@ class HomeController extends Controller
             default => ['label' => 'Activity', 'status' => 'Updated', 'color' => 'secondary'],
         };
     }
+
 }

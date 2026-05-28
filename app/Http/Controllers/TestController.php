@@ -8,6 +8,7 @@ use App\Models\{
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Support\ActivityLogger;
 
 class TestController extends Controller
 {
@@ -383,7 +384,11 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
 
         $this->ensureCanManageTestPayload($validated['subject'], (int) $validated['department_id'], (string) $validated['level']);
 
-        Tests::create($validated);
+        $test = Tests::create($validated);
+
+        if ($test->status) {
+            $this->logTestActivity($test, 'test_published', "Published test: {$test->name} for {$test->level} Level");
+        }
 
         return redirect()->route($this->testRouteName('index'))->with('success', 'Test created successfully');
     }
@@ -414,7 +419,18 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
 
         $this->ensureCanManageTestPayload($validatedData['subject'], (int) $validatedData['department_id'], (string) $validatedData['level']);
 
+        $wasActive = (bool) $test->status;
         $test->update($validatedData);
+        $test->refresh();
+
+        if ($test->status) {
+            $action = $wasActive ? 'test_updated' : 'test_published';
+            $description = $wasActive
+                ? "Updated test: {$test->name} for {$test->level} Level"
+                : "Published test: {$test->name} for {$test->level} Level";
+
+            $this->logTestActivity($test, $action, $description);
+        }
 
         return redirect()->route($this->testRouteName('index'))->with('success', 'Test updated successfully');
     }
@@ -565,5 +581,25 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
     protected function testRouteName(string $name): string
     {
         return (Auth::user()?->usertype === 'lecturer' ? 'lecturer' : 'admin') . '.tests.' . $name;
+    }
+
+    protected function logTestActivity(Tests $test, string $action, string $description): void
+    {
+        ActivityLogger::log(
+            Auth::user(),
+            $action,
+            $description,
+            [
+                'subject' => $test,
+                'department_id' => $test->department_id,
+                'properties' => [
+                    'test_id' => $test->id,
+                    'test_name' => $test->name,
+                    'subject' => $test->subject,
+                    'duration' => $test->duration,
+                    'level' => (string) $test->level,
+                ],
+            ]
+        );
     }
 }

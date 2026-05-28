@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\CourseMaterial;
+use App\Support\ActivityLogger;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Department;
 use App\Models\Courses;
@@ -60,6 +62,24 @@ class CourseMaterialController extends Controller
             'file_path' => $filePath,
             'cover_photo' => $coverPhotoPath,
         ]);
+
+        ActivityLogger::log(
+            Auth::user(),
+            'material_uploaded',
+            "Uploaded lecture material: {$courseMaterial->title} ({$courseMaterial->semester} Semester)",
+            [
+                'subject' => $courseMaterial,
+                'department_id' => $courseMaterial->department_id,
+                'properties' => [
+                    'material_id' => $courseMaterial->id,
+                    'title' => $courseMaterial->title,
+                    'semester' => $courseMaterial->semester,
+                    'level' => (string) $courseMaterial->level,
+                    'course_id' => $courseMaterial->course_id,
+                    'course_code' => $courseMaterial->course?->code,
+                ],
+            ]
+        );
 
         return redirect('admin/course-materials');
     }
@@ -120,6 +140,24 @@ class CourseMaterialController extends Controller
             'department_id' => $request->department_id,
             'course_id' => $request->course_id,
         ]);
+
+        ActivityLogger::log(
+            Auth::user(),
+            'material_updated',
+            "Updated lecture material: {$courseMaterial->title} ({$courseMaterial->semester} Semester)",
+            [
+                'subject' => $courseMaterial,
+                'department_id' => $courseMaterial->department_id,
+                'properties' => [
+                    'material_id' => $courseMaterial->id,
+                    'title' => $courseMaterial->title,
+                    'semester' => $courseMaterial->semester,
+                    'level' => (string) $courseMaterial->level,
+                    'course_id' => $courseMaterial->course_id,
+                    'course_code' => $courseMaterial->course?->code,
+                ],
+            ]
+        );
 
         return redirect('admin/course-materials')->with('success', 'Course material updated successfully.');
     }

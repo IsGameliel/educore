@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\CourseImport;
@@ -11,6 +12,7 @@ use App\Exports\CoursesExport;
 use App\Models\{
     Department, Courses
 };
+use App\Support\ActivityLogger;
 
 
 class CourseController extends Controller
@@ -68,9 +70,9 @@ class CourseController extends Controller
             'level' => 'required|int|max:535',
         ]);
 
-        $createdCount = 0;
+        $createdCourses = collect();
 
-        DB::transaction(function () use ($validated, &$createdCount) {
+        DB::transaction(function () use ($validated, &$createdCourses) {
             foreach (array_unique($validated['department_ids']) as $departmentId) {
                 $course = Courses::firstOrCreate(
                     [
@@ -86,14 +88,36 @@ class CourseController extends Controller
                 );
 
                 if ($course->wasRecentlyCreated) {
-                    $createdCount++;
+                    $createdCourses->push($course);
                 }
             }
         });
 
+        $createdCount = $createdCourses->count();
+
         if ($createdCount === 0) {
             return redirect()->route('admin.courses.index')->with('warning', 'Matching course records already exist for the selected department(s).');
         }
+
+        $createdCourses->each(function (Courses $course) {
+            ActivityLogger::log(
+                Auth::user(),
+                'course_created',
+                "Added {$course->code} - {$course->title} ({$course->credit_unit} unit(s)) for {$course->level} Level",
+                [
+                    'subject' => $course,
+                    'department_id' => $course->department_id,
+                    'properties' => [
+                        'course_id' => $course->id,
+                        'course_code' => $course->code,
+                        'course_title' => $course->title,
+                        'credit_unit' => $course->credit_unit,
+                        'semester' => $course->semester,
+                        'level' => (string) $course->level,
+                    ],
+                ]
+            );
+        });
 
         $departmentTotal = count(array_unique($validated['department_ids']));
         $message = $createdCount === 1
@@ -148,8 +172,8 @@ class CourseController extends Controller
         ]);
 
         $selectedDepartmentIds = array_values(array_unique($validated['department_ids']));
-        $updatedCount = 0;
-        $createdCount = 0;
+        $updatedCourses = collect();
+        $createdCourses = collect();
 
         $originalSignature = [
             'code' => $course->code,
@@ -159,7 +183,7 @@ class CourseController extends Controller
             'level' => $course->level,
         ];
 
-        DB::transaction(function () use ($course, $validated, $selectedDepartmentIds, $originalSignature, &$updatedCount, &$createdCount) {
+        DB::transaction(function () use ($course, $validated, $selectedDepartmentIds, $originalSignature, &$updatedCourses, &$createdCourses) {
             $existingCourses = Courses::query()
                 ->where($originalSignature)
                 ->get()
@@ -182,14 +206,69 @@ class CourseController extends Controller
                 ];
 
                 if ($targetCourse) {
+                    $originalValues = $targetCourse->only(['code', 'title', 'credit_unit', 'semester', 'department_id', 'level']);
                     $targetCourse->update($payload);
-                    $updatedCount++;
+                    $updatedCourses->push([
+                        'course' => $targetCourse->fresh(),
+                        'original' => $originalValues,
+                    ]);
                     continue;
                 }
 
-                Courses::create($payload);
-                $createdCount++;
+                $createdCourses->push(Courses::create($payload));
             }
+        });
+
+        $updatedCount = $updatedCourses->count();
+        $createdCount = $createdCourses->count();
+
+        $updatedCourses->each(function (array $entry) {
+            /** @var Courses $course */
+            $course = $entry['course'];
+            $original = $entry['original'];
+            $unitChanged = (int) ($original['credit_unit'] ?? 0) !== (int) $course->credit_unit;
+            $description = $unitChanged
+                ? "Updated {$course->code} - {$course->title} course unit from {$original['credit_unit']} to {$course->credit_unit}"
+                : "Updated {$course->code} - {$course->title}";
+
+            ActivityLogger::log(
+                Auth::user(),
+                'course_updated',
+                $description,
+                [
+                    'subject' => $course,
+                    'department_id' => $course->department_id,
+                    'properties' => [
+                        'course_id' => $course->id,
+                        'course_code' => $course->code,
+                        'course_title' => $course->title,
+                        'credit_unit' => $course->credit_unit,
+                        'old_credit_unit' => $original['credit_unit'] ?? null,
+                        'semester' => $course->semester,
+                        'level' => (string) $course->level,
+                    ],
+                ]
+            );
+        });
+
+        $createdCourses->each(function (Courses $course) {
+            ActivityLogger::log(
+                Auth::user(),
+                'course_created',
+                "Added {$course->code} - {$course->title} ({$course->credit_unit} unit(s)) for {$course->level} Level",
+                [
+                    'subject' => $course,
+                    'department_id' => $course->department_id,
+                    'properties' => [
+                        'course_id' => $course->id,
+                        'course_code' => $course->code,
+                        'course_title' => $course->title,
+                        'credit_unit' => $course->credit_unit,
+                        'semester' => $course->semester,
+                        'level' => (string) $course->level,
+                    ],
+                ]
+            );
         });
 
         $message = 'Course updated successfully.';
@@ -247,7 +326,7 @@ class CourseController extends Controller
             'file' => 'required|file|mimes:xlsx,xls,csv',
         ]);
 
-        $import = new CourseImport();
+        $import = new CourseImport(Auth::user());
 
         Excel::import($import, $request->file('file'));
 

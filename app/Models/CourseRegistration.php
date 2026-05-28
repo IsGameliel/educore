@@ -48,10 +48,11 @@ class CourseRegistration extends Model
         return $this->semester === $semester;
     }
 
-    public static function getTotalCreditUnitsForSemester($userId, $semester)
+    public static function getTotalCreditUnitsForSemester($userId, $semester, $session = null)
     {
         return self::where('user_id', $userId)
-            ->where('course_registrations.semester', $semester)  // Specify the table for 'semester'
+            ->where('course_registrations.semester', $semester)
+            ->when($session, fn ($query) => $query->where('course_registrations.session', $session))
             ->join('courses', 'course_registrations.course_id', '=', 'courses.id')
             ->sum('courses.credit_unit');
     }

@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(append: [
+            \App\Http\Middleware\PreventAuthPageCaching::class,
+        ]);
+
         $middleware->alias([
             'prevent.retake' => \App\Http\Middleware\PreventTestRetake::class,
             'usertype' => \App\Http\Middleware\UsertypeMiddleware::class,

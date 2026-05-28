@@ -1,3 +1,8 @@
+@php
+    $routeName = request()->route()?->getName() ?? '';
+    $studentRegisteredCourseUrl = route('student.courses.registered', ['semester' => 'First']) . '?session=' . urlencode(\App\Models\AcademicSession::currentName() ?? (now()->month >= 8 ? now()->year . '/' . (now()->year + 1) : (now()->year - 1) . '/' . now()->year));
+@endphp
+
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
     <ul class="nav">
         <li class="nav-item nav-profile">
@@ -15,51 +20,57 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="{{ url('home') }}">
+            <a class="nav-link {{ request()->is('home') ? 'active' : '' }}" href="{{ url('home') }}">
                 <span class="menu-title">Dashboard</span>
                 <i class="mdi mdi-home menu-icon"></i>
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="false" aria-controls="ui-basic">
+            <a class="nav-link {{ $routeName === 'profile.show' ? 'active' : '' }}" href="{{ route('profile.show') }}">
+                <span class="menu-title">Profile</span>
+                <i class="mdi mdi-account-circle menu-icon"></i>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="{{ request()->is('student/courses/registration') || request()->is('student/courses/*') || $routeName === 'student.schedule' || $routeName === 'student.course-materials' ? 'true' : 'false' }}" aria-controls="ui-basic">
                 <span class="menu-title">Academics</span>
                 <i class="menu-arrow"></i>
                 <i class="mdi mdi-school menu-icon"></i>
             </a>
-            <div class="collapse" id="ui-basic">
+            <div class="collapse {{ request()->is('student/courses/registration') || request()->is('student/courses/*') || $routeName === 'student.schedule' || $routeName === 'student.course-materials' ? 'show' : '' }}" id="ui-basic">
                 <ul class="nav flex-column sub-menu">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url('student/courses/registration') }}">Course Registeration</a>
+                        <a class="nav-link {{ request()->is('student/courses/registration') ? 'active' : '' }}" href="{{ url('student/courses/registration') }}">Course Registeration</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url('student/courses/{semester}') }}">View Registered Course</a>
+                        <a class="nav-link {{ request()->is('student/courses/*') && !request()->is('student/courses/registration') ? 'active' : '' }}" href="{{ $studentRegisteredCourseUrl }}">View Registered Course</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('student.schedule')}}">Class Timetable</a>
+                        <a class="nav-link {{ $routeName === 'student.schedule' ? 'active' : '' }}" href="{{ route('student.schedule')}}">Class Timetable</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('student.course-materials')}}">Course Material</a>
+                        <a class="nav-link {{ $routeName === 'student.course-materials' ? 'active' : '' }}" href="{{ route('student.course-materials')}}">Course Material</a>
                     </li>
                 </ul>
             </div>
         </li>
 
         <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="collapse" href="#exam" aria-expanded="false" aria-controls="auth">
+            <a class="nav-link" data-bs-toggle="collapse" href="#exam" aria-expanded="{{ str_starts_with($routeName, 'student.tests.') || str_starts_with($routeName, 'student.results.') ? 'true' : 'false' }}" aria-controls="auth">
                 <span class="menu-title">Exams & Results</span>
                 <i class="menu-arrow"></i>
                 <i class="mdi mdi-pen menu-icon"></i>
             </a>
-            <div class="collapse" id="exam">
+            <div class="collapse {{ str_starts_with($routeName, 'student.tests.') || str_starts_with($routeName, 'student.results.') ? 'show' : '' }}" id="exam">
                 <ul class="nav flex-column sub-menu">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('student.tests.index')}}"> Take test </a>
+                        <a class="nav-link {{ str_starts_with($routeName, 'student.tests.') ? 'active' : '' }}" href="{{ route('student.tests.index')}}"> Take test </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#"> Exam Schedule </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('student.results.index') }}"> View Results </a>
+                        <a class="nav-link {{ str_starts_with($routeName, 'student.results.') ? 'active' : '' }}" href="{{ route('student.results.index') }}"> View Results </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#"> Download Result </a>

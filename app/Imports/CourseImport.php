@@ -3,6 +3,8 @@
 namespace App\Imports;
 
 use App\Models\Courses;
+use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -14,6 +16,10 @@ class CourseImport implements ToCollection, WithHeadingRow
     protected int $created = 0;
     protected int $skipped = 0;
     protected array $failedRows = [];
+
+    public function __construct(protected ?User $actor = null)
+    {
+    }
 
     public function collection(Collection $rows)
     {
@@ -67,14 +73,17 @@ class CourseImport implements ToCollection, WithHeadingRow
 
                 if ($course->wasRecentlyCreated) {
                     $this->created++;
+                    $this->logCourseCreated($course);
                     continue;
                 }
 
                 if ($course->title !== $data['title'] || (int) $course->credit_unit !== (int) $data['credit_unit']) {
+                    $oldCreditUnit = $course->credit_unit;
                     $course->update([
                         'title' => $data['title'],
                         'credit_unit' => (int) $data['credit_unit'],
                     ]);
+                    $this->logCourseUpdated($course->fresh(), $oldCreditUnit);
                 }
 
                 $this->skipped++;
@@ -114,5 +123,53 @@ class CourseImport implements ToCollection, WithHeadingRow
     public function failedRows(): array
     {
         return $this->failedRows;
+    }
+
+    protected function logCourseCreated(Courses $course): void
+    {
+        ActivityLogger::log(
+            $this->actor,
+            'course_created',
+            "Added {$course->code} - {$course->title} ({$course->credit_unit} unit(s)) for {$course->level} Level",
+            [
+                'subject' => $course,
+                'department_id' => $course->department_id,
+                'properties' => [
+                    'course_id' => $course->id,
+                    'course_code' => $course->code,
+                    'course_title' => $course->title,
+                    'credit_unit' => $course->credit_unit,
+                    'semester' => $course->semester,
+                    'level' => (string) $course->level,
+                ],
+            ]
+        );
+    }
+
+    protected function logCourseUpdated(Courses $course, int $oldCreditUnit): void
+    {
+        $unitChanged = (int) $oldCreditUnit !== (int) $course->credit_unit;
+        $description = $unitChanged
+            ? "Updated {$course->code} - {$course->title} course unit from {$oldCreditUnit} to {$course->credit_unit}"
+            : "Updated {$course->code} - {$course->title}";
+
+        ActivityLogger::log(
+            $this->actor,
+            'course_updated',
+            $description,
+            [
+                'subject' => $course,
+                'department_id' => $course->department_id,
+                'properties' => [
+                    'course_id' => $course->id,
+                    'course_code' => $course->code,
+                    'course_title' => $course->title,
+                    'credit_unit' => $course->credit_unit,
+                    'old_credit_unit' => $oldCreditUnit,
+                    'semester' => $course->semester,
+                    'level' => (string) $course->level,
+                ],
+            ]
+        );
     }
 }

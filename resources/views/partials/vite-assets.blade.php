@@ -1,7 +1,9 @@
 @php
     $viteHotFile = public_path('hot');
     $viteManifest = public_path('build/manifest.json');
-    $hasViteAssets = file_exists($viteHotFile) || file_exists($viteManifest);
+    $hasLocalHotReload = app()->environment('local') && file_exists($viteHotFile);
+    $hasBuiltAssets = file_exists($viteManifest);
+    $hasViteAssets = $hasLocalHotReload || $hasBuiltAssets;
 @endphp
 
 @if ($hasViteAssets)

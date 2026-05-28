@@ -55,47 +55,14 @@
         <!-- Name -->
         <div class="col-span-6 sm:col-span-4">
             <x-label for="name" value="{{ __('Name') }}" />
-            <x-input id="name" type="text" class="mt-1 block w-full" wire:model="state.name" required autocomplete="name" />
+            <x-input id="name" type="text" class="mt-1 block w-full" wire:model="state.name" value="{{ $state['name'] ?? $this->user->name }}" required autocomplete="name" />
             <x-input-error for="name" class="mt-2" />
         </div>
-
-        {{-- Matric Number (Only for students) --}}
-        <div class="col-span-6 sm:col-span-4">
-            <x-label for="matric_number" value="{{ __('Matric Number') }}" />
-
-            <div class="mt-1 flex gap-2">
-                <x-input
-                    id="matric_number"
-                    type="text"
-                    class="block w-full"
-                    wire:model="state.matric_number"
-                    readonly
-                />
-
-                @if (blank($state['matric_number'] ?? null))
-                    <x-secondary-button
-                        type="button"
-                        wire:click="generateMatricNumber"
-                        wire:loading.attr="disabled"
-                        wire:target="generateMatricNumber"
-                    >
-                        {{ __('Generate') }}
-                    </x-secondary-button>
-                @endif
-            </div>
-
-            <p class="text-xs text-gray-500 mt-1">
-                {{ __('Matric number is generated automatically and cannot be edited.') }}
-            </p>
-
-            <x-input-error for="state.matric_number" class="mt-2" />
-        </div>
-
 
         <!-- Email -->
         <div class="col-span-6 sm:col-span-4">
             <x-label for="email" value="{{ __('Email') }}" />
-            <x-input id="email" type="email" class="mt-1 block w-full" wire:model="state.email" required autocomplete="username" />
+            <x-input id="email" type="email" class="mt-1 block w-full" wire:model="state.email" value="{{ $state['email'] ?? $this->user->email }}" required autocomplete="username" />
             <x-input-error for="email" class="mt-2" />
 
             @if (Laravel\Fortify\Features::enabled(Laravel\Fortify\Features::emailVerification()) && ! $this->user->hasVerifiedEmail())
@@ -117,11 +84,43 @@
         <!-- Department Selection (Only for students) -->
         @if($this->user->usertype == 'student')
             <div class="col-span-6 sm:col-span-4">
+                <x-label for="matric_number" value="{{ __('Matric Number') }}" />
+
+                <div class="mt-1 flex gap-2">
+                    <x-input
+                        id="matric_number"
+                        type="text"
+                        class="block w-full"
+                        wire:model="state.matric_number"
+                        value="{{ $state['matric_number'] ?? $this->user->matric_number }}"
+                        readonly
+                    />
+
+                    @if (blank($state['matric_number'] ?? null))
+                        <x-secondary-button
+                            type="button"
+                            wire:click="generateMatricNumber"
+                            wire:loading.attr="disabled"
+                            wire:target="generateMatricNumber"
+                        >
+                            {{ __('Generate') }}
+                        </x-secondary-button>
+                    @endif
+                </div>
+
+                <p class="text-xs text-gray-500 mt-1">
+                    {{ __('Matric number is generated automatically and cannot be edited.') }}
+                </p>
+
+                <x-input-error for="state.matric_number" class="mt-2" />
+            </div>
+
+            <div class="col-span-6 sm:col-span-4">
                 <x-label for="department_id" value="{{ __('Department') }}" />
                 <x-select id="department_id" wire:model="state.department_id">
                     <option value="">{{ __('Select Department') }}</option>
                     @foreach($departments as $department)
-                        <option value="{{ $department->id }}" {{ $department->id == old('department_id', $this->user->department_id) ? 'selected' : '' }}>
+                        <option value="{{ $department->id }}" {{ (string) $department->id === (string) ($state['department_id'] ?? $this->user->department_id) ? 'selected' : '' }}>
                             {{ $department->name }}
                         </option>
                     @endforeach
@@ -132,17 +131,17 @@
                 <x-label for="level" value="{{ __('Level') }}" />
                 <x-select id="level" wire:model="state.level">
                     <option value="">{{ __('Select Level') }}</option>
-                    <option value="100" {{ $this->user->level == '100' ? 'selected' : '' }}>100 Level</option>
-                    <option value="200" {{ $this->user->level == '200' ? 'selected' : '' }}>200 Level</option>
-                    <option value="300" {{ $this->user->level == '300' ? 'selected' : '' }}>300 Level</option>
-                    <option value="400" {{ $this->user->level == '400' ? 'selected' : '' }}>400 Level</option>
-                    <option value="500" {{ $this->user->level == '500' ? 'selected' : '' }}>500 Level</option>
+                    <option value="100" {{ ($state['level'] ?? $this->user->level) == '100' ? 'selected' : '' }}>100 Level</option>
+                    <option value="200" {{ ($state['level'] ?? $this->user->level) == '200' ? 'selected' : '' }}>200 Level</option>
+                    <option value="300" {{ ($state['level'] ?? $this->user->level) == '300' ? 'selected' : '' }}>300 Level</option>
+                    <option value="400" {{ ($state['level'] ?? $this->user->level) == '400' ? 'selected' : '' }}>400 Level</option>
+                    <option value="500" {{ ($state['level'] ?? $this->user->level) == '500' ? 'selected' : '' }}>500 Level</option>
                 </x-select>
                 <x-input-error for="state.level" class="mt-2" />
             </div>
             <div class="col-span-6 sm:col-span-4">
                 <x-label for="entry_year" value="{{ __('Entry Year') }}" />
-                <x-input id="entry_year" type="number" class="mt-1 block w-full" wire:model="state.entry_year" required autocomplete="entry_year" />
+                <x-input id="entry_year" type="number" class="mt-1 block w-full" wire:model="state.entry_year" value="{{ $state['entry_year'] ?? $this->user->entry_year }}" required autocomplete="entry_year" />
                 <x-input-error for="state.entry_year" class="mt-2" />
             </div>
 

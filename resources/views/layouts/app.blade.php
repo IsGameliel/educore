@@ -18,7 +18,12 @@
         @livewireStyles
     </head>
     <body class="font-sans antialiased">
-        @unless (file_exists(public_path('hot')) || file_exists(public_path('build/manifest.json')))
+        @php
+            $hasLocalHotReload = app()->environment('local') && file_exists(public_path('hot'));
+            $hasBuiltAssets = file_exists(public_path('build/manifest.json'));
+        @endphp
+
+        @unless ($hasLocalHotReload || $hasBuiltAssets)
             <div class="vite-warning">
                 Frontend assets are not built yet. Run <code>npm run dev</code> or <code>npm run build</code>, then refresh this page.
             </div>

@@ -1,116 +1,229 @@
 {{-- resources/views/admin/course_registrations/show.blade.php --}}
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="font-semibold text-xl text-gray-200 leading-tight">
-                {{ $student->name }} — Registered Courses ({{ $semester }} Semester)
-            </h2>
+@extends('layouts.dash')
 
-            <a href="{{ route('admin.course-registrations.index') }}"
-               class="rounded-lg bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 text-sm">
-                Back to Students
+@section('content')
+<style>
+    .course-reg-page .page-title-text {
+        color: #001f54;
+        font-weight: 700;
+    }
+
+    .course-reg-page .helper-text {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .course-reg-page .card {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 12px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    .course-reg-page .student-chip {
+        background: #f3f4f6;
+        border-radius: 999px;
+        color: #374151;
+        display: inline-flex;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 0.4rem 0.75rem;
+    }
+
+    .course-reg-page .credit-summary {
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 10px;
+        color: #312e81;
+        display: inline-flex;
+        gap: 0.5rem;
+        padding: 0.7rem 1rem;
+    }
+
+    .course-reg-page .table thead th {
+        background: #001f54;
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .course-reg-page .table tbody td {
+        color: #1f2937;
+        vertical-align: middle;
+    }
+
+    .course-reg-page .course-code {
+        color: #111827;
+        font-weight: 700;
+    }
+
+    .course-reg-page .status-badge {
+        background: #f3f4f6;
+        border-radius: 999px;
+        color: #374151;
+        display: inline-flex;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.35rem 0.7rem;
+        text-transform: capitalize;
+    }
+
+    .course-reg-page .btn-brand {
+        background: #001f54;
+        border-color: #001f54;
+        color: #fff;
+    }
+
+    .course-reg-page .btn-brand:hover {
+        background: #003366;
+        border-color: #003366;
+        color: #fff;
+    }
+
+    .course-reg-page .semester-link {
+        border: 1px solid #d1d5db;
+        color: #374151;
+        font-weight: 600;
+    }
+
+    .course-reg-page .semester-link:hover {
+        background: #f9fafb;
+        color: #111827;
+    }
+
+    .course-reg-page .semester-link.active {
+        background: #001f54;
+        border-color: #001f54;
+        color: #fff;
+    }
+</style>
+
+<div class="main-panel">
+    <div class="content-wrapper course-reg-page">
+        <div class="page-header">
+            <div>
+                <h3 class="page-title d-flex align-items-center mb-1">
+                    <span class="page-title-icon bg-gradient-primary text-white me-2">
+                        <i class="mdi mdi-clipboard-account"></i>
+                    </span>
+                    <span class="page-title-text">Registered Courses</span>
+                </h3>
+                <p class="helper-text mb-0">{{ $student->name }} - {{ $semester }} Semester - {{ $session }}</p>
+            </div>
+
+            <a href="{{ route('admin.course-registrations.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="mdi mdi-arrow-left me-1"></i> Back to Students
             </a>
         </div>
-    </x-slot>
 
-    <div class="py-10">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
 
-            {{-- flash --}}
-            @if(session('success'))
-                <div class="mb-4 rounded-lg bg-green-600/20 p-4 text-green-200">
-                    {{ session('success') }}
-                </div>
-            @endif
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0 ps-3">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
-            {{-- errors --}}
-            @if ($errors->any())
-                <div class="mb-4 rounded-lg bg-red-600/20 p-4 text-red-200">
-                    <ul class="list-disc ml-5">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
-            <div class="bg-white/5 backdrop-blur rounded-xl shadow p-6">
-                <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
-                    <div class="text-gray-200">
-                        <div class="text-sm text-gray-300">Student</div>
-                        <div class="text-lg font-semibold text-white">{{ $student->name }}</div>
-                        <div class="text-sm text-gray-300">{{ $student->email }}</div>
-                        <div class="text-sm text-gray-300">
-                            Dept: {{ optional($student->department)->name ?? 'N/A' }} •
-                            Level: {{ $student->level ?? 'N/A' }}
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex flex-column flex-xl-row align-items-xl-start justify-content-between gap-4 mb-4">
+                    <div>
+                        <div class="helper-text text-uppercase fw-bold mb-1">Student</div>
+                        <h4 class="mb-1">{{ $student->name }}</h4>
+                        <div class="helper-text mb-3">{{ $student->email }}</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="student-chip">Dept: {{ optional($student->department)->name ?? 'N/A' }}</span>
+                            <span class="student-chip">Level: {{ $student->level ?? 'N/A' }}</span>
+                            <span class="student-chip">Matric: {{ $student->matric_number ?? 'N/A' }}</span>
+                            <span class="student-chip">Session: {{ $session }}</span>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        {{-- Semester Switch --}}
-                        <a href="{{ route('admin.course-registrations.show', $student->id) }}?semester=First"
-                           class="rounded-lg px-4 py-2 text-sm {{ $semester === 'First' ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700' }}">
+                    <div class="d-flex flex-column align-items-xl-end gap-2">
+                        <form method="GET" action="{{ route('admin.course-registrations.show', $student->id) }}" class="d-flex flex-column flex-sm-row gap-2">
+                            <input type="hidden" name="semester" value="{{ $semester }}">
+                            <select name="session" class="form-control form-control-sm">
+                                @foreach($academicSessions as $academicSession)
+                                    <option value="{{ $academicSession }}" {{ $session === $academicSession ? 'selected' : '' }}>
+                                        {{ $academicSession }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Load Session</button>
+                        </form>
+
+                        <div class="d-flex flex-wrap gap-2">
+                        <a
+                            href="{{ route('admin.course-registrations.show', $student->id) }}?semester=First&session={{ urlencode($session) }}"
+                            class="btn btn-sm semester-link {{ $semester === 'First' ? 'active' : '' }}"
+                        >
                             First Semester
                         </a>
-
-                        <a href="{{ route('admin.course-registrations.show', $student->id) }}?semester=Second"
-                           class="rounded-lg px-4 py-2 text-sm {{ $semester === 'Second' ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-200 hover:bg-gray-700' }}">
+                        <a
+                            href="{{ route('admin.course-registrations.show', $student->id) }}?semester=Second&session={{ urlencode($session) }}"
+                            class="btn btn-sm semester-link {{ $semester === 'Second' ? 'active' : '' }}"
+                        >
                             Second Semester
                         </a>
-
-                        <a href="{{ route('admin.course-registrations.edit', $student->id) }}?semester={{ $semester }}"
-                           class="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-sm">
-                            Edit Courses
+                        <a
+                            href="{{ route('admin.course-registrations.edit', $student->id) }}?semester={{ $semester }}&session={{ urlencode($session) }}"
+                            class="btn btn-sm btn-success"
+                        >
+                            <i class="mdi mdi-pencil me-1"></i> Edit Courses
                         </a>
+                    </div>
                     </div>
                 </div>
 
-                <div class="mb-4 text-gray-200">
-                    <span class="text-gray-300">Total Credit Units:</span>
-                    <span class="font-semibold text-white">{{ $totalCredits }}</span>
+                <div class="mb-4">
+                    <div class="credit-summary">
+                        <span>Total Credit Units:</span>
+                        <strong>{{ $totalCredits }}</strong>
+                    </div>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
                         <thead>
-                            <tr class="text-left text-gray-300 border-b border-white/10">
-                                <th class="py-3 pr-4">Code</th>
-                                <th class="py-3 pr-4">Title</th>
-                                <th class="py-3 pr-4">Credit Unit</th>
-                                <th class="py-3 pr-4">Status</th>
+                            <tr>
+                                <th>Code</th>
+                                <th>Title</th>
+                                <th>Credit Unit</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
-
-                        <tbody class="divide-y divide-white/10">
+                        <tbody>
                             @forelse($registrations as $reg)
-                                <tr class="text-gray-100">
-                                    <td class="py-3 pr-4 font-medium">
-                                        {{ $reg->course->code ?? 'N/A' }}
-                                    </td>
-                                    <td class="py-3 pr-4">
-                                        {{ $reg->course->title ?? 'N/A' }}
-                                    </td>
-                                    <td class="py-3 pr-4">
-                                        {{ $reg->course->credit_unit ?? 0 }}
-                                    </td>
-                                    <td class="py-3 pr-4">
-                                        <span class="inline-flex items-center rounded-full bg-gray-800 px-3 py-1 text-xs text-gray-200">
-                                            {{ $reg->status ?? 'registered' }}
-                                        </span>
+                                <tr>
+                                    <td class="course-code">{{ $reg->course->code ?? 'N/A' }}</td>
+                                    <td>{{ $reg->course->title ?? 'N/A' }}</td>
+                                    <td>{{ $reg->course->credit_unit ?? 0 }}</td>
+                                    <td>
+                                        <span class="status-badge">{{ $reg->status ?? 'registered' }}</span>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="py-6 text-center text-gray-300">
-                                        No registered courses for {{ $semester }} Semester.
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        No registered courses for {{ $semester }} Semester in {{ $session }}.
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
-
             </div>
         </div>
+</div>
     </div>
-</x-app-layout>
+</div>
+@endsection

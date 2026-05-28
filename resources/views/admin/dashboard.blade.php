@@ -109,7 +109,12 @@
                                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                                     <div>
                                         <h4 class="card-title mb-1">Academic Sessions</h4>
-                                        <p class="text-muted mb-0">Create and update sessions in the format <strong>2021/2022</strong>.</p>
+                                        <p class="text-muted mb-0">Create, update, and choose the active session students will use for course registration.</p>
+                                        <div class="mt-2">
+                                            <span class="badge badge-gradient-primary">
+                                                Active Session: {{ $currentAcademicSession?->name ?? 'Not set' }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -151,7 +156,9 @@
                                                     <tr>
                                                         <th>#</th>
                                                         <th>Session</th>
+                                                        <th>Status</th>
                                                         <th>Update</th>
+                                                        <th>Activation</th>
                                                     </tr>
                                                     </thead>
                                                     <tbody>
@@ -159,6 +166,13 @@
                                                         <tr>
                                                             <td>{{ $loop->iteration }}</td>
                                                             <td class="fw-semibold">{{ $academicSession->name }}</td>
+                                                            <td>
+                                                                @if($academicSession->is_active)
+                                                                    <span class="badge badge-gradient-success">Active</span>
+                                                                @else
+                                                                    <span class="badge badge-light">Inactive</span>
+                                                                @endif
+                                                            </td>
                                                             <td>
                                                                 <form method="POST" action="{{ route('admin.academic-sessions.update', $academicSession) }}" class="row g-2 align-items-center">
                                                                     @csrf
@@ -178,10 +192,20 @@
                                                                     </div>
                                                                 </form>
                                                             </td>
+                                                            <td>
+                                                                @if($academicSession->is_active)
+                                                                    <button type="button" class="btn btn-sm btn-success" disabled>Current Session</button>
+                                                                @else
+                                                                    <form method="POST" action="{{ route('admin.academic-sessions.activate', $academicSession) }}">
+                                                                        @csrf
+                                                                        <button type="submit" class="btn btn-outline-primary btn-sm">Make Active</button>
+                                                                    </form>
+                                                                @endif
+                                                            </td>
                                                         </tr>
                                                     @empty
                                                         <tr>
-                                                            <td colspan="3" class="text-center text-muted">No academic sessions created yet.</td>
+                                                            <td colspan="5" class="text-center text-muted">No academic sessions created yet.</td>
                                                         </tr>
                                                     @endforelse
                                                     </tbody>
@@ -376,132 +400,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-7 grid-margin stretch-card">
-                        <div class="card">
-                            <div class="card-body">
-                                <h4 class="card-title">Project Status</h4>
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
-                                        <tr>
-                                            <th> # </th>
-                                            <th> Name </th>
-                                            <th> Due Date </th>
-                                            <th> Progress </th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <tr>
-                                            <td> 1 </td>
-                                            <td> Herman Beck </td>
-                                            <td> May 15, 2015 </td>
-                                            <td>
-                                                <div class="progress">
-                                                    <div class="progress-bar bg-gradient-success" role="progressbar" style="width: 25%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td> 2 </td>
-                                            <td> Messsy Adam </td>
-                                            <td> Jul 01, 2015 </td>
-                                            <td>
-                                                <div class="progress">
-                                                    <div class="progress-bar bg-gradient-danger" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td> 3 </td>
-                                            <td> John Richards </td>
-                                            <td> Apr 12, 2015 </td>
-                                            <td>
-                                                <div class="progress">
-                                                    <div class="progress-bar bg-gradient-warning" role="progressbar" style="width: 90%" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td> 4 </td>
-                                            <td> Peter Meggik </td>
-                                            <td> May 15, 2015 </td>
-                                            <td>
-                                                <div class="progress">
-                                                    <div class="progress-bar bg-gradient-primary" role="progressbar" style="width: 50%" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td> 5 </td>
-                                            <td> Edward </td>
-                                            <td> May 03, 2015 </td>
-                                            <td>
-                                                <div class="progress">
-                                                    <div class="progress-bar bg-gradient-danger" role="progressbar" style="width: 35%" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td> 5 </td>
-                                            <td> Ronald </td>
-                                            <td> Jun 05, 2015 </td>
-                                            <td>
-                                                <div class="progress">
-                                                    <div class="progress-bar bg-gradient-info" role="progressbar" style="width: 65%" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-5 grid-margin stretch-card">
-                        <div class="card">
-                            <div class="card-body">
-                                <h4 class="card-title text-dark">Todo List</h4>
-                                <div class="add-items d-flex mb-3">
-                                    <input
-                                        type="text"
-                                        class="form-control todo-list-input"
-                                        id="todo-list-input"
-                                        placeholder="What do you need to do today?"
-                                        maxlength="150"
-                                    >
-                                    <button class="add btn btn-gradient-primary font-weight-bold todo-list-add-btn" id="add-task" type="button">Add</button>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <small class="text-muted" id="todo-summary">0 tasks (0 remaining)</small>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-completed-tasks">Clear completed</button>
-                                </div>
-                                <div class="list-wrapper">
-                                    <ul class="d-flex flex-column-reverse todo-list todo-list-custom" id="todo-list"></ul>
-                                    <div class="text-muted text-center py-3 d-none" id="todo-empty-state">
-                                        No tasks yet. Add one to get started.
-                                    </div>
-                                </div>
-                                <template id="todo-item-template">
-                                    <li>
-                                        <div class="form-check">
-                                            <label class="form-check-label">
-                                                <input class="checkbox todo-checkbox" type="checkbox">
-                                                <span class="todo-text"></span>
-                                            </label>
-                                        </div>
-                                        <button type="button" class="remove border-0 bg-transparent p-0" aria-label="Delete task">
-                                            <i class="mdi mdi-close-circle-outline"></i>
-                                        </button>
-                                    </li>
-                                </template>
-                                <div class="small text-muted mt-3">
-                                    Your tasks are saved in this browser for your account.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                @include('dashboard.widgets')
             </div>
             <!-- content-wrapper ends -->
 @endsection
@@ -510,14 +409,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const chartCanvas = document.getElementById('app-visitor-chart');
-            const todoStorageKey = 'educore.admin.todo.{{ auth()->id() ?? 'guest' }}';
-            const todoInput = document.getElementById('todo-list-input');
-            const todoAddButton = document.getElementById('add-task');
-            const todoList = document.getElementById('todo-list');
-            const todoTemplate = document.getElementById('todo-item-template');
-            const todoEmptyState = document.getElementById('todo-empty-state');
-            const todoSummary = document.getElementById('todo-summary');
-            const clearCompletedButton = document.getElementById('clear-completed-tasks');
             const collapseTargets = [
                 'department-course-allocation',
                 'recent-activity-table',
@@ -528,7 +419,6 @@
             const departmentCourseStatus = document.getElementById('department-course-pagination-status');
             const departmentCoursesPerPage = 6;
             let departmentCoursePage = 0;
-            let todos = loadTodos();
 
             collapseTargets.forEach(function (targetId) {
                 const collapseElement = document.getElementById(targetId);
@@ -552,139 +442,6 @@
                 });
             });
 
-            function loadTodos() {
-                try {
-                    const storedTodos = window.localStorage.getItem(todoStorageKey);
-                    const parsedTodos = storedTodos ? JSON.parse(storedTodos) : [];
-
-                    return Array.isArray(parsedTodos) ? parsedTodos : [];
-                } catch (error) {
-                    return [];
-                }
-            }
-
-            function saveTodos() {
-                window.localStorage.setItem(todoStorageKey, JSON.stringify(todos));
-            }
-
-            function updateTodoSummary() {
-                const completedCount = todos.filter(function (todo) {
-                    return todo.completed;
-                }).length;
-                const remainingCount = todos.length - completedCount;
-                const taskLabel = todos.length === 1 ? 'task' : 'tasks';
-
-                if (todoSummary) {
-                    todoSummary.textContent = todos.length + ' ' + taskLabel + ' (' + remainingCount + ' remaining)';
-                }
-
-                if (clearCompletedButton) {
-                    clearCompletedButton.disabled = completedCount === 0;
-                }
-            }
-
-            function renderTodos() {
-                if (!todoList || !todoTemplate) {
-                    return;
-                }
-
-                todoList.innerHTML = '';
-
-                if (!todos.length) {
-                    todoEmptyState?.classList.remove('d-none');
-                    updateTodoSummary();
-                    return;
-                }
-
-                todoEmptyState?.classList.add('d-none');
-
-                todos.forEach(function (todo) {
-                    const todoItemFragment = todoTemplate.content.cloneNode(true);
-                    const todoItem = todoItemFragment.querySelector('li');
-                    const checkbox = todoItemFragment.querySelector('.todo-checkbox');
-                    const text = todoItemFragment.querySelector('.todo-text');
-                    const removeButton = todoItemFragment.querySelector('.remove');
-
-                    todoItem.dataset.todoId = todo.id;
-                    todoItem.classList.toggle('completed', Boolean(todo.completed));
-                    checkbox.checked = Boolean(todo.completed);
-                    text.textContent = todo.text;
-
-                    checkbox.addEventListener('change', function () {
-                        todos = todos.map(function (item) {
-                            if (item.id === todo.id) {
-                                return {
-                                    id: item.id,
-                                    text: item.text,
-                                    completed: checkbox.checked,
-                                };
-                            }
-
-                            return item;
-                        });
-
-                        saveTodos();
-                        renderTodos();
-                    });
-
-                    removeButton.addEventListener('click', function () {
-                        todos = todos.filter(function (item) {
-                            return item.id !== todo.id;
-                        });
-
-                        saveTodos();
-                        renderTodos();
-                    });
-
-                    todoList.appendChild(todoItemFragment);
-                });
-
-                updateTodoSummary();
-            }
-
-            function addTodo() {
-                if (!todoInput) {
-                    return;
-                }
-
-                const value = todoInput.value.trim();
-
-                if (!value) {
-                    todoInput.focus();
-                    return;
-                }
-
-                todos.push({
-                    id: Date.now().toString(),
-                    text: value,
-                    completed: false,
-                });
-
-                saveTodos();
-                renderTodos();
-                todoInput.value = '';
-                todoInput.focus();
-            }
-
-            todoAddButton?.addEventListener('click', addTodo);
-
-            todoInput?.addEventListener('keydown', function (event) {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    addTodo();
-                }
-            });
-
-            clearCompletedButton?.addEventListener('click', function () {
-                todos = todos.filter(function (todo) {
-                    return !todo.completed;
-                });
-
-                saveTodos();
-                renderTodos();
-            });
-
-            renderTodos();
             renderDepartmentCourses();
 
             if (!chartCanvas) {

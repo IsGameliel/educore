@@ -37,7 +37,7 @@
                             </ul>
                         </div>
                     @endif
-                    <form action="{{ route($routePrefix.'.results.updateGroup', [$user_id, $session, $semester, 'department_id' => $departmentId]) }}" method="POST">
+                    <form action="{{ route($routePrefix.'.results.updateGroup.bySemester', [$user_id, $semester, 'session' => $session, 'department_id' => $departmentId]) }}" method="POST">
                         @csrf
                         @method('PUT')
                         <input type="hidden" name="department_id" value="{{ $departmentId }}">
@@ -114,8 +114,6 @@
 
             if (res.ok) {
                 // reload the edit-group page to reflect changes
-                const redirectUrl = '{{ route($routePrefix.'.results.editGroup', [$user_id, addslashes($session), $semester, 'department_id' => $departmentId]) }}'.replace(/%7Bid%7D/, userId);
-                // simple reload
                 location.reload();
             } else {
                 const text = await res.text();

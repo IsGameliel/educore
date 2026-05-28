@@ -8,6 +8,17 @@ test('login screen can be rendered', function () {
     $response->assertStatus(200);
 });
 
+test('login screen is not cached with stale csrf tokens', function () {
+    $response = $this->get('/login');
+    $cacheControl = $response->headers->get('Cache-Control');
+
+    expect($cacheControl)->toContain('no-store')
+        ->and($cacheControl)->toContain('no-cache')
+        ->and($cacheControl)->toContain('must-revalidate')
+        ->and($cacheControl)->toContain('max-age=0');
+    $response->assertHeader('Pragma', 'no-cache');
+});
+
 test('users can authenticate using the login screen', function () {
     $user = User::factory()->create();
 

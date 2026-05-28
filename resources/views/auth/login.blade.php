@@ -1,81 +1,192 @@
-<x-guest-layout>
-    <x-authentication-card>
-        <x-slot name="logo">
-            <x-authentication-card-logo />
-        </x-slot>
-
-        <div class="mb-6 text-center">
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ __('Welcome back') }}</h1>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {{ __('Sign in to continue to your dashboard.') }}
-            </p>
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Sign In | Educore Management Systems</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Inter:wght@100..900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container": "#ededf7",
+                        "inverse-primary": "#a9c7ff",
+                        "on-error": "#ffffff",
+                        "tertiary": "#452200",
+                        "primary-container": "#1a4175",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb77b",
+                        "surface-bright": "#faf8ff",
+                        "outline": "#737780",
+                        "surface-variant": "#e1e2ec",
+                        "on-tertiary-fixed-variant": "#6c3a04",
+                        "on-background": "#191b22",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed": "#d6e3ff",
+                        "surface-container-high": "#e7e7f1",
+                        "surface-dim": "#d9d9e3",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "outline-variant": "#c3c6d1",
+                        "on-surface": "#191b22",
+                        "primary": "#002b59",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#005322",
+                        "on-secondary-fixed": "#002109",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#8caee9",
+                        "error": "#ba1a1a",
+                        "background": "#faf8ff",
+                        "on-secondary-container": "#1b7337",
+                        "surface-container-highest": "#e1e2ec",
+                        "on-tertiary-container": "#e49e62",
+                        "surface": "#faf8ff",
+                        "surface-tint": "#3c5f95",
+                        "tertiary-container": "#653500",
+                        "on-primary-fixed-variant": "#21477b",
+                        "on-surface-variant": "#43474f",
+                        "inverse-surface": "#2e3038",
+                        "on-primary-fixed": "#001b3d",
+                        "secondary-fixed": "#9ff6ab",
+                        "surface-container-low": "#f2f3fd",
+                        "tertiary-fixed": "#ffdcc2",
+                        "on-error-container": "#93000a",
+                        "inverse-on-surface": "#f0f0fa",
+                        "secondary-fixed-dim": "#84d991",
+                        "secondary": "#116d32",
+                        "secondary-container": "#9ff6ab",
+                        "on-tertiary-fixed": "#2e1500",
+                        "on-tertiary": "#ffffff"
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.125rem",
+                        lg: "0.25rem",
+                        xl: "0.5rem",
+                        full: "0.75rem"
+                    },
+                    fontFamily: {
+                        headline: ["Manrope"],
+                        body: ["Inter"],
+                        label: ["Inter"]
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="flex min-h-screen flex-col bg-surface text-on-surface">
+    <nav class="fixed top-0 z-50 w-full bg-slate-50/80 shadow-sm backdrop-blur-md transition-all duration-300 ease-in-out dark:bg-slate-950/80 dark:shadow-none">
+        <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
+            <a class="flex items-center gap-2 text-2xl font-bold tracking-tighter text-[#002b59] dark:text-blue-100 font-headline" href="{{ url('/') }}">
+                <span class="material-symbols-outlined text-primary">auto_stories</span> Educore
+            </a>
+            <div class="hidden items-center gap-8 font-['Manrope'] text-sm font-semibold tracking-tight md:flex">
+                <a class="rounded-lg px-3 py-2 text-slate-600 transition-colors hover:bg-slate-100/50 hover:text-blue-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-blue-100" href="{{ url('/pricing') }}">Pricing</a>
+                <a class="rounded-lg px-3 py-2 text-slate-600 transition-colors hover:bg-slate-100/50 hover:text-blue-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-blue-100" href="{{ url('/faq') }}">FAQ</a>
+                <a class="rounded-lg px-3 py-2 text-slate-600 transition-colors hover:bg-slate-100/50 hover:text-blue-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-blue-100" href="{{ url('/resources') }}">Resources</a>
+                <a class="rounded-lg px-3 py-2 text-slate-600 transition-colors hover:bg-slate-100/50 hover:text-blue-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-blue-100" href="{{ url('/support') }}">Support</a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a class="rounded-lg px-4 py-2 font-['Manrope'] text-sm font-semibold tracking-tight text-blue-900 transition-all hover:bg-slate-100/50 dark:text-blue-400 dark:hover:bg-slate-800/50" href="{{ url('/request-demo') }}">Contact Sales</a>
+            </div>
         </div>
+    </nav>
 
-        <x-validation-errors class="mb-4" />
+    <main class="relative flex flex-grow items-center justify-center overflow-hidden bg-surface px-6 pb-12 pt-24">
+        <div class="absolute right-[-5%] top-[-10%] h-[60%] w-[40%] rounded-full bg-primary-container/5 blur-3xl"></div>
+        <div class="absolute bottom-[-10%] left-[-5%] h-[50%] w-[30%] rounded-full bg-secondary-container/10 blur-3xl"></div>
 
-        @session('status')
-            <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 font-medium text-sm text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300">
-                {{ $value }}
-            </div>
-        @endsession
+        <div class="z-10 w-full max-w-[480px]">
+            <div class="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-8 shadow-[0_10px_30px_rgba(25,27,34,0.06)] md:p-12">
+                <div class="mb-10 text-center">
+                    <h1 class="mb-2 font-headline text-4xl font-extrabold tracking-tighter text-primary">EduCore</h1>
+                    <p class="text-sm font-medium text-on-surface-variant">The Modern Scholar Dashboard</p>
+                </div>
 
-        <form method="POST" action="{{ route('login') }}" class="space-y-5">
-            @csrf
+                <div class="mb-8">
+                    <h2 class="mb-2 font-headline text-2xl font-bold tracking-tight text-on-surface">Welcome back</h2>
+                    <p class="text-sm text-on-surface-variant">Please enter your credentials to access your academic workspace.</p>
+                </div>
 
-            <div>
-                <x-label for="email" value="{{ __('Email') }}" />
-                <x-input id="email" class="block mt-2 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            </div>
+                <x-validation-errors class="mb-4 rounded-lg border border-error-container bg-error-container px-4 py-3 text-sm text-on-error-container" />
 
-            <div x-data="{ showPassword: false }">
-                <x-label for="password" value="{{ __('Password') }}" />
-                <div class="relative mt-2">
-                    <x-input id="password" class="block w-full pr-12" x-bind:type="showPassword ? 'text' : 'password'" name="password" required autocomplete="current-password" />
-                    <button
-                        type="button"
-                        class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 transition hover:text-gray-700 focus:outline-none focus:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 dark:focus:text-gray-200"
-                        x-on:click="showPassword = !showPassword"
-                        x-bind:aria-label="showPassword ? 'Hide password' : 'Show password'"
-                        x-bind:title="showPassword ? 'Hide password' : 'Show password'"
-                    >
-                        <svg x-show="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10 4.5c-4.37 0-8.06 2.9-9.34 6.88a1.1 1.1 0 0 0 0 .24C1.94 15.6 5.63 18.5 10 18.5s8.06-2.9 9.34-6.88a1.1 1.1 0 0 0 0-.24C18.06 7.4 14.37 4.5 10 4.5Zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z" />
-                            <path d="M10 8.5A1.5 1.5 0 1 0 11.5 10 1.5 1.5 0 0 0 10 8.5Z" />
-                        </svg>
-                        <svg x-show="showPassword" x-cloak xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M3.28 2.22a.75.75 0 1 0-1.06 1.06l2.07 2.07A10.43 10.43 0 0 0 .66 11.38a1.1 1.1 0 0 0 0 .24C1.94 15.6 5.63 18.5 10 18.5a9.9 9.9 0 0 0 4.42-1.01l2.3 2.29a.75.75 0 1 0 1.06-1.06L3.28 2.22ZM10 16.99c-3.6 0-6.72-2.3-7.83-5.49a8.96 8.96 0 0 1 3.2-4.36l1.78 1.78A3.5 3.5 0 0 0 11.08 12l2.27 2.27a8.46 8.46 0 0 1-3.35.72Zm.05-10.49a3.4 3.4 0 0 1 3.45 3.45c0 .55-.13 1.08-.37 1.55l3.06 3.06a8.98 8.98 0 0 0 1.64-3.06 1.1 1.1 0 0 0 0-.24C16.56 8.4 13.74 6.27 10.45 6l-.4-.4Z" />
-                        </svg>
+                @session('status')
+                    <div class="mb-4 rounded-lg border border-secondary-container bg-secondary-container/30 px-4 py-3 text-sm font-medium text-on-secondary-container">
+                        {{ $value }}
+                    </div>
+                @endsession
+
+                <form class="space-y-6" method="POST" action="{{ route('login') }}">
+                    @csrf
+
+                    <div class="space-y-2">
+                        <label class="block font-label text-sm font-semibold text-on-surface-variant" for="email">Email address</label>
+                        <div class="relative">
+                            <input class="w-full rounded-lg border-none border-b-2 border-transparent bg-surface-container-highest px-4 py-3.5 text-on-surface placeholder:text-outline transition-all focus:border-primary focus:ring-0 focus:ring-offset-0" id="email" name="email" placeholder="professor@educore.edu" type="email" value="{{ old('email') }}" required autofocus autocomplete="username" />
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block font-label text-sm font-semibold text-on-surface-variant" for="password">Password</label>
+                            @if (Route::has('password.request'))
+                                <a class="text-xs font-semibold text-primary hover:underline decoration-2 underline-offset-4" href="{{ route('password.request') }}">Forgot Password?</a>
+                            @endif
+                        </div>
+                        <div class="relative">
+                            <input class="w-full rounded-lg border-none border-b-2 border-transparent bg-surface-container-highest px-4 py-3.5 text-on-surface placeholder:text-outline transition-all focus:border-primary focus:ring-0 focus:ring-offset-0" id="password" name="password" placeholder="********" type="password" required autocomplete="current-password" />
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <input class="h-5 w-5 cursor-pointer rounded border-outline-variant/30 bg-surface-container-highest text-primary focus:ring-primary/20" id="remember" name="remember" type="checkbox" />
+                        <label class="cursor-pointer select-none text-sm font-medium text-on-surface-variant" for="remember">Stay signed in</label>
+                    </div>
+
+                    <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container py-4 font-headline font-bold text-on-primary shadow-lg shadow-primary/10 transition-all hover:-translate-y-0.5 active:translate-y-0" type="submit">
+                        <span>Sign In</span>
+                        <span class="material-symbols-outlined text-xl">arrow_forward</span>
                     </button>
+                </form>
+
+                <div class="mt-10 border-t border-outline-variant/10 pt-8 text-center">
+                    <a class="group inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant transition-colors hover:text-primary" href="{{ route('register') }}">
+                        New to the EduCore ecosystem?
+                        <span class="font-bold text-primary decoration-2 underline-offset-4 transition-all group-hover:underline">Register your institution</span>
+                    </a>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between gap-4">
-                <label for="remember_me" class="flex items-center">
-                    <x-checkbox id="remember_me" name="remember" />
-                    <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
-                </label>
-
-                @if (Route::has('password.request'))
-                    <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}">
-                        {{ __('Forgot your password?') }}
-                    </a>
-                @endif
+            <div class="mt-8 flex justify-center">
+                <div class="flex max-w-fit items-center gap-2 rounded-full border border-tertiary-container/20 bg-tertiary-container/10 px-4 py-2">
+                    <span class="material-symbols-outlined text-sm text-tertiary-container">verified_user</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-tertiary-container">Enterprise Grade Security</span>
+                </div>
             </div>
-
-            <div class="pt-2">
-                <x-button class="w-full justify-center">
-                    {{ __('Log in') }}
-                </x-button>
-            </div>
-        </form>
-
-        <div class="mt-6 border-t border-gray-200 pt-5 text-center dark:border-gray-700">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
-                {{ __("Don't have an account yet?") }}
-                <a class="font-semibold text-indigo-600 transition hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 dark:focus:ring-offset-gray-800 rounded-md" href="{{ route('register') }}">
-                    {{ __('Create one here') }}
-                </a>
-            </p>
         </div>
-    </x-authentication-card>
-</x-guest-layout>
+    </main>
+
+    <footer class="w-full border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950">
+        <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-8 py-12 md:flex-row">
+            <div class="font-['Manrope'] font-black text-blue-900 dark:text-blue-100">EduCore</div>
+            <div class="flex gap-6 font-['Inter'] text-xs font-medium">
+                <a class="text-slate-500 transition-colors hover:text-blue-800 dark:text-slate-400 dark:hover:text-blue-200" href="#">Privacy Policy</a>
+                <a class="text-slate-500 transition-colors hover:text-blue-800 dark:text-slate-400 dark:hover:text-blue-200" href="#">Terms of Service</a>
+                <a class="text-slate-500 transition-colors hover:text-blue-800 dark:text-slate-400 dark:hover:text-blue-200" href="#">Security</a>
+                <a class="text-slate-500 transition-colors hover:text-blue-800 dark:text-slate-400 dark:hover:text-blue-200" href="#">Accessibility</a>
+            </div>
+            <p class="font-['Inter'] text-xs font-medium text-slate-500 dark:text-slate-400">&copy; 2024 Educore Management Systems. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

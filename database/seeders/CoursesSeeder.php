@@ -67,7 +67,7 @@ class CoursesSeeder extends Seeder
                     'code' => 'CS' . $level . str_pad($i + 1, 3, '0', STR_PAD_LEFT), // e.g., CS100001
                     'title' => $courseTitles[$level][$i % count($courseTitles[$level])], // Cycle through titles
                     'credit_unit' => rand(2, 4), // Random credit unit between 2 and 4
-                    'semester' => $i % 2 === 0 ? 'First Semester' : 'Second Semester', // Alternate semesters
+                    'semester' => $i % 2 === 0 ? 'First' : 'Second', // Alternate semesters
                     'department_id' => $departments[array_rand($departments)], // Random department ID
                 ];
 

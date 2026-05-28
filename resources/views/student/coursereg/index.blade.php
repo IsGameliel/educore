@@ -23,23 +23,40 @@
         <!-- Registered Courses Display -->
         <div class="card">
             <div class="card-body">
-
-                {{-- Semester Filter --}}
-                {{-- <form method="GET" action="{{ route('student.courses.registered') }}" class="mb-3">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <label>Select Semester:</label>
-                            <select name="semester" onchange="this.form.submit()" class="form-control">
-                                <option value="First" {{ $semester == 'First' ? 'selected' : '' }}>First Semester</option>
-                                <option value="Second" {{ $semester == 'Second' ? 'selected' : '' }}>Second Semester</option>
+                <form method="GET" action="{{ route('student.courses.registered', ['semester' => $semester]) }}" class="mb-4">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label for="session" class="form-label fw-bold">Academic Session</label>
+                            <select name="session" id="session" class="form-control">
+                                @foreach($availableSessions as $availableSession)
+                                    <option value="{{ $availableSession }}" {{ $session === $availableSession ? 'selected' : '' }}>
+                                        {{ $availableSession }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
+                        <div class="col-md-4">
+                            <label for="semester" class="form-label fw-bold">Semester</label>
+                            <select name="semester" id="semester" class="form-control">
+                                <option value="First" {{ $semester === 'First' ? 'selected' : '' }}>First Semester</option>
+                                <option value="Second" {{ $semester === 'Second' ? 'selected' : '' }}>Second Semester</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-gradient-primary w-100">View Courses</button>
+                        </div>
                     </div>
-                </form> --}}
+                </form>
 
-                    @if(count($courses) === 0)
-                        <div class="alert alert-warning">No courses registered for Semester: {{ $semester }}</div>
-                    @else
+                <div class="mb-3 d-flex flex-wrap gap-3">
+                    <div><strong>Academic Session:</strong> {{ $session }}</div>
+                    <div><strong>Semester:</strong> {{ $semester }}</div>
+                    <div><strong>Total Courses:</strong> {{ $courses->count() }}</div>
+                </div>
+
+                @if(count($courses) === 0)
+                    <div class="alert alert-warning">No courses registered for {{ $semester }} Semester in {{ $session }}</div>
+                @else
                     <table class="table table-bordered mt-4">
                         <thead>
                             <tr>
@@ -64,11 +81,11 @@
                     </table>
 
                     <div class="mt-3">
-                        <a href="{{ route('student.courses.download.pdf', ['semester' => $semester]) }}" class="btn btn-primary">
+                        <a href="{{ route('student.courses.download.pdf', ['semester' => $semester, 'session' => $session]) }}" class="btn btn-primary">
                             Download PDF
                         </a>
 
-                        <a href="{{ route('student.courses.download.excel', ['semester' => $semester]) }}" class="btn btn-success">
+                        <a href="{{ route('student.courses.download.excel', ['semester' => $semester, 'session' => $session]) }}" class="btn btn-success">
                             Download Excel
                         </a>
                     </div>

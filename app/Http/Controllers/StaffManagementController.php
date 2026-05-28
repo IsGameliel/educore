@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Courses;
+use App\Support\AccountCredentialMailer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -52,8 +53,11 @@ class StaffManagementController extends Controller
             'course_ids.*' => ['exists:courses,id'],
         ]);
 
+        $plainPassword = $request->password;
+        $createdStaff = null;
+
         // Transaction to store the user
-        DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request, &$createdStaff) {
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -67,7 +71,13 @@ class StaffManagementController extends Controller
             $user->assignedCourses()->sync(
                 $request->usertype === 'lecturer' ? ($request->course_ids ?? []) : []
             );
+
+            $createdStaff = $user;
         });
+
+        if ($createdStaff) {
+            AccountCredentialMailer::send($createdStaff, $plainPassword, 'created');
+        }
 
         // Redirect back to the index page with a success message
         return redirect()
@@ -107,6 +117,8 @@ class StaffManagementController extends Controller
             'course_ids.*' => ['exists:courses,id'],
         ]);
 
+        $plainPassword = $request->filled('password') ? $request->password : null;
+
         // Retrieve the student by ID
         $staff = User::findOrFail($id);
 
@@ -129,6 +141,8 @@ class StaffManagementController extends Controller
                 $request->usertype === 'lecturer' ? ($request->course_ids ?? []) : []
             );
         });
+
+        AccountCredentialMailer::send($staff, $plainPassword, 'updated');
 
         // Redirect back with success message
         return redirect()

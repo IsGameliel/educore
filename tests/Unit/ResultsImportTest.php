@@ -1,5 +1,6 @@
 <?php
 
+use App\Exports\ResultUploadTemplateSheet;
 use App\Imports\ResultsImport;
 use App\Models\Courses;
 use App\Models\Department;
@@ -154,8 +155,8 @@ it('imports a result sheet when the metadata uses session as the label', functio
         ['', '', '', '', '', '', ''],
         ['', '', '', '', '', '', ''],
         ['', '', '', '', '', '', ''],
-        ['S/NO', 'MATRIC. NO.', 'NAME', 'CA(30)', 'EXAM(70)', 'TOTAL(100)', 'GRADE'],
-        [1, 'MUI/SBMS/NS/24/0001', 'Ada Lovelace', 24, 46, 70, 'A'],
+        ['S/NO', 'MATRIC NO.', 'NAME', 'CA', 'EXAM', 'Total'],
+        [1, 'MUI/SBMS/NS/24/0001', '', 24, 46, 70],
     ]);
 
     $import = new ResultsImport($course, $actor->id);
@@ -221,8 +222,8 @@ it('imports a result sheet when the session is stored in a single merged cell st
         ['', '', '', '', '', '', ''],
         ['', '', '', '', '', '', ''],
         ['', '', '', '', '', '', ''],
-        ['S/NO', 'MATRIC. NO.', 'NAME', 'CA(30)', 'EXAM(70)', 'TOTAL(100)', 'GRADE'],
-        [1, 'MUI/SBMS/NS/24/0002', 'Grace Hopper', 20, 40, 60, 'B'],
+        ['S/NO', 'MATRIC NO.', 'NAME', 'CA', 'EXAM', 'Total'],
+        [1, 'MUI/SBMS/NS/24/0002', 'Grace Hopper', 20, 40, 60],
     ]);
 
     $import = new ResultsImport($course, $actor->id);
@@ -288,8 +289,8 @@ it('imports a shared course for a student department even when the selected cour
         ['', '', '', '', '', '', ''],
         ['', '', '', '', '', '', ''],
         ['', '', '', '', '', '', ''],
-        ['S/NO', 'MATRIC. NO.', 'NAME', 'CA(30)', 'EXAM(70)', 'TOTAL(100)', 'GRADE'],
-        [1, 'MUI/SET/22/0012', 'Alan Turing', 18, 40, 58, 'C'],
+        ['S/NO', 'MATRIC NO.', 'NAME', 'CA', 'EXAM', 'Total'],
+        [1, 'MUI/SET/22/0012', 'Alan Turing', 18, 40, 58],
     ]);
 
     $import = new ResultsImport($course, $actor->id);
@@ -350,8 +351,8 @@ it('imports a result sheet when the table starts from column a on row 8', functi
         ['', '', '', '', '', '', ''],
         ['', '', '', '', '', '', ''],
         ['', '', '', '', '', '', ''],
-        ['S/NO', 'MATRIC. NO.', 'CA(30)', 'EXAM(70)', 'TOTAL(100)', 'GRADE'],
-        [1, 'MUI/SBMS/NS/24/0003', 25, 42, 67, 'B'],
+        ['S/NO', 'MATRIC NO.', 'CA', 'EXAM', 'Total'],
+        [1, 'MUI/SBMS/NS/24/0003', 25, 42, 67],
     ]);
 
     $import = new ResultsImport($course, $actor->id);
@@ -365,4 +366,31 @@ it('imports a result sheet when the table starts from column a on row 8', functi
         ->and((float) $result->ca_score)->toBe(25.0)
         ->and((float) $result->exam_score)->toBe(42.0)
         ->and((float) $result->score)->toBe(67.0);
+});
+
+it('generates the result upload template with an optional name column', function () {
+    $faculty = Faculty::create([
+        'name' => 'Science',
+    ]);
+
+    $department = Department::create([
+        'name' => 'Computer Science',
+        'faculty_id' => $faculty->id,
+    ]);
+
+    $course = Courses::create([
+        'code' => 'CSC103',
+        'title' => 'Computer Applications',
+        'credit_unit' => 2,
+        'semester' => 'Second',
+        'department_id' => $department->id,
+        'level' => '100',
+    ]);
+
+    $sheet = new ResultUploadTemplateSheet($course, 'CSC103');
+    $rows = $sheet->array();
+
+    expect($rows[7])->toBe(['S/NO', 'MATRIC NO.', 'NAME', 'CA', 'EXAM', 'Total'])
+        ->and($rows[8][2])->toBe('')
+        ->and($rows[9][2])->toBe('');
 });

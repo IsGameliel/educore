@@ -4,6 +4,14 @@
     $isLastQuestion = ($questionIndex + 1) === $test->questions->count();
 @endphp
 
+@push('styles')
+<style>
+    body.test-lockdown {
+        user-select: none;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="main-panel">
     <div class="content-wrapper">
@@ -69,6 +77,19 @@
 
         <script>
             (function () {
+                document.body.classList.add('test-lockdown');
+
+                document.addEventListener('contextmenu', function (event) {
+                    event.preventDefault();
+                });
+
+                document.addEventListener('keydown', function (event) {
+                    const key = event.key.toLowerCase();
+
+                    if (event.ctrlKey && ['c', 'v', 'x', 'u'].includes(key)) {
+                        event.preventDefault();
+                    }
+                });
 
                 const testId = {{ $test->id ?? '0' }};
                 const isLastQuestion = {{ $isLastQuestion ? 'true' : 'false' }};

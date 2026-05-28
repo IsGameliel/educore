@@ -2,13 +2,12 @@
 
 namespace App\Imports;
 
-use App\Mail\StudentAccountCreated;
 use App\Models\User;
+use App\Support\AccountCredentialMailer;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -76,7 +75,7 @@ class StudentImport implements ToCollection, WithHeadingRow
                 $this->created++;
 
                 try {
-                    Mail::to($user->email)->queue(new StudentAccountCreated($user, $plainPassword));
+                    AccountCredentialMailer::send($user, $plainPassword, 'created');
                     $this->queuedEmails++;
                 } catch (\Throwable $mailException) {
                     $mailError = str_contains(strtolower($mailException->getMessage()), 'failed to authenticate on smtp server')
