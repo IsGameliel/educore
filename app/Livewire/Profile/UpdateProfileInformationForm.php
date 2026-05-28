@@ -19,6 +19,14 @@ class UpdateProfileInformationForm extends JetstreamUpdateProfileInformationForm
         parent::mount();
 
         $this->departments = Department::orderBy('name')->get();
+        $this->state = array_merge($this->state, [
+            'name' => $this->user->name,
+            'email' => $this->user->email,
+            'matric_number' => $this->user->matric_number,
+            'department_id' => $this->user->department_id,
+            'level' => $this->user->level,
+            'entry_year' => $this->user->entry_year,
+        ]);
     }
 
     public function generateMatricNumber(): void
