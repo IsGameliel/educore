@@ -56,7 +56,8 @@
                                     <label
                                         class="result-course-checklist__item"
                                         for="course_{{ $course->id }}"
-                                        data-search="{{ strtolower($course->code . ' ' . $course->title . ' ' . $course->semester . ' ' . $course->level . ' ' . ($course->department->name ?? '')) }}"
+                                        data-search="{{ strtolower($course->code . ' ' . $course->title . ' ' . $course->semester . ' ' . $course->level . ' ' . ($course->department->name ?? '') . ' ' . ($course->academicSession->name ?? '')) }}"
+                                        data-session="{{ $course->academicSession?->name }}"
                                     >
                                         <input
                                             type="checkbox"
@@ -67,7 +68,7 @@
                                             {{ $selectedCourseIds->contains($course->id) ? 'checked' : '' }}
                                         >
                                         <span>
-                                            {{ $course->code }} - {{ $course->title }} ({{ $course->semester }} Semester, {{ $course->level }} Level, {{ $course->department->name ?? 'No Department' }})
+                                            {{ $course->code }} - {{ $course->title }} ({{ $course->academicSession?->name ?? 'No Session' }}, {{ $course->semester }} Semester, {{ $course->level }} Level, {{ $course->department->name ?? 'No Department' }})
                                         </span>
                                     </label>
                                 @endforeach
@@ -170,6 +171,7 @@
             const courseItems = Array.from(document.querySelectorAll('.result-course-checklist__item'));
             const downloadLink = document.getElementById('download-template-link');
             const searchInput = document.getElementById('course-search');
+            const sessionSelect = document.getElementById('session');
 
             if (!courseInputs.length || !downloadLink) {
                 return;
@@ -189,7 +191,31 @@
                     url.searchParams.append('course_ids[]', courseId);
                 });
 
+                if (sessionSelect && sessionSelect.value) {
+                    url.searchParams.set('session', sessionSelect.value);
+                }
+
                 downloadLink.href = url.toString();
+            }
+
+            function filterCourses() {
+                const term = searchInput ? searchInput.value.trim().toLowerCase() : '';
+                const session = sessionSelect ? sessionSelect.value : '';
+
+                courseItems.forEach(function (item) {
+                    const matchesSearch = term === '' || (item.dataset.search || '').includes(term);
+                    const matchesSession = session === '' || item.dataset.session === session;
+                    item.classList.toggle('d-none', !matchesSearch || !matchesSession);
+
+                    if (!matchesSession) {
+                        const input = item.querySelector('input[type="checkbox"]');
+                        if (input) {
+                            input.checked = false;
+                        }
+                    }
+                });
+
+                updateTemplateLink();
             }
 
             courseInputs.forEach(function (input) {
@@ -197,14 +223,11 @@
             });
 
             if (searchInput) {
-                searchInput.addEventListener('input', function () {
-                    const term = searchInput.value.trim().toLowerCase();
+                searchInput.addEventListener('input', filterCourses);
+            }
 
-                    courseItems.forEach(function (item) {
-                        const matches = term === '' || (item.dataset.search || '').includes(term);
-                        item.classList.toggle('d-none', !matches);
-                    });
-                });
+            if (sessionSelect) {
+                sessionSelect.addEventListener('change', filterCourses);
             }
 
             downloadLink.addEventListener('click', function (event) {
@@ -218,7 +241,7 @@
                 }
             });
 
-            updateTemplateLink();
+            filterCourses();
         });
     </script>
 @endsection

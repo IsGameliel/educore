@@ -48,6 +48,7 @@
                         <div class="form-group">
                             <label>Academic Session:</label>
                             <input type="text" class="form-control" value="{{ $currentSession }}" readonly>
+                            <input type="hidden" id="academic_session" value="{{ $currentSession }}">
                         </div>
 
                         <!-- Semester Field -->
@@ -186,12 +187,13 @@
     $('#level, #semester').on('change', function () {
         let level = $('#level').val();
         let semester = $('#semester').val();
+        let session = $('#academic_session').val();
 
         if(level && semester) {
             $.ajax({
                 url: "{{ route('student.courses.byLevel') }}",
                 type: "GET",
-                data: { level: level, semester: semester },
+                data: { level: level, semester: semester, session: session },
                 success: function (courses) {
                     $('#courses').empty();
 

@@ -51,9 +51,10 @@
                                         data-title="{{ $course->title }}"
                                         data-credit-unit="{{ $course->credit_unit }}"
                                         data-department-id="{{ $course->department_id }}"
+                                        data-session="{{ $course->academicSession?->name }}"
                                         {{ old('course_id') == $course->id ? 'selected' : '' }}
                                     >
-                                        {{ $course->code }} - {{ $course->title }}
+                                        {{ $course->code }} - {{ $course->title }} ({{ $course->academicSession?->name ?? 'No Session' }})
                                     </option>
                                 @endforeach
                             </select>
@@ -91,7 +92,7 @@
 
                         <div class="form-group">
                             <label for="semester">Semester</label>
-                            <select name="semester" class="form-control" required>
+                            <select name="semester" id="semester" class="form-control" required>
                                 <option value="First">First</option>
                                 <option value="Second">Second</option>
                             </select>
@@ -192,6 +193,27 @@ $(document).ready(function () {
         loadStudents(departmentId);
     });
 
+    function filterCoursesBySession() {
+        const session = $('#session').val();
+        const courseSelect = $('#course_id');
+        const selectedOption = courseSelect.find('option:selected');
+
+        courseSelect.find('option').each(function () {
+            const optionSession = $(this).data('session');
+            const shouldShow = !$(this).val() || !session || optionSession === session;
+            $(this).prop('hidden', !shouldShow);
+        });
+
+        if (selectedOption.val() && selectedOption.data('session') !== session) {
+            courseSelect.val('');
+            $('#course_code, #course_title, #credit_unit').val('');
+            $('#department_id').val('');
+            $('#student_id').html('<option value="">Select Student</option>');
+        }
+    }
+
+    $('#session').on('change', filterCoursesBySession);
+
     function updateScoreField() {
         const caValue = $('#ca_score').val();
         const examValue = $('#exam_score').val();
@@ -209,6 +231,7 @@ $(document).ready(function () {
 
     $('.score-part').on('input', updateScoreField);
     updateScoreField();
+    filterCoursesBySession();
     $('#course_id').trigger('change');
 
 });

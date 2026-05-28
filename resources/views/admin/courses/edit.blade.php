@@ -110,6 +110,17 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="academic_session_id">Academic Session</label>
+                        <select name="academic_session_id" id="academic_session_id" class="form-control" required>
+                            @foreach($academicSessions as $academicSession)
+                                <option value="{{ $academicSession->id }}" @selected((string) old('academic_session_id', $course->academic_session_id) === (string) $academicSession->id)>
+                                    {{ $academicSession->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label for="semester">Semester</label>
                         <select name="semester" id="semester" class="form-control" required>
                             <option value="First" {{ $course->semester == 'First' ? 'selected' : ''}}>First semester</option>

@@ -46,6 +46,11 @@ class AcademicSession extends Model
         return $query->where('is_active', true);
     }
 
+    public function courses()
+    {
+        return $this->hasMany(Courses::class);
+    }
+
     public static function current(): ?self
     {
         return static::query()

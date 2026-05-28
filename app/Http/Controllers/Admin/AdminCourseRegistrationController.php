@@ -104,6 +104,7 @@ class AdminCourseRegistrationController extends Controller
             ->toArray();
 
         $courses = Courses::where('department_id', $student->department_id)
+            ->forAcademicSession($session)
             ->where('level', $student->level)
             ->where('semester', $semester)
             ->with('prerequisites')
@@ -139,6 +140,7 @@ class AdminCourseRegistrationController extends Controller
 
         $courses = Courses::whereIn('id', $courseIds)
             ->where('department_id', $student->department_id)
+            ->forAcademicSession($session)
             ->where('level', $student->level)
             ->where('semester', $semester)
             ->with('prerequisites')
@@ -146,7 +148,7 @@ class AdminCourseRegistrationController extends Controller
 
         if ($courses->count() !== count($courseIds)) {
             return back()->withErrors([
-                'course_ids' => 'One or more selected courses are invalid for this student/semester.',
+                'course_ids' => 'One or more selected courses are invalid for this student, semester, or academic session.',
             ]);
         }
 

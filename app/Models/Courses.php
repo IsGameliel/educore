@@ -16,12 +16,23 @@ class Courses extends Model
         'semester',
         'department_id',
         'level',
+        'academic_session_id',
     ];
 
     // Define the relationship with the Department model (belongs to a department)
     public function department()
     {
         return $this->belongsTo(Department::class); // A course belongs to a department
+    }
+
+    public function academicSession()
+    {
+        return $this->belongsTo(AcademicSession::class);
+    }
+
+    public function scopeForAcademicSession($query, string $sessionName)
+    {
+        return $query->whereHas('academicSession', fn ($sessionQuery) => $sessionQuery->where('name', $sessionName));
     }
 
     // Define the relationship with CourseRegistration

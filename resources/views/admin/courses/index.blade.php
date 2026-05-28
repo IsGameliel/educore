@@ -91,18 +91,30 @@
                 {{-- Filter bar --}}
                 <form method="GET" action="{{ route('admin.courses.index') }}">
                     <div class="row g-2 mb-3 align-items-end">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label small">Search by Title</label>
                             <input name="title" value="{{ request('title') }}" type="text" class="form-control form-control-sm" placeholder="Course title">
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small">Filter by Department</label>
                             <select name="department_id" class="form-select form-select-sm" onchange="this.form.submit()">
                                 <option value="">All Departments</option>
                                 @foreach($departments as $d)
                                     <option value="{{ $d->id }}" {{ request('department_id', request('department')) == $d->id ? 'selected' : '' }}>
                                         {{ $d->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label small">Filter by Session</label>
+                            <select name="academic_session_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="">All Sessions</option>
+                                @foreach($academicSessions as $academicSession)
+                                    <option value="{{ $academicSession->id }}" {{ request('academic_session_id') == $academicSession->id ? 'selected' : '' }}>
+                                        {{ $academicSession->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -124,6 +136,7 @@
                                 <th>Code</th>
                                 <th>Title</th>
                                 <th>Credit Unit</th>
+                                <th>Session</th>
                                 <th>Semester</th>
                                 <th>Department</th>
                                 <th style="width:120px">Actions</th>
@@ -135,6 +148,7 @@
                                     <td class="fw-semibold">{{ $course->code }}</td>
                                     <td>{{ $course->title }}</td>
                                     <td>{{ $course->credit_unit }}</td>
+                                    <td>{{ $course->academicSession?->name ?? 'N/A' }}</td>
                                     <td>{{ $course->semester }}</td>
                                     <td>{{ optional($course->department)->name }}</td>
                                     <td class="text-center">
@@ -152,7 +166,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-3">No courses found.</td>
+                                    <td colspan="7" class="text-center text-muted py-3">No courses found.</td>
                                 </tr>
                             @endforelse
                         </tbody>

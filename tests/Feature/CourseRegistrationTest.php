@@ -8,6 +8,13 @@ use App\Models\Faculty;
 use App\Models\User;
 
 it('shows a friendly validation error when a student exceeds the course unit limit', function () {
+    $academicSession = AcademicSession::create([
+        'name' => '2025/2026',
+        'start_year' => 2025,
+        'end_year' => 2026,
+        'is_active' => true,
+    ]);
+
     $faculty = Faculty::create([
         'name' => 'Faculty of Science',
         'code' => 'FOS',
@@ -31,6 +38,7 @@ it('shows a friendly validation error when a student exceeds the course unit lim
         'semester' => 'First',
         'department_id' => $department->id,
         'level' => '100',
+        'academic_session_id' => $academicSession->id,
     ]);
 
     $courseB = Courses::create([
@@ -40,6 +48,7 @@ it('shows a friendly validation error when a student exceeds the course unit lim
         'semester' => 'First',
         'department_id' => $department->id,
         'level' => '100',
+        'academic_session_id' => $academicSession->id,
     ]);
 
     $response = $this
@@ -59,6 +68,13 @@ it('shows a friendly validation error when a student exceeds the course unit lim
 });
 
 it('rejects courses that do not belong to the selected semester', function () {
+    $academicSession = AcademicSession::create([
+        'name' => '2025/2026',
+        'start_year' => 2025,
+        'end_year' => 2026,
+        'is_active' => true,
+    ]);
+
     $faculty = Faculty::create([
         'name' => 'Faculty of Science',
         'code' => 'FOS',
@@ -82,6 +98,7 @@ it('rejects courses that do not belong to the selected semester', function () {
         'semester' => 'Second',
         'department_id' => $department->id,
         'level' => '100',
+        'academic_session_id' => $academicSession->id,
     ]);
 
     $response = $this
@@ -96,21 +113,80 @@ it('rejects courses that do not belong to the selected semester', function () {
     $response
         ->assertRedirect(route('student.courses.registration'))
         ->assertSessionHasErrors([
-            'course_registration' => 'One or more selected courses are not available for your level or selected semester.',
+            'course_registration' => 'One or more selected courses are not available for your level, selected semester, or academic session.',
         ]);
 });
 
-it('does not count previous session registrations against the current session total', function () {
-    AcademicSession::create([
+it('rejects courses that do not belong to the active academic session', function () {
+    $oldSession = AcademicSession::create([
         'name' => '2024/2025',
         'start_year' => 2024,
         'end_year' => 2025,
+        'is_active' => false,
     ]);
 
     AcademicSession::create([
         'name' => '2025/2026',
         'start_year' => 2025,
         'end_year' => 2026,
+        'is_active' => true,
+    ]);
+
+    $faculty = Faculty::create([
+        'name' => 'Faculty of Science',
+        'code' => 'FOS',
+    ]);
+
+    $department = Department::create([
+        'name' => 'Computer Science',
+        'faculty_id' => $faculty->id,
+    ]);
+
+    $student = User::factory()->create([
+        'usertype' => 'student',
+        'department_id' => $department->id,
+        'level' => '100',
+    ]);
+
+    $oldSessionCourse = Courses::create([
+        'code' => 'CSC101',
+        'title' => 'Introduction to Computing',
+        'credit_unit' => 3,
+        'semester' => 'First',
+        'department_id' => $department->id,
+        'level' => '100',
+        'academic_session_id' => $oldSession->id,
+    ]);
+
+    $response = $this
+        ->actingAs($student)
+        ->from(route('student.courses.registration'))
+        ->post(route('student.courses.register'), [
+            'semester' => 'First',
+            'level' => '100',
+            'course_ids' => [$oldSessionCourse->id],
+        ]);
+
+    $response
+        ->assertRedirect(route('student.courses.registration'))
+        ->assertSessionHasErrors([
+            'course_registration' => 'One or more selected courses are not available for your level, selected semester, or academic session.',
+        ]);
+});
+
+it('does not count previous session registrations against the current session total', function () {
+    $oldSession = AcademicSession::create([
+        'name' => '2024/2025',
+        'start_year' => 2024,
+        'end_year' => 2025,
+        'is_active' => false,
+    ]);
+
+    $currentSession = AcademicSession::create([
+        'name' => '2025/2026',
+        'start_year' => 2025,
+        'end_year' => 2026,
+        'is_active' => true,
     ]);
 
     $faculty = Faculty::create([
@@ -136,6 +212,7 @@ it('does not count previous session registrations against the current session to
         'semester' => 'First',
         'department_id' => $department->id,
         'level' => '100',
+        'academic_session_id' => $oldSession->id,
     ]);
 
     $currentSessionCourse = Courses::create([
@@ -145,6 +222,7 @@ it('does not count previous session registrations against the current session to
         'semester' => 'First',
         'department_id' => $department->id,
         'level' => '100',
+        'academic_session_id' => $currentSession->id,
     ]);
 
     CourseRegistration::create([

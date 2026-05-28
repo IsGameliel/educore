@@ -10,7 +10,7 @@ use App\Imports\CourseImport;
 use DataTables; // yajra
 use App\Exports\CoursesExport;
 use App\Models\{
-    Department, Courses
+    AcademicSession, Department, Courses
 };
 use App\Support\ActivityLogger;
 
@@ -23,10 +23,11 @@ class CourseController extends Controller
     public function index(Request $request)
     {
         $departments = Department::orderBy('name')->get(['id','name']);
+        $academicSessions = AcademicSession::orderByDesc('start_year')->get(['id', 'name']);
 
         $departmentId = $request->input('department_id', $request->input('department'));
 
-        $query = Courses::with('department')->latest('id');
+        $query = Courses::with(['department', 'academicSession'])->latest('id');
 
         if ($request->filled('title')) {
             $query->where('title', 'like', "%{$request->title}%");
@@ -36,9 +37,13 @@ class CourseController extends Controller
             $query->where('department_id', $departmentId);
         }
 
+        if ($request->filled('academic_session_id')) {
+            $query->where('academic_session_id', $request->academic_session_id);
+        }
+
         $courses = $query->paginate(15)->withQueryString();
 
-        return view('admin.courses.index', compact('courses', 'departments'));
+        return view('admin.courses.index', compact('courses', 'departments', 'academicSessions'));
     }
 
 
@@ -51,7 +56,10 @@ class CourseController extends Controller
     {
         // Pass departments for dropdown selection in form
         $departments = Department::all();
-        return view('admin.courses.create', compact('departments'));
+        $academicSessions = AcademicSession::orderByDesc('start_year')->get();
+        $defaultAcademicSessionId = old('academic_session_id', AcademicSession::current()?->id);
+
+        return view('admin.courses.create', compact('departments', 'academicSessions', 'defaultAcademicSessionId'));
     }
 
     /**
@@ -68,6 +76,7 @@ class CourseController extends Controller
             'department_ids' => 'required|array|min:1',
             'department_ids.*' => 'exists:departments,id',
             'level' => 'required|int|max:535',
+            'academic_session_id' => 'required|exists:academic_sessions,id',
         ]);
 
         $createdCourses = collect();
@@ -80,6 +89,7 @@ class CourseController extends Controller
                         'semester' => $validated['semester'],
                         'level' => $validated['level'],
                         'department_id' => $departmentId,
+                        'academic_session_id' => $validated['academic_session_id'],
                     ],
                     [
                         'title' => $validated['title'],
@@ -114,6 +124,8 @@ class CourseController extends Controller
                         'credit_unit' => $course->credit_unit,
                         'semester' => $course->semester,
                         'level' => (string) $course->level,
+                        'academic_session_id' => $course->academic_session_id,
+                        'academic_session' => $course->academicSession?->name,
                     ],
                 ]
             );
@@ -137,12 +149,14 @@ class CourseController extends Controller
     public function edit(Courses $course)
     {
         $departments = Department::all();
+        $academicSessions = AcademicSession::orderByDesc('start_year')->get();
         $selectedDepartmentIds = Courses::query()
             ->where('code', $course->code)
             ->where('title', $course->title)
             ->where('credit_unit', $course->credit_unit)
             ->where('semester', $course->semester)
             ->where('level', $course->level)
+            ->where('academic_session_id', $course->academic_session_id)
             ->pluck('department_id')
             ->filter()
             ->unique()
@@ -153,7 +167,7 @@ class CourseController extends Controller
             $selectedDepartmentIds = [$course->department_id];
         }
 
-        return view('admin.courses.edit', compact('course', 'departments', 'selectedDepartmentIds'));
+        return view('admin.courses.edit', compact('course', 'departments', 'academicSessions', 'selectedDepartmentIds'));
     }
 
     /**
@@ -169,6 +183,7 @@ class CourseController extends Controller
             'department_ids' => 'required|array|min:1',
             'department_ids.*' => 'exists:departments,id',
             'level' => 'required|int|max:535',
+            'academic_session_id' => 'required|exists:academic_sessions,id',
         ]);
 
         $selectedDepartmentIds = array_values(array_unique($validated['department_ids']));
@@ -181,6 +196,7 @@ class CourseController extends Controller
             'credit_unit' => $course->credit_unit,
             'semester' => $course->semester,
             'level' => $course->level,
+            'academic_session_id' => $course->academic_session_id,
         ];
 
         DB::transaction(function () use ($course, $validated, $selectedDepartmentIds, $originalSignature, &$updatedCourses, &$createdCourses) {
@@ -203,10 +219,11 @@ class CourseController extends Controller
                     'semester' => $validated['semester'],
                     'department_id' => $departmentId,
                     'level' => $validated['level'],
+                    'academic_session_id' => $validated['academic_session_id'],
                 ];
 
                 if ($targetCourse) {
-                    $originalValues = $targetCourse->only(['code', 'title', 'credit_unit', 'semester', 'department_id', 'level']);
+                    $originalValues = $targetCourse->only(['code', 'title', 'credit_unit', 'semester', 'department_id', 'level', 'academic_session_id']);
                     $targetCourse->update($payload);
                     $updatedCourses->push([
                         'course' => $targetCourse->fresh(),
@@ -246,6 +263,8 @@ class CourseController extends Controller
                         'old_credit_unit' => $original['credit_unit'] ?? null,
                         'semester' => $course->semester,
                         'level' => (string) $course->level,
+                        'academic_session_id' => $course->academic_session_id,
+                        'academic_session' => $course->academicSession?->name,
                     ],
                 ]
             );
@@ -266,6 +285,8 @@ class CourseController extends Controller
                         'credit_unit' => $course->credit_unit,
                         'semester' => $course->semester,
                         'level' => (string) $course->level,
+                        'academic_session_id' => $course->academic_session_id,
+                        'academic_session' => $course->academicSession?->name,
                     ],
                 ]
             );

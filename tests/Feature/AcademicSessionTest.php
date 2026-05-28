@@ -49,6 +49,7 @@ it('lets admins choose the active academic session used for student course regis
         'semester' => 'First',
         'department_id' => $department->id,
         'level' => '100',
+        'academic_session_id' => $secondSession->id,
     ]);
 
     $this->actingAs($admin)
