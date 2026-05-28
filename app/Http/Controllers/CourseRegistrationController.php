@@ -49,6 +49,7 @@ class CourseRegistrationController extends Controller
         $defaultSemester = $this->normalizeSemester(old('semester', 'First'));
         $currentSession = $this->getCurrentAcademicSession();
         $courses = Courses::where('department_id', $departmentId)
+            ->forAcademicSession($currentSession)
             ->where('level', $user->level)
             ->where('semester', $defaultSemester)
             ->with('prerequisites')
@@ -65,8 +66,10 @@ class CourseRegistrationController extends Controller
         $departmentId = $user->department_id;
         $level = $request->level;
         $semester = $this->normalizeSemester($request->semester);
+        $session = $request->query('session', $this->getCurrentAcademicSession());
 
         $courses = Courses::where('department_id', $departmentId)
+            ->forAcademicSession($session)
             ->where('level', $level)
             ->where('semester', $semester)
             ->with('prerequisites')
@@ -108,6 +111,7 @@ class CourseRegistrationController extends Controller
         // Validate that the selected courses belong to the student's department, level, and semester.
         $courses = Courses::whereIn('id', $courseIds)
             ->where('department_id', $user->department_id)
+            ->forAcademicSession($session)
             ->where('level', $level)
             ->where('semester', $semester)
             ->get();
@@ -115,7 +119,7 @@ class CourseRegistrationController extends Controller
         if ($courses->count() != count($courseIds)) {
             return $this->courseRegistrationError(
                 $request,
-                'One or more selected courses are not available for your level or selected semester.',
+                'One or more selected courses are not available for your level, selected semester, or academic session.',
                 422
             );
         }

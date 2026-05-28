@@ -12,12 +12,14 @@ it('updates registrations only within the admin selected session', function () {
         'name' => '2024/2025',
         'start_year' => 2024,
         'end_year' => 2025,
+        'is_active' => false,
     ]);
 
-    AcademicSession::create([
+    $currentSession = AcademicSession::create([
         'name' => '2025/2026',
         'start_year' => 2025,
         'end_year' => 2026,
+        'is_active' => true,
     ]);
 
     $faculty = Faculty::create([
@@ -47,6 +49,7 @@ it('updates registrations only within the admin selected session', function () {
         'semester' => 'First',
         'department_id' => $department->id,
         'level' => '100',
+        'academic_session_id' => $currentSession->id,
     ]);
 
     CourseRegistration::create([

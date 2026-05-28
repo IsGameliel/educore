@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Models\AcademicSession;
 use App\Models\Courses;
 use App\Models\User;
 use App\Support\ActivityLogger;
@@ -36,6 +37,7 @@ class CourseImport implements ToCollection, WithHeadingRow
                 'semester' => trim((string) ($row['semester'] ?? '')),
                 'level' => trim((string) ($row['level'] ?? '')),
                 'department_ids' => $departmentIds,
+                'academic_session_id' => $this->resolveAcademicSessionId($row),
             ];
 
             $validator = Validator::make($data, [
@@ -46,6 +48,7 @@ class CourseImport implements ToCollection, WithHeadingRow
                 'level' => ['required', Rule::in(['100', '200', '300', '400', '500', '600'])],
                 'department_ids' => ['required', 'array', 'min:1'],
                 'department_ids.*' => ['integer', 'exists:departments,id'],
+                'academic_session_id' => ['required', 'exists:academic_sessions,id'],
             ]);
 
             if ($validator->fails()) {
@@ -64,6 +67,7 @@ class CourseImport implements ToCollection, WithHeadingRow
                         'semester' => $data['semester'],
                         'level' => $data['level'],
                         'department_id' => $departmentId,
+                        'academic_session_id' => $data['academic_session_id'],
                     ],
                     [
                         'title' => $data['title'],
@@ -110,6 +114,23 @@ class CourseImport implements ToCollection, WithHeadingRow
             ->all();
     }
 
+    protected function resolveAcademicSessionId($row): ?int
+    {
+        $rawSessionId = $row['academic_session_id'] ?? null;
+
+        if (is_numeric($rawSessionId) && AcademicSession::whereKey((int) $rawSessionId)->exists()) {
+            return (int) $rawSessionId;
+        }
+
+        $rawSessionName = trim((string) ($row['academic_session'] ?? $row['session'] ?? ''));
+
+        if ($rawSessionName !== '') {
+            return AcademicSession::where('name', $rawSessionName)->value('id');
+        }
+
+        return AcademicSession::current()?->id;
+    }
+
     public function createdCount(): int
     {
         return $this->created;
@@ -141,6 +162,8 @@ class CourseImport implements ToCollection, WithHeadingRow
                     'credit_unit' => $course->credit_unit,
                     'semester' => $course->semester,
                     'level' => (string) $course->level,
+                    'academic_session_id' => $course->academic_session_id,
+                    'academic_session' => $course->academicSession?->name,
                 ],
             ]
         );
@@ -168,6 +191,8 @@ class CourseImport implements ToCollection, WithHeadingRow
                     'old_credit_unit' => $oldCreditUnit,
                     'semester' => $course->semester,
                     'level' => (string) $course->level,
+                    'academic_session_id' => $course->academic_session_id,
+                    'academic_session' => $course->academicSession?->name,
                 ],
             ]
         );

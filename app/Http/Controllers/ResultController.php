@@ -137,8 +137,9 @@ class ResultController extends Controller
             ->filter()
             ->map(fn ($id) => (int) $id)
             ->values();
+        $session = $request->input('session');
 
-        $courses = $this->getAccessibleCoursesForUser($actor)
+        $courses = $this->getAccessibleCoursesForUser($actor, $session)
             ->whereIn('id', $selectedCourseIds)
             ->values();
 
@@ -281,6 +282,7 @@ class ResultController extends Controller
 
         $user = User::where('usertype', 'student')->findOrFail($request->user_id);
         $course = $this->resolveManagedCourse($request->course_id);
+        $this->ensureCourseBelongsToSession($course, $request->session);
         $department = Department::findOrFail($course->department_id);
 
         if ((int) $request->department_id !== (int) $course->department_id) {
@@ -363,7 +365,7 @@ class ResultController extends Controller
         $this->ensureCanManageResultRecord($result);
         $user = User::where('usertype', 'student')->findOrFail($request->user_id);
         $department = Department::findOrFail($request->department_id ?? $result->department_id ?? $user->department_id);
-        $this->ensureCourseCodeIsManageable($request->course_code, $department->id, $request->semester);
+        $this->ensureCourseCodeIsManageable($request->course_code, $department->id, $request->semester, $request->session);
         $score = $this->resolveResultScore(
             $request->score,
             $request->ca_score,
@@ -439,7 +441,7 @@ class ResultController extends Controller
                 ->firstOrFail();
 
             $this->ensureCanManageResultRecord($result);
-            $this->ensureCourseCodeIsManageable($payload['course_code'], $departmentId, $semester);
+            $this->ensureCourseCodeIsManageable($payload['course_code'], $departmentId, $semester, $session);
 
             $score = $this->resolveResultScore(
                 $payload['score'] ?? null,
@@ -644,7 +646,7 @@ class ResultController extends Controller
         ]);
 
         $courses = collect($request->input('course_ids'))
-            ->map(fn ($courseId) => $this->resolveManagedCourse($courseId))
+            ->map(fn ($courseId) => $this->resolveManagedCourse($courseId, $request->session))
             ->values();
 
         $spreadsheet = IOFactory::load($request->file('file')->getRealPath());
@@ -888,14 +890,16 @@ class ResultController extends Controller
         return in_array($user->usertype, ['admin', 'exam_officer'], true);
     }
 
-    protected function getAccessibleCoursesForUser(User $user)
+    protected function getAccessibleCoursesForUser(User $user, ?string $session = null)
     {
+        $applySession = fn ($query) => $session ? $query->forAcademicSession($session) : $query;
+
         if ($this->isPrivilegedResultManager($user)) {
-            return Courses::with('department')->orderBy('code')->get();
+            return $applySession(Courses::with(['department', 'academicSession']))->orderBy('code')->get();
         }
 
         if ($user->usertype === 'lecturer') {
-            return $user->assignedCourses()->with('department')->orderBy('code')->get();
+            return $applySession($user->assignedCourses()->with(['department', 'academicSession']))->orderBy('code')->get();
         }
 
         return collect();
@@ -904,26 +908,27 @@ class ResultController extends Controller
     protected function getAccessibleResultCoursesForUser(User $user)
     {
         if ($this->isPrivilegedResultManager($user)) {
-            return Courses::with('department')->orderBy('code')->get();
+            return Courses::with(['department', 'academicSession'])->orderBy('code')->get();
         }
 
         if ($user->usertype !== 'lecturer') {
             return collect();
         }
 
-        $assignedCourses = $user->assignedCourses()->get(['courses.id', 'courses.code', 'courses.semester', 'courses.level']);
+        $assignedCourses = $user->assignedCourses()->get(['courses.id', 'courses.code', 'courses.semester', 'courses.level', 'courses.academic_session_id']);
 
         if ($assignedCourses->isEmpty()) {
             return collect();
         }
 
-        return Courses::with('department')
+        return Courses::with(['department', 'academicSession'])
             ->where(function ($query) use ($assignedCourses) {
                 foreach ($assignedCourses as $course) {
                     $query->orWhere(function ($courseQuery) use ($course) {
                         $courseQuery->where('code', $course->code)
                             ->where('semester', $course->semester)
-                            ->where('level', $course->level);
+                            ->where('level', $course->level)
+                            ->where('academic_session_id', $course->academic_session_id);
                     });
                 }
             })
@@ -939,7 +944,9 @@ class ResultController extends Controller
             return $query;
         }
 
-        $courses = $this->getAccessibleResultCoursesForUser($user);
+        $courses = $this->getAccessibleResultCoursesForUser($user)
+            ->filter(fn ($course) => filled($course->academicSession?->name))
+            ->values();
 
         if ($courses->isEmpty()) {
             return $query->whereRaw('1 = 0');
@@ -950,25 +957,39 @@ class ResultController extends Controller
                 $courseQuery->orWhere(function ($matchQuery) use ($course) {
                     $matchQuery->where('department_id', $course->department_id)
                         ->where('course_code', $course->code)
-                        ->where('semester', $course->semester);
+                        ->where('semester', $course->semester)
+                        ->where('session', $course->academicSession->name);
                 });
             }
         });
     }
 
-    protected function resolveManagedCourse($courseId)
+    protected function resolveManagedCourse($courseId, ?string $session = null)
     {
-        $course = Courses::with('department')->findOrFail($courseId);
+        $course = Courses::with(['department', 'academicSession'])->findOrFail($courseId);
         $actor = Auth::user();
 
         if ($actor->usertype === 'lecturer' && !$actor->assignedCourses()->where('courses.id', $course->id)->exists()) {
             abort(403, 'You are not assigned to this course.');
         }
 
+        if ($session !== null) {
+            $this->ensureCourseBelongsToSession($course, $session);
+        }
+
         return $course;
     }
 
-    protected function ensureCourseCodeIsManageable($courseCode, $departmentId, $semester = null)
+    protected function ensureCourseBelongsToSession(Courses $course, string $session): void
+    {
+        if ($course->academicSession?->name !== $session) {
+            throw ValidationException::withMessages([
+                'course_id' => "The selected course is not configured for the {$session} academic session.",
+            ]);
+        }
+    }
+
+    protected function ensureCourseCodeIsManageable($courseCode, $departmentId, $semester = null, $session = null)
     {
         $actor = Auth::user();
 
@@ -977,7 +998,7 @@ class ResultController extends Controller
         }
 
         $isAssigned = $this->getAccessibleResultCoursesForUser($actor)
-            ->contains(function ($course) use ($courseCode, $departmentId, $semester) {
+            ->contains(function ($course) use ($courseCode, $departmentId, $semester, $session) {
                 if ((int) $course->department_id !== (int) $departmentId) {
                     return false;
                 }
@@ -986,7 +1007,11 @@ class ResultController extends Controller
                     return false;
                 }
 
-                return $semester === null || $course->semester === $semester;
+                if ($semester !== null && $course->semester !== $semester) {
+                    return false;
+                }
+
+                return $session === null || $course->academicSession?->name === $session;
             });
 
         if (!$isAssigned) {
@@ -996,7 +1021,7 @@ class ResultController extends Controller
 
     protected function ensureCanManageResultRecord(Result $result)
     {
-        $this->ensureCourseCodeIsManageable($result->course_code, $result->department_id, $result->semester);
+        $this->ensureCourseCodeIsManageable($result->course_code, $result->department_id, $result->semester, $result->session);
     }
 
     protected function resolveDepartmentId(Request $request, User $user)

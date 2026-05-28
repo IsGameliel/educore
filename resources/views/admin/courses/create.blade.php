@@ -106,6 +106,17 @@
                             <input type="number" name="credit_unit" id="credit_unit" class="form-control" value="{{ old('credit_unit') }}" required>
                         </div>
                         <div class="form-group">
+                            <label for="academic_session_id">Academic Session</label>
+                            <select name="academic_session_id" id="academic_session_id" class="form-control" required>
+                                <option value="">Choose Academic Session</option>
+                                @foreach($academicSessions as $academicSession)
+                                    <option value="{{ $academicSession->id }}" @selected((string) old('academic_session_id', $defaultAcademicSessionId) === (string) $academicSession->id)>
+                                        {{ $academicSession->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label for="semester">Semester</label>
                             <select name="semester" id="semester" class="form-control" required>
                                 <option value="">Choose Semester</option>
