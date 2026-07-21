@@ -183,18 +183,23 @@
                 class="nav-link"
                 data-bs-toggle="collapse"
                 href="#delivery-menu"
-                aria-expanded="{{ str_starts_with($routeName, 'admin.class-schedules.') || str_starts_with($routeName, 'admin.course-materials.') ? 'true' : 'false' }}"
+                aria-expanded="{{ str_starts_with($routeName, 'admin.class-schedules.') || str_starts_with($routeName, 'admin.attendance.') || str_starts_with($routeName, 'admin.course-materials.') ? 'true' : 'false' }}"
                 aria-controls="delivery-menu"
             >
                 <span class="menu-title">Teaching Delivery</span>
                 <i class="menu-arrow"></i>
                 <i class="mdi mdi-human-male-board menu-icon"></i>
             </a>
-            <div class="collapse {{ str_starts_with($routeName, 'admin.class-schedules.') || str_starts_with($routeName, 'admin.course-materials.') ? 'show' : '' }}" id="delivery-menu">
+            <div class="collapse {{ str_starts_with($routeName, 'admin.class-schedules.') || str_starts_with($routeName, 'admin.attendance.') || str_starts_with($routeName, 'admin.course-materials.') ? 'show' : '' }}" id="delivery-menu">
                 <ul class="nav flex-column sub-menu">
                     <li class="nav-item">
                         <a class="nav-link {{ str_starts_with($routeName, 'admin.class-schedules.') ? 'active' : '' }}" href="{{ route('admin.class-schedules.index') }}">
                             Class Schedules
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ str_starts_with($routeName, 'admin.attendance.') ? 'active' : '' }}" href="{{ route('admin.attendance.index') }}">
+                            Attendance
                         </a>
                     </li>
                     <li class="nav-item">

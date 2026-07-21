@@ -8,7 +8,8 @@ use App\Http\Controllers\{
     BursarController, HomeController, CourseRegistrationController, CourseController,
     FacultyController, DepartmentController, ClassScheduleController, StudentScheduleController,
     CourseMaterialController, TestController, StudentManagementController, StaffManagementController,
-    CustomProfileController, ResultController, AcademicSessionController, DashboardWidgetController
+    CustomProfileController, ResultController, AcademicSessionController, DashboardWidgetController,
+    AttendanceController
 };
 
 // Public Routes
@@ -53,6 +54,8 @@ Route::middleware([
         ->name('documents.transcripts.show');
 
     Route::get('/home', [HomeController::class, 'index'])->name('dashboard');
+    Route::get('/attendance/scan/{token}', [AttendanceController::class, 'registerByScan'])
+        ->name('attendance.scan.register');
 
     Route::prefix('dashboard/widgets')->name('dashboard.widgets.')->group(function () {
         Route::post('/todos', [DashboardWidgetController::class, 'storeTodo'])->name('todos.store');
@@ -130,11 +133,21 @@ Route::middleware([
         Route::get('courses/{course}/prerequisites', [CourseController::class, 'showPrerequisites'])->name('courses.prerequisites');
         Route::post('courses/{course}/prerequisites', [CourseController::class, 'assignPrerequisites'])->name('courses.assignPrerequisites');
         
+        // Class schedules routes - define custom routes before resource
+        Route::get('/class-schedules/courses/filtered', [ClassScheduleController::class, 'getFilteredCourses'])
+            ->name('class-schedules.courses.filtered');
+        
         Route::resources([
             'faculties' => FacultyController::class,
             'departments' => DepartmentController::class,
             'class-schedules' => ClassScheduleController::class,
         ]);
+        Route::post('attendance/scan-code', [AttendanceController::class, 'createScanSession'])
+            ->name('attendance.scan-code.store');
+        Route::post('attendance/{attendance}/scan-code', [AttendanceController::class, 'sendScanCode'])
+            ->name('attendance.scan-code.send');
+        Route::resource('attendance', AttendanceController::class)
+            ->parameters(['attendance' => 'attendance']);
 
         Route::get('/course-registrations', [AdminCourseRegistrationController::class, 'index'])
             ->name('course-registrations.index');
@@ -254,6 +267,13 @@ Route::middleware([
     });
 
     Route::prefix('lecturer')->name('lecturer.')->middleware('usertype:lecturer')->group(function () {
+        Route::post('attendance/scan-code', [AttendanceController::class, 'createScanSession'])
+            ->name('attendance.scan-code.store');
+        Route::post('attendance/{attendance}/scan-code', [AttendanceController::class, 'sendScanCode'])
+            ->name('attendance.scan-code.send');
+        Route::resource('attendance', AttendanceController::class)
+            ->parameters(['attendance' => 'attendance']);
+
         Route::prefix('tests')->name('tests.')->group(function () {
             Route::get('/', [TestController::class, 'adminIndex'])->name('index');
             Route::get('/create', [TestController::class, 'create'])->name('create');

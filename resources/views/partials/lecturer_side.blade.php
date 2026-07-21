@@ -31,6 +31,12 @@
             </a>
         </li>
         <li class="nav-item">
+            <a class="nav-link {{ str_starts_with($routeName, 'lecturer.attendance.') ? 'active' : '' }}" href="{{ route('lecturer.attendance.index') }}">
+                <span class="menu-title">Attendance</span>
+                <i class="mdi mdi-qrcode-scan menu-icon"></i>
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link" data-bs-toggle="collapse" href="#exams" aria-expanded="{{ str_starts_with($routeName, 'lecturer.tests.') ? 'true' : 'false' }}" aria-controls="auth">
                 <span class="menu-title">Test Maker</span>
                 <i class="menu-arrow"></i>

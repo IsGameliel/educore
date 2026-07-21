@@ -13,6 +13,21 @@ use Illuminate\Support\Facades\Mail;
 
 class ClassScheduleController extends Controller
 {
+    private function normalizeSemester($semester): string
+    {
+        $semester = strtolower(trim((string) $semester));
+
+        if (in_array($semester, ['1', 'first', 'first semester'], true)) {
+            return 'First';
+        }
+
+        if (in_array($semester, ['2', 'second', 'second semester'], true)) {
+            return 'Second';
+        }
+
+        return '';
+    }
+
     /**
      * Display a listing of the class schedules with optional filters.
      *
@@ -46,7 +61,7 @@ class ClassScheduleController extends Controller
     {
         $departments = Department::all();
         $levels = ['100', '200', '300', '400', '500'];
-        $semesters = ['First Semester', 'Second Semester'];
+        $semesters = ['First', 'Second'];
         $courses = Courses::all();
         $lecturers = User::where('userType', 'lecturer')->get();
 
@@ -61,12 +76,16 @@ class ClassScheduleController extends Controller
      */
     public function store(Request $request)
     {
+        $request->merge([
+            'semester' => $this->normalizeSemester($request->input('semester')),
+        ]);
+
         // Validate the request data
         $validated = $request->validate([
-            'department_id' => 'required|string|max:255',
-            'level' => 'required|string|max:255',
-            'semester' => 'required|string|max:255',
-            'subject' => 'required|string|max:255',
+            'department_id' => 'required|exists:departments,id',
+            'level' => 'required|in:100,200,300,400,500',
+            'semester' => 'required|in:First,Second',
+            'subject' => 'required|exists:courses,id',
             'lecturer_id' => 'required|exists:users,id',
             'day' => 'required|string|max:255',
             'start_time' => 'required|date_format:H:i',
@@ -120,7 +139,7 @@ class ClassScheduleController extends Controller
         $schedule = ClassSchedule::findOrFail($id);
         $departments = Department::all();
         $levels = ['100', '200', '300', '400', '500'];
-        $semesters = ['First Semester', 'Second Semester'];
+        $semesters = ['First', 'Second'];
         $courses = Courses::all();
         $lecturers = User::where('userType', 'lecturer')->get();
 
@@ -136,11 +155,15 @@ class ClassScheduleController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $request->merge([
+            'semester' => $this->normalizeSemester($request->input('semester')),
+        ]);
+
         $validated = $request->validate([
-            'department' => 'required|string|max:255',
-            'level' => 'required|string|max:255',
-            'semester' => 'required|string|max:255',
-            'subject' => 'required|string|max:255',
+            'department_id' => 'required|exists:departments,id',
+            'level' => 'required|in:100,200,300,400,500',
+            'semester' => 'required|in:First,Second',
+            'subject' => 'required|exists:courses,id',
             'lecturer_id' => 'required|exists:users,id',
             'day' => 'required|string|max:255',
             'start_time' => 'required|date_format:H:i',
@@ -151,7 +174,7 @@ class ClassScheduleController extends Controller
         $schedule = ClassSchedule::findOrFail($id);
         $schedule->update($validated);
 
-        return redirect()->route('class-schedules.index')->with('success', 'Schedule updated successfully.');
+        return redirect()->route('admin.class-schedules.index')->with('success', 'Schedule updated successfully.');
     }
 
     /**
@@ -166,5 +189,25 @@ class ClassScheduleController extends Controller
         $schedule->delete();
 
         return redirect()->route('admin.class-schedules.index')->with('success', 'Schedule deleted successfully.');
+    }
+
+    /**
+     * Get courses filtered by department and level.
+     */
+    public function getFilteredCourses(Request $request)
+    {
+        $departmentId = $request->get('department_id');
+        $level = $request->get('level');
+        $semester = $this->normalizeSemester($request->get('semester'));
+
+        $courses = Courses::query()
+            ->when($departmentId, fn($query) => $query->where('department_id', $departmentId))
+            ->when($level, fn($query) => $query->where('level', $level))
+            ->when($semester, fn($query) => $query->where('semester', $semester))
+            ->select('id', 'title', 'code', 'department_id', 'level', 'semester')
+            ->orderBy('code')
+            ->get();
+
+        return response()->json($courses);
     }
 }

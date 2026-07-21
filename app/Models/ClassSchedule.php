@@ -3,9 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use app\Models\User;
-use app\Models\Courses;
-
 
 class ClassSchedule extends Model
 {
@@ -45,4 +42,18 @@ class ClassSchedule extends Model
             ->where('usertype', 'lecturer');  // Filter users with 'lecturer' usertype
     }
 
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function course()
+    {
+        return $this->belongsTo(Courses::class, 'subject');
+    }
+
+    public function attendanceSessions()
+    {
+        return $this->hasMany(AttendanceSession::class);
+    }
 }

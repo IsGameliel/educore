@@ -87,7 +87,7 @@ class User extends Authenticatable
 
     public function classSchedules()
     {
-        return $this->hasMany(ClassSchedule::class, 'lecturer', 'id');
+        return $this->hasMany(ClassSchedule::class, 'lecturer_id', 'id');
     }
 
     public function assignedCourses()
@@ -98,5 +98,10 @@ class User extends Authenticatable
     public function activityLogs()
     {
         return $this->hasMany(ActivityLog::class, 'actor_id');
+    }
+
+    public function attendanceRecords()
+    {
+        return $this->hasMany(AttendanceRecord::class, 'student_id');
     }
 }

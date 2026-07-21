@@ -729,7 +729,7 @@ class ResultController extends Controller
             return back()->with('error', 'No results found for this session and semester.');
         }
 
-        $this->generateTranscript($user, $results, $session, $semester, $departmentId);
+        $this->generateTranscript($user, $results, $session, $semester, $departmentId, true);
 
         return back()->with('success', 'Transcript generated successfully.');
     }
@@ -751,12 +751,12 @@ class ResultController extends Controller
             return back()->with('error', 'No results found for this student in the selected department.');
         }
 
-        $this->generateFullTranscript($user, $departmentId);
+        $this->generateFullTranscript($user, $departmentId, true);
 
         return back()->with('success', 'Full transcript generated successfully.');
     }
 
-    protected function generateTranscript(User $user, $results, $session, $semester, $departmentId = null)
+    protected function generateTranscript(User $user, $results, $session, $semester, $departmentId = null, bool $withWatermark = false)
     {
         $departmentId = $departmentId ?? $user->department_id;
         $department = Department::find($departmentId);
@@ -793,6 +793,10 @@ class ResultController extends Controller
         $transcriptName = "transcript_{$user->id}_{$sanitizedSession}_{$sanitizedSemester}_" . time() . '.pdf';
         $relativePath   = 'documents/transcripts/' . $transcriptName;
 
+        if ($withWatermark) {
+            $this->addWatermarkToPdf($pdf);
+        }
+
         // save file
         Storage::disk('public')->put($relativePath, $pdf->output());
 
@@ -809,7 +813,7 @@ class ResultController extends Controller
     }
 
 
-    protected function generateFullTranscript(User $user, $departmentId = null)
+    protected function generateFullTranscript(User $user, $departmentId = null, bool $withWatermark = false)
     {
         $departmentId = $departmentId ?? $user->department_id;
 
@@ -851,6 +855,10 @@ class ResultController extends Controller
             'department'    => $department,
         ]);
 
+        if ($withWatermark) {
+            $this->addWatermarkToPdf($pdf);
+        }
+
         // ✅ save to storage
         $transcriptName = "full_transcript_{$user->id}_" . time() . '.pdf';
         $relativePath   = 'documents/transcripts/' . $transcriptName;
@@ -865,6 +873,39 @@ class ResultController extends Controller
 
         return $transcriptUrl;
     }
+
+    protected function addWatermarkToPdf(\Barryvdh\DomPDF\PDF $pdf)
+    {
+        $pdf->render();
+        $canvas = $pdf->getDomPDF()->get_canvas();
+
+        $canvas->page_script(function ($pageNumber, $pageCount, $canvas, $fontMetrics) {
+            $logoPath = public_path('asset/images/educore.png');
+
+            if (!file_exists($logoPath)) {
+                return;
+            }
+
+            // Set opacity
+            $canvas->set_opacity(0.15);
+
+            // Get image dimensions
+            list($imgWidth, $imgHeight) = getimagesize($logoPath);
+
+            // Get page dimensions
+            $pageWidth = $canvas->get_width();
+            $pageHeight = $canvas->get_height();
+
+            // Calculate position to center the image
+            $x = ($pageWidth - $imgWidth) / 2;
+            $y = ($pageHeight - $imgHeight) / 2;
+
+            // Add image as watermark
+            $canvas->image($logoPath, $x, $y, $imgWidth, $imgHeight);
+        });
+
+    }
+
 
     protected function resolveResultScore($score = null, $caScore = null, $examScore = null)
     {
