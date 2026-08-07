@@ -153,9 +153,10 @@
                         <label class="cursor-pointer select-none text-sm font-medium text-on-surface-variant" for="remember">Stay signed in</label>
                     </div>
 
-                    <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container py-4 font-headline font-bold text-on-primary shadow-lg shadow-primary/10 transition-all hover:-translate-y-0.5 active:translate-y-0" type="submit">
-                        <span>Sign In</span>
-                        <span class="material-symbols-outlined text-xl">arrow_forward</span>
+                    <button id="login-submit-btn" class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container py-4 font-headline font-bold text-on-primary shadow-lg shadow-primary/10 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-80" type="submit" aria-busy="false">
+                        <span id="login-submit-text">Sign In</span>
+                        <span id="login-spinner" class="hidden h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                        <span id="login-submit-icon" class="material-symbols-outlined text-xl">arrow_forward</span>
                     </button>
                 </form>
 
@@ -188,5 +189,31 @@
             <p class="font-['Inter'] text-xs font-medium text-slate-500 dark:text-slate-400">&copy; 2024 Educore Management Systems. All rights reserved.</p>
         </div>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.querySelector('form[method="POST"]');
+            const submitButton = document.getElementById('login-submit-btn');
+            const submitText = document.getElementById('login-submit-text');
+            const submitIcon = document.getElementById('login-submit-icon');
+            const spinner = document.getElementById('login-spinner');
+
+            if (!form || !submitButton || !submitText || !submitIcon || !spinner) {
+                return;
+            }
+
+            form.addEventListener('submit', () => {
+                if (!form.checkValidity()) {
+                    return;
+                }
+
+                submitButton.disabled = true;
+                submitButton.setAttribute('aria-busy', 'true');
+                submitText.textContent = 'Signing In...';
+                submitIcon.classList.add('hidden');
+                spinner.classList.remove('hidden');
+            });
+        });
+    </script>
 </body>
 </html>
