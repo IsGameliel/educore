@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Jetstream\Jetstream;
-use Illuminate\Validation\Rule; // <-- Import the Rule class
 
 class CreateNewUser implements CreatesNewUsers
 {
@@ -28,32 +27,14 @@ class CreateNewUser implements CreatesNewUsers
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => $this->passwordRules(),
             'terms' => Jetstream::hasTermsAndPrivacyPolicyFeature() ? ['accepted', 'required'] : '',
-            'usertype' => ['required', 'string', Rule::in(['user', 'student'])],
-            'department' => [
-                Rule::requiredIf(isset($input['usertype']) && $input['usertype'] === 'student'),
-                'nullable',
-                'integer',
-                'exists:departments,id',
-            ],
-            'level' => [
-                Rule::requiredIf(isset($input['usertype']) && $input['usertype'] === 'student'),
-                'nullable',
-                'string',
-                'max:10',
-            ],
         ])->validate();
 
         return DB::transaction(function () use ($input) {
-            // Use 'usertype' from the form input, defaulting to 'user' as a safety measure
-            $usertype = $input['usertype'] ?? 'user';
-
             return tap(User::create([
                 'name' => $input['name'],
                 'email' => $input['email'],
                 'password' => Hash::make($input['password']),
-                'usertype' => $usertype,
-                'department_id' => $usertype === 'student' ? $input['department'] : null,
-                'level' => $usertype === 'student' ? $input['level'] : null,
+                'usertype' => 'user',
             ]), function (User $user) {
                 $this->createTeam($user);
             });

@@ -52,15 +52,21 @@ class HomeController extends Controller
             return view('student.dashboard', compact('courseMaterialsCount', 'courseCount', 'schedules', 'recentUpdates') + $this->getDashboardWidgets($user));
         }
 
-        elseif ($user->usertype == 'admin') {
+        elseif ($user->dashboardRole() === 'admin') {
             return view('admin.dashboard', $this->buildDashboardPayload($user));
         }
-        elseif ($user->usertype == 'lecturer') {
+        elseif ($user->dashboardRole() === 'lecturer') {
             return view('lecturer.dashboard', $this->buildDashboardPayload($user));
         }
 
-        // Default view for other user types
-        return redirect('/')->with('error', 'Unauthorized access.');
+        if ($user->isStaff()) {
+            return view('staff.dashboard', $this->getDashboardWidgets($user));
+        }
+
+        abort_unless($user->isAdmissionApplicant(), 403, 'Your account role does not have a dashboard configured.');
+
+        // Only applicant accounts enter the admission flow.
+        return redirect()->route('admissions.create');
     }
 
     private function buildDashboardPayload(User $user): array

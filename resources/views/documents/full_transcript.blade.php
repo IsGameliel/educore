@@ -80,7 +80,7 @@
                 <tr>
                     <th colspan="2">Total Credit Units</th>
                     <td>{{ $data['totalCreditUnits'] }}</td>
-                    <td colspan="5">GPA</td>
+                    <td colspan="3">GPA</td>
                     <td>{{ $data['gpa'] }}</td>
                 </tr>
             </tbody>

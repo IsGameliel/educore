@@ -11,7 +11,7 @@ class UsertypeMiddleware
 {
     public function handle(Request $request, Closure $next, ...$usertypes): Response
     {
-        if (!Auth::check() || !in_array(Auth::user()->usertype, $usertypes)) {
+        if (!Auth::check() || !in_array(Auth::user()->dashboardRole(), $usertypes, true)) {
             abort(403, 'Unauthorized');
         }
         return $next($request);

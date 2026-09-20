@@ -163,28 +163,18 @@
                         </div>
                     @endif
 
-                    <div class="mb-10 flex rounded-xl bg-surface-container-low p-1.5">
-                        <button
-                            type="button"
-                            class="toggle-button flex-1 rounded-lg px-4 py-3 transition-all"
-                            data-role="student"
-                            id="studentToggle"
-                        >
-                            Student
-                        </button>
-                        <button
-                            type="button"
-                            class="toggle-button flex-1 rounded-lg px-4 py-3 transition-all"
-                            data-role="user"
-                            id="staffToggle"
-                        >
-                            Staff
-                        </button>
+                    <div class="mb-10 rounded-xl border border-primary-fixed bg-primary-fixed/40 p-5 text-sm text-primary">
+                        <div class="flex items-start gap-3">
+                            <span class="material-symbols-outlined mt-0.5">assignment</span>
+                            <div>
+                                <h3 class="font-bold">Admission starts after account creation</h3>
+                                <p class="mt-1 text-primary/80">Create your secure account first. After login, complete the admission form to become a student.</p>
+                            </div>
+                        </div>
                     </div>
 
                     <form class="space-y-6" method="POST" action="{{ route('register') }}">
                         @csrf
-                        <input type="hidden" id="usertypeInput" name="usertype" value="{{ old('usertype', 'user') }}" />
 
                         <div class="grid grid-cols-1 gap-6">
                             <div class="space-y-2">
@@ -196,34 +186,6 @@
                                 <label class="block px-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Institutional Email</label>
                                 <input class="w-full rounded-xl border-none bg-surface-container-highest px-6 py-4 transition-all placeholder:text-outline/50 focus:border-b-2 focus:border-primary focus:ring-0" name="email" placeholder="j.vane@university.edu" type="email" value="{{ old('email') }}" required autocomplete="username" />
                             </div>
-
-                            <div class="grid grid-cols-1 gap-6 md:grid-cols-2" id="studentFields" data-cloak>
-                                <div class="space-y-2">
-                                    <label class="block px-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Department</label>
-                                    <select
-                                        id="departmentField"
-                                        class="w-full appearance-none rounded-xl border-none bg-surface-container-highest px-6 py-4 transition-all focus:border-b-2 focus:border-primary focus:ring-0"
-                                        name="department"
-                                    >
-                                        <option value="">Select Department</option>
-                                        @foreach($departments as $department)
-                                            <option value="{{ $department->id }}" @selected(old('department') == $department->id)>{{ $department->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="space-y-2">
-                                    <label class="block px-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Level</label>
-                                    <select
-                                        id="levelField"
-                                        class="w-full appearance-none rounded-xl border-none bg-surface-container-highest px-6 py-4 transition-all focus:border-b-2 focus:border-primary focus:ring-0"
-                                        name="level"
-                                    >
-                                        <option value="">Select Level</option>
-                                    </select>
-                                </div>
-                            </div>
-
                             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 <div class="space-y-2">
                                     <label class="block px-1 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Password</label>
@@ -271,7 +233,7 @@
 
                         <div class="pt-6">
                             <button class="w-full rounded-xl bg-gradient-to-br from-primary to-primary-container py-5 text-lg font-bold text-on-primary shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl" type="submit">
-                                Create My Account
+                                Create Account & Continue to Admission
                             </button>
                             <p class="mt-6 text-center text-sm text-on-surface-variant">
                                 Already registered?
@@ -298,113 +260,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const departments = @json($departments->map(fn($d) => ['id' => $d->id, 'name' => $d->name]));
-            const toggleButtons = document.querySelectorAll('.toggle-button');
-            const usertypeInput = document.getElementById('usertypeInput');
-            const studentFields = document.getElementById('studentFields');
-            const departmentField = document.getElementById('departmentField');
-            const levelField = document.getElementById('levelField');
-            const oldLevel = "{{ old('level', '') }}";
-
-            function getCategoryByName(name) {
-                if (!name) return 'regular';
-                const lower = name.toLowerCase();
-                const medKeys = ['medicine', 'medcine', 'nurs', 'nutrition', 'diet', 'laboratory', 'lab', 'public health', 'health'];
-
-                for (const key of medKeys) {
-                    if (lower.includes(key)) return 'medicine';
-                }
-
-                if (lower.includes('engineering')) return 'engineering';
-                return 'regular';
-            }
-
-            function computeAllowedLevels(category) {
-                let max = 400;
-                if (category === 'medicine') max = 600;
-                else if (category === 'engineering') max = 500;
-
-                const levels = [];
-                for (let value = 100; value <= max; value += 100) {
-                    levels.push(String(value));
-                }
-
-                return levels;
-            }
-
-            function formatLevelLabel(level) {
-                if (level === '100') return '100';
-                if (level === '200') return '200';
-                if (level === '300') return '300';
-                return `${level} Level`;
-            }
-
-            function updateToggleStyles(role) {
-                toggleButtons.forEach((button) => {
-                    const active = button.dataset.role === role;
-                    button.classList.toggle('bg-surface-container-lowest', active);
-                    button.classList.toggle('text-primary', active);
-                    button.classList.toggle('font-bold', active);
-                    button.classList.toggle('shadow-sm', active);
-                    button.classList.toggle('text-on-surface-variant', !active);
-                    button.classList.toggle('font-medium', !active);
-                });
-            }
-
-            function populateLevels() {
-                const selectedDepartment = departments.find((department) => Number(department.id) === Number(departmentField.value));
-                const allowedLevels = computeAllowedLevels(getCategoryByName(selectedDepartment ? selectedDepartment.name : ''));
-                const currentValue = levelField.value || oldLevel;
-
-                levelField.innerHTML = '<option value="">Select Level</option>';
-
-                allowedLevels.forEach((level) => {
-                    const option = document.createElement('option');
-                    option.value = level;
-                    option.textContent = formatLevelLabel(level);
-
-                    if (currentValue === level) {
-                        option.selected = true;
-                    }
-
-                    levelField.appendChild(option);
-                });
-
-                if (!allowedLevels.includes(levelField.value)) {
-                    levelField.value = '';
-                }
-
-                levelField.disabled = usertypeInput.value !== 'student' || allowedLevels.length === 0;
-            }
-
-            function switchRole(role) {
-                usertypeInput.value = role;
-                updateToggleStyles(role);
-
-                if (role === 'student') {
-                    studentFields.removeAttribute('data-cloak');
-                    studentFields.style.display = '';
-                    departmentField.disabled = false;
-                    populateLevels();
-                    return;
-                }
-
-                studentFields.style.display = 'none';
-                departmentField.value = '';
-                departmentField.disabled = true;
-                levelField.innerHTML = '<option value="">Select Level</option>';
-                levelField.value = '';
-                levelField.disabled = true;
-            }
-
-            toggleButtons.forEach((button) => {
-                button.addEventListener('click', function () {
-                    switchRole(button.dataset.role);
-                });
-            });
-
-            departmentField.addEventListener('change', populateLevels);
-
             document.querySelectorAll('.password-toggle').forEach((button) => {
                 button.addEventListener('click', function () {
                     const target = document.getElementById(button.dataset.target);
@@ -415,7 +270,6 @@
                 });
             });
 
-            switchRole(usertypeInput.value || 'user');
         });
     </script>
 </body>

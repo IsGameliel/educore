@@ -9,7 +9,7 @@ use App\Http\Controllers\{
     FacultyController, DepartmentController, ClassScheduleController, StudentScheduleController,
     CourseMaterialController, TestController, StudentManagementController, StaffManagementController,
     CustomProfileController, ResultController, AcademicSessionController, DashboardWidgetController,
-    AttendanceController
+    AttendanceController, AdmissionController
 };
 
 // Public Routes
@@ -43,6 +43,17 @@ Route::get('/register', function () {
 })->middleware(['guest'])->name('register');
 
 
+// Email verification must be accessible before the verified middleware.
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', [\App\Http\Controllers\EmailOtpController::class, 'show'])->name('verification.notice');
+    Route::post('/email/verify', [\App\Http\Controllers\EmailOtpController::class, 'verify'])
+        ->middleware('throttle:5,1')->name('verification.otp');
+    Route::post('/email/verification-notification', [\App\Http\Controllers\EmailOtpController::class, 'resend'])
+        ->middleware('throttle:3,1')->name('verification.send');
+    // Retire the link-based endpoint: email verification now requires a code.
+    Route::get('/email/verify/{id}/{hash}', fn () => abort(404))->name('verification.verify');
+});
+
 // Authenticated Routes
 Route::middleware([
     'auth:sanctum',
@@ -54,6 +65,8 @@ Route::middleware([
         ->name('documents.transcripts.show');
 
     Route::get('/home', [HomeController::class, 'index'])->name('dashboard');
+    Route::get('/admission', [AdmissionController::class, 'create'])->name('admissions.create');
+    Route::post('/admission', [AdmissionController::class, 'store'])->name('admissions.store');
     Route::get('/attendance/scan/{token}', [AttendanceController::class, 'registerByScan'])
         ->name('attendance.scan.register');
 
