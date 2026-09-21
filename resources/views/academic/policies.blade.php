@@ -1,0 +1,19 @@
+@extends('academic.layout')
+@section('heading','Grading policies')
+@section('academic-content')
+<p>Policies are versioned by department/programme and session. Existing results keep their recorded policy. Repeat standing is triggered by {{ \App\Services\Academic\AcademicStanding::REPEAT_FAILURE_THRESHOLD }} or more outstanding failed courses in the academic session.</p>
+<form method="POST" action="{{ route('academic.policies.store') }}" class="card card-body mb-4">@csrf
+<div class="row g-3">
+<div class="col-md-4"><label>Department / programme<select name="department_id" class="form-control" required>@foreach($departments as $department)<option value="{{ $department->id }}">{{ $department->name }}</option>@endforeach</select></label></div>
+<div class="col-md-4"><label>Session<select name="session" class="form-control" required>@foreach($sessions as $session)<option>{{ $session }}</option>@endforeach</select></label></div>
+@foreach(['ca_max'=>['CA maximum',30],'exam_max'=>['Exam maximum',70],'pass_mark'=>['Pass mark',40]] as $field=>[$label,$value])<div class="col-md-4"><label>{{ $label }}<input name="{{ $field }}" type="number" min="0" max="100" value="{{ old($field,$value) }}" class="form-control" required></label></div>@endforeach
+<div class="col-md-4"><label>CGPA repeat rule<select name="repeat_rule" class="form-control"><option value="all">Count all graded attempts</option><option value="latest">Count latest graded attempt</option><option value="highest">Count highest graded attempt</option></select></label></div>
+<div class="col-md-4"><label>Credits required for graduation<input name="graduation_credits" type="number" min="1" max="1000" class="form-control" value="{{ old('graduation_credits') }}"></label></div>
+<div class="col-md-4"><label>Minimum graduation CGPA<input name="graduation_cgpa" type="number" step="0.01" min="0" max="5" class="form-control" value="{{ old('graduation_cgpa') }}"></label></div>
+<div class="col-md-12"><label class="d-block">Required course codes (comma separated)<textarea name="required_courses_text" class="form-control">{{ old('required_courses_text') }}</textarea></label></div>
+<div class="col-md-12"><h4>Grade bands</h4><table class="table"><thead><tr><th>Minimum score</th><th>Letter grade</th><th>Grade point</th></tr></thead><tbody>@foreach(old('bands',$defaults['bands']) as $index=>$band)<tr><td><input aria-label="Minimum score for band {{ $index+1 }}" type="number" step="0.01" min="0" max="100" class="form-control" name="bands[{{ $index }}][min]" value="{{ $band['min'] }}" required></td><td><input aria-label="Letter grade for band {{ $index+1 }}" class="form-control" name="bands[{{ $index }}][grade]" value="{{ $band['grade'] }}" maxlength="5" required></td><td><input aria-label="Grade point for band {{ $index+1 }}" type="number" step="0.01" min="0" max="5" class="form-control" name="bands[{{ $index }}][point]" value="{{ $band['point'] }}" required></td></tr>@endforeach</tbody></table></div>
+</div><p class="mt-2">Graduation eligibility is shown only when credits, minimum CGPA, and required courses are configured. Policies use a 0–5 grade-point scale.</p><button class="btn btn-primary">Create new policy version</button>
+</form>
+<div class="table-responsive"><table class="table"><thead><tr><th>Department</th><th>Session</th><th>Version</th><th>CA / Exam</th><th>Pass mark</th><th>Repeat rule</th><th>Created by</th></tr></thead><tbody>@foreach($policies as $policy)<tr><td>{{ $departments->firstWhere('id',$policy->department_id)?->name }}</td><td>{{ $policy->session }}</td><td>{{ $policy->version }}</td><td>{{ $policy->ca_max }} / {{ $policy->exam_max }}</td><td>{{ $policy->pass_mark }}</td><td>{{ $policy->repeat_rule }}</td><td>#{{ $policy->created_by }}</td></tr>@endforeach</tbody></table></div>{{ $policies->links() }}
+</div>
+@endsection

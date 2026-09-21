@@ -55,9 +55,10 @@ class CourseRegistrationController extends Controller
             ->with('prerequisites')
             ->orderBy('code')
             ->get();
+        $carryoverCourses = \App\Services\Academic\CarryoverRegistration::available($user, $currentSession);
         $departments = Department::all();
 
-        return view('student.coursereg.create', compact('courses', 'departments', 'defaultSemester', 'currentSession'));
+        return view('student.coursereg.create', compact('courses', 'departments', 'defaultSemester', 'currentSession', 'carryoverCourses'));
     }
 
     public function getCoursesByLevel(Request $request)
@@ -94,16 +95,35 @@ class CourseRegistrationController extends Controller
      */
     public function registerForCourses(Request $request)
     {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+            \App\Models\User::whereKey(Auth::id())->lockForUpdate()->firstOrFail();
+            return $this->registerSelectedCourses($request);
+        });
+    }
+
+    private function registerSelectedCourses(Request $request)
+    {
+        $request->validate([
+            'course_ids' => 'nullable|array', 'course_ids.*' => 'integer|distinct',
+            'carryover_ids' => 'nullable|array', 'carryover_ids.*' => 'integer|distinct',
+            'semester' => 'required|in:First,Second',
+        ]);
         $user = Auth::user(); // Get the authenticated student
         $userId = $user->id;
         $semester = $this->normalizeSemester($request->input('semester'));
-        $level = $request->input('level');
+        $level = $user->level;
         $session = $this->getCurrentAcademicSession();
         $courseIds = collect($request->input('course_ids', []))
             ->filter(fn ($courseId) => filled($courseId))
             ->values()
             ->all();
 
+        $carryovers = \App\Services\Academic\CarryoverRegistration::available($user, $session)->where('semester', $semester)->keyBy('id');
+        $carryoverIds = $request->input('carryover_ids', []);
+        if (collect($carryoverIds)->contains(fn ($id) => ! $carryovers->has($id))) {
+            return $this->courseRegistrationError($request, 'A selected carryover is not an outstanding published failure available this semester.', 422);
+        }
+        $courseIds = array_values(array_unique(array_merge($courseIds, $carryoverIds)));
         if (empty($courseIds)) {
             return $this->courseRegistrationError($request, 'Please select at least one course.', 422);
         }
@@ -112,7 +132,7 @@ class CourseRegistrationController extends Controller
         $courses = Courses::whereIn('id', $courseIds)
             ->where('department_id', $user->department_id)
             ->forAcademicSession($session)
-            ->where('level', $level)
+            ->where(fn ($q) => $q->where('level', $level)->orWhereIn('id', $carryovers->keys()))
             ->where('semester', $semester)
             ->get();
 
@@ -181,6 +201,7 @@ class CourseRegistrationController extends Controller
                 'user_id' => $userId,
                 'acted_by' => $userId,
                 'course_id' => $course->id,
+                'previous_result_id' => $carryovers->get($course->id)?->failedResult?->id,
                 'semester' => $semester, // Save as "First Semester" or "Second Semester"
                 'session' => $session,
                 'registration_date' => now(),
@@ -241,7 +262,7 @@ class CourseRegistrationController extends Controller
         $semester = $this->normalizeSemester($request->query('semester', $semester));
         $session = $request->query('session', $this->getCurrentAcademicSession());
 
-        $courses = CourseRegistration::with('course')
+        $courses = CourseRegistration::with(['course', 'results'])
             ->where('user_id', $userId)
             ->where('semester', $semester)
             ->where('session', $session)
@@ -287,30 +308,36 @@ class CourseRegistrationController extends Controller
             return response()->json(['error' => 'You are not registered for this course.'], 400);
         }
 
-        // Remove the registration (i.e., withdrawal)
-        $registration->acted_by = $userId;
-        $registration->save();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($registration, $userId) {
+            User::whereKey($userId)->lockForUpdate()->firstOrFail();
+            $registration->assertCanRemove();
 
-        $course = $registration->course;
-        ActivityLogger::log(
-            Auth::user(),
-            'registration_withdrawn',
-            Auth::user()->name . ' withdrew from ' . ($course?->code ?? 'N/A') . ' - ' . ($course?->title ?? 'Unknown course'),
-            [
-                'subject' => $registration,
-                'target_user_id' => $userId,
-                'department_id' => $course?->department_id,
-                'properties' => [
-                    'course_id' => $course?->id,
-                    'course_code' => $course?->code,
-                    'course_title' => $course?->title,
-                    'semester' => $registration->semester,
-                    'status' => 'withdrawn',
-                ],
-            ]
-        );
+            // Remove the registration (i.e., withdrawal)
+            $registration->acted_by = $userId;
+            $registration->save();
 
-        $registration->delete();
+            $course = $registration->course;
+            ActivityLogger::log(
+                Auth::user(),
+                'registration_withdrawn',
+                Auth::user()->name . ' withdrew from ' . ($course?->code ?? 'N/A') . ' - ' . ($course?->title ?? 'Unknown course'),
+                [
+                    'subject' => $registration,
+                    'target_user_id' => $userId,
+                    'department_id' => $course?->department_id,
+                    'properties' => [
+                        'course_id' => $course?->id,
+                        'course_code' => $course?->code,
+                        'course_title' => $course?->title,
+                        'semester' => $registration->semester,
+                        'status' => 'withdrawn',
+                    ],
+                ]
+            );
+
+            $registration->delete();
+
+        });
 
         return response()->json(['message' => 'Successfully withdrawn from the course.']);
     }
@@ -352,7 +379,7 @@ class CourseRegistrationController extends Controller
         $session = $request->input('session', $this->getCurrentAcademicSession());
 
         // Fetch the courses registered by the user for the given semester
-        $courses = CourseRegistration::with('course')
+        $courses = CourseRegistration::with(['course', 'results'])
             ->where('user_id', $user->id)
             ->where('semester', $semester)
             ->where('session', $session)
@@ -393,7 +420,7 @@ class CourseRegistrationController extends Controller
         $semester = $this->normalizeSemester($request->input('semester'));
         $session = $request->input('session', $this->getCurrentAcademicSession());
 
-        $courses = CourseRegistration::with('course')
+        $courses = CourseRegistration::with(['course', 'results'])
             ->where('user_id', $userId)
             ->where('semester', $semester)
             ->where('session', $session)

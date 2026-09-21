@@ -67,7 +67,7 @@ class AdminCourseRegistrationController extends Controller
         $session = $request->query('session', $this->getCurrentAcademicSession());
         $academicSessions = $this->getAcademicSessionOptions([$session]);
 
-        $registrations = CourseRegistration::with('course')
+        $registrations = CourseRegistration::with(['course', 'results'])
             ->where('user_id', $student->id)
             ->where('semester', $semester)
             ->where('session', $session)
@@ -176,7 +176,8 @@ class AdminCourseRegistrationController extends Controller
         }
 
         DB::transaction(function () use ($student, $semester, $session, $courseIds, $data, $actor) {
-            $existingRegistrations = CourseRegistration::with('course')
+            User::whereKey($student->id)->lockForUpdate()->firstOrFail();
+            $existingRegistrations = CourseRegistration::with(['course', 'results'])
                 ->where('user_id', $student->id)
                 ->where('semester', $semester)
                 ->where('session', $session)
@@ -218,11 +219,9 @@ class AdminCourseRegistrationController extends Controller
                     );
                 }
 
-                CourseRegistration::where('user_id', $student->id)
-                    ->where('semester', $semester)
-                    ->where('session', $session)
-                    ->whereIn('course_id', $toDelete)
-                    ->delete();
+                foreach ($toDelete as $courseId) {
+                    $existingRegistrations->get($courseId)->delete();
+                }
             }
 
             foreach ($toAdd as $courseId) {

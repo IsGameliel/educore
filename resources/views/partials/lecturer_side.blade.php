@@ -4,6 +4,10 @@
 
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
     <ul class="nav">
+        @if(in_array(auth()->user()->dashboardRole(), ['admin','exam_officer','lecturer','student']))
+        <li class="nav-item"><a class="nav-link" href="{{ route('academic.index') }}"><span class="menu-title">Academic Records</span><i class="mdi mdi-school menu-icon"></i></a></li>
+        @endif
+
         <li class="nav-item nav-profile">
             <a href="#" class="nav-link">
                 <div class="nav-profile-image">

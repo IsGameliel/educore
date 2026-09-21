@@ -1,6 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
+@if(session('import_errors'))<div class="alert alert-warning"><ul>@foreach(session('import_errors') as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 @php
     $routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin';
     $isLecturer = auth()->user()->usertype === 'lecturer';
@@ -119,6 +120,7 @@
                         </div>
                     @else
                         <div class="mb-3">
+                            <a class="btn btn-primary" href="{{ route('academic.index') }}">Approvals, corrections and academic reports</a>
                             <a href="{{ route($routePrefix.'.results.create') }}" class="btn btn-primary">Add Result</a>
                             <a href="{{ route($routePrefix.'.results.upload') }}" class="btn btn-primary">Upload Results</a>
 
@@ -165,7 +167,7 @@
                                         <td>
                                             <ul class="mb-0">
                                                 @foreach ($group as $result)
-                                                    <li>{{ $result->course_code }}: {{ $result->course_title }} ({{ $result->score }} / {{ $result->grade }})</li>
+                                                    <li>{{ $result->course_code }}: {{ $result->course_title }} ({{ $result->score }} / {{ $result->grade }} · {{ $result->workflow_status }})</li>
                                                 @endforeach
                                             </ul>
                                         </td>

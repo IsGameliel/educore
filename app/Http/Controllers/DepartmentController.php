@@ -158,91 +158,14 @@ class DepartmentController extends Controller
 
                     Log::info('Logged pass_mark_updated for dept', ['dept_id' => $deptId, 'old' => $oldPassMark, 'new' => $newPassMark]);
 
-                    // Recalculate results for this department
 
-                    // Recalculate results for this department
-                    $results = Result::with('user')->where('department_id', $deptId)->get();
-                    foreach ($results as $result) {
-                        $gradeData = Result::calculateGradeAndPoint($result->score, $newPassMark);
-                        if ($result->grade !== $gradeData['grade'] || $result->grade_point != $gradeData['grade_point']) {
-                            $student = $result->user;
-                            $oldGrade = $result->grade;
-
-                            $result->update([
-                                'grade' => $gradeData['grade'],
-                                'grade_point' => $gradeData['grade_point'],
-                            ]);
-
-                            if (!$student) {
-                                continue;
-                            }
-
-                            try {
-                                ActivityLogger::log(
-                                    $actor,
-                                    'result_updated',
-                                    "Result grade updated for {$student->name} in {$result->course_code} due to pass mark change from {$oldPassMark} to {$newPassMark}",
-                                    [
-                                        'subject' => $result,
-                                        'target_user' => $student,
-                                        'department_id' => $deptId,
-                                        'properties' => [
-                                            'course_code' => $result->course_code,
-                                            'course_title' => $result->course_title,
-                                            'semester' => $result->semester,
-                                            'session' => $result->session,
-                                            'old_pass_mark' => $oldPassMark,
-                                            'new_pass_mark' => $newPassMark,
-                                            'old_grade' => $oldGrade,
-                                            'new_grade' => $gradeData['grade'],
-                                        ],
-                                    ]
-                                );
-                            } catch (\Throwable $e) {
-                                Log::error('Failed to log result update activity', [
-                                    'result_id' => $result->id,
-                                    'error' => $e->getMessage(),
-                                ]);
-                            }
-                        }
-                    }
-
-                    $affectedStudents = $results
-                        ->filter(fn (Result $result) => $result->user && (int) $result->user->department_id === (int) $deptId)
-                        ->pluck('user')
-                        ->filter()
-                        ->unique('id');
-
-                    foreach ($affectedStudents as $student) {
-                        try {
-                            ActivityLogger::log(
-                                $actor,
-                                'pass_mark_updated',
-                                "Department pass mark for {$dept->name} was updated from {$oldPassMark} to {$newPassMark}.",
-                                [
-                                    'target_user' => $student,
-                                    'department_id' => $deptId,
-                                    'properties' => [
-                                        'old_pass_mark' => $oldPassMark,
-                                        'new_pass_mark' => $newPassMark,
-                                    ],
-                                ]
-                            );
-                        } catch (\Throwable $e) {
-                            Log::error('Failed to log student pass mark notification', [
-                                'department_id' => $deptId,
-                                'student_id' => $student->id,
-                                'error' => $e->getMessage(),
-                            ]);
-                        }
-                    }
                 }
             }
         }
 
         return redirect()
             ->route('admin.departments.passmarks')
-            ->with('success', 'Department pass marks updated successfully.');
+            ->with('success', 'Default pass marks updated for future policies. Existing results retain their recorded grading policy.');
     }
 
     public function import(Request $request)

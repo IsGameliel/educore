@@ -13,9 +13,9 @@
             <thead class="table-dark">
                 <tr>
                     <th>Course Code</th>
-                    <th>Course Title</th>
+                    <th>Course Title</th><th>Exam attempt</th>
                     <th>Credit Unit</th>
-                    <th>Score</th>
+                    <th>Outcome</th><th>Score</th>
                     <th>Grade</th>
                     <th>Grade Point</th>
                 </tr>
@@ -24,9 +24,9 @@
                 @foreach ($results as $result)
                     <tr>
                         <td>{{ $result->course_code }}</td>
-                        <td>{{ $result->course_title }}</td>
+                        <td>{{ $result->course_title }}</td><td>{{ $result->attempt_type === 'resit' ? 'Resit exam' : ucfirst($result->attempt_type).' exam' }} ({{ $result->attempt_number }})</td>
                         <td>{{ $result->credit_unit }}</td>
-                        <td>{{ $result->score }}</td>
+                        <td>{{ str_replace('_',' ',$result->outcome_status) }}</td><td>{{ $result->score ?? '—' }}</td>
                         <td>{{ $result->grade }}</td>
                         <td>{{ $result->grade_point }}</td>
                     </tr>
@@ -48,42 +48,24 @@
                 </tr>
                 <tr>
                     <td><strong>GPA</strong></td>
-                    <td>{{ number_format($gpa, 2) }}</td>
+                    <td>{{ $gpa === null ? 'N/A' : number_format($gpa, 2) }}</td>
                 </tr>
                 @if (isset($cgpa))
                     <tr>
-                        <td><strong>CGPA</strong></td>
+                        <td><strong>CGPA as of this semester</strong></td>
                         <td>{{ number_format($cgpa, 2) }}</td>
-                    </tr>
-                    @php
-                        if ($cgpa >= 4.5) {
-                            $class = 'First Class';
-                            $rowClass = 'table-success';
-                        } elseif ($cgpa >= 3.5) {
-                            $class = 'Second Class Upper (2:1)';
-                            $rowClass = 'table-primary';
-                        } elseif ($cgpa >= 2.4) {
-                            $class = 'Second Class Lower (2:2)';
-                            $rowClass = 'table-warning';
-                        } elseif ($cgpa >= 1.5) {
-                            $class = 'Third Class';
-                            $rowClass = 'table-warning';
-                        } elseif ($cgpa >= 1.0) {
-                            $class = 'Pass';
-                            $rowClass = 'table-secondary';
-                        } else {
-                            $class = 'Fail';
-                            $rowClass = 'table-danger';
-                        }
-                    @endphp
-                    <tr class="{{ $rowClass }}">
-                        <td><strong>Classification</strong></td>
-                        <td>{{ $class }}</td>
                     </tr>
                 @endif
             </tbody>
         </table>
 
+        <p><strong>Standing:</strong> {{ $standing['standing'] }} · {{ $standing['failedThisSession'] }} outstanding failed course(s) in this session.</p>
+        <p><strong>Carryovers:</strong> {{ $standing['outstanding']->pluck('course_code')->join(', ') ?: 'None' }}</p>
+        @if(auth()->user()->dashboardRole() === 'student')
+        <form method="POST" action="{{ route('student.results.transcript.bySemester', [$user->id, $semester, 'session'=>$session]) }}">@csrf<button class="btn btn-primary">Download student copy</button></form>
+        <a href="{{ route('academic.transcripts') }}" class="btn btn-outline-primary mt-2">Request official transcript</a>
+        <a href="{{ route('academic.appeals') }}" class="btn btn-outline-primary mt-2">Report a result issue</a>
+        @endif
         {{-- Actions --}}
         @if ($results->first()->transcript_path)
             <a href="{{ route('documents.transcripts.show', ['filename' => basename($results->first()->transcript_path)]) }}" 

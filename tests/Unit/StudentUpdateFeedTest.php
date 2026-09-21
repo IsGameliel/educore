@@ -94,6 +94,8 @@ beforeEach(function () {
         $table->text('properties')->nullable();
         $table->timestamps();
     });
+    (require database_path('migrations/2026_09_20_120000_create_academic_result_workflow.php'))->up();
+    (require database_path('migrations/2026_09_21_120000_link_resits_to_original_results.php'))->up();
 });
 
 it('includes department pass mark updates in the student feed', function () {
@@ -144,7 +146,7 @@ it('includes department pass mark updates in the student feed', function () {
         ->and($updates->first()['details'])->toContain('updated from 40 to 50');
 });
 
-it('includes result updates caused by pass mark changes in the student feed', function () {
+it('includes published result notifications in the student feed', function () {
     $faculty = Faculty::create([
         'name' => 'Science',
     ]);
@@ -193,7 +195,7 @@ it('includes result updates caused by pass mark changes in the student feed', fu
         'actor_id' => $admin->id,
         'target_user_id' => $student->id,
         'department_id' => $department->id,
-        'action' => 'result_updated',
+        'action' => 'result_published',
         'description' => 'Result grade updated for Student User in CSC101 due to pass mark change from 40 to 50',
         'subject_type' => $result->getMorphClass(),
         'subject_id' => $result->id,
@@ -212,6 +214,6 @@ it('includes result updates caused by pass mark changes in the student feed', fu
     $updates = StudentUpdateFeed::forUser($student);
 
     expect($updates)->toHaveCount(1)
-        ->and($updates->first()['title'])->toBe('Result Updated')
+        ->and($updates->first()['title'])->toBe('Result Published')
         ->and($updates->first()['course_code'])->toBe('CSC101');
 });

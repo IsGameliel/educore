@@ -1,6 +1,6 @@
 <nav class="navbar default-layout-navbar col-lg-12 col-12 p-0 fixed-top d-flex flex-row">
     <div class="text-center navbar-brand-wrapper d-flex align-items-center justify-content-start">
-        <a class="navbar-brand brand-logo" href="{{ url('/') }}"><img src="{{ asset('asset/images/educore.png')}}" style="width: 40%; height: 90px; padding-top: 12px; margin-left: 40px;" alt="logo" /></a>
+        {{-- <a class="navbar-brand brand-logo" href="{{ url('/') }}"><img src="{{ asset('asset/images/educore.png')}}" style="width: 40%; height: 90px; padding-top: 12px; margin-left: 40px;" alt="logo" /></a> --}}
         {{--            <a class="navbar-brand brand-logo-mini" href="index.html"><img src="assets/images/logo-mini.svg" alt="logo" /></a>--}}
     </div>
     <div class="navbar-menu-wrapper d-flex align-items-stretch">

@@ -13,100 +13,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
-uses(TestCase::class);
+uses(TestCase::class, \Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 beforeEach(function () {
-    config([
-        'database.default' => 'sqlite',
-        'database.connections.sqlite.database' => ':memory:',
-        'database.connections.sqlite.foreign_key_constraints' => false,
-    ]);
-
-    DB::purge('sqlite');
-    DB::reconnect('sqlite');
-
-    Schema::create('faculties', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('description')->nullable();
-        $table->string('code')->nullable();
-        $table->timestamps();
-    });
-
-    Schema::create('departments', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('description')->nullable();
-        $table->unsignedBigInteger('faculty_id')->nullable();
-        $table->unsignedTinyInteger('pass_mark')->nullable();
-        $table->timestamps();
-    });
-
-    Schema::create('users', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('email')->unique();
-        $table->string('usertype')->default('student');
-        $table->string('matric_number')->nullable();
-        $table->unsignedBigInteger('department_id')->nullable();
-        $table->string('level')->nullable();
-        $table->timestamp('email_verified_at')->nullable();
-        $table->string('password');
-        $table->rememberToken();
-        $table->unsignedBigInteger('current_team_id')->nullable();
-        $table->string('profile_photo_path')->nullable();
-        $table->text('two_factor_secret')->nullable();
-        $table->text('two_factor_recovery_codes')->nullable();
-        $table->timestamps();
-    });
-
-    Schema::create('courses', function (Blueprint $table) {
-        $table->id();
-        $table->string('code');
-        $table->string('title');
-        $table->unsignedTinyInteger('credit_unit');
-        $table->string('semester');
-        $table->unsignedBigInteger('department_id')->nullable();
-        $table->string('level')->nullable();
-        $table->timestamps();
-    });
-
-    Schema::create('results', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('user_id');
-        $table->unsignedBigInteger('uploaded_by')->nullable();
-        $table->string('matric_number');
-        $table->string('session');
-        $table->string('semester');
-        $table->string('level');
-        $table->string('course_code');
-        $table->string('course_title');
-        $table->unsignedTinyInteger('credit_unit');
-        $table->decimal('ca_score', 5, 2)->nullable();
-        $table->decimal('exam_score', 5, 2)->nullable();
-        $table->decimal('score', 5, 2);
-        $table->string('grade')->nullable();
-        $table->decimal('grade_point', 3, 2)->nullable();
-        $table->unsignedBigInteger('source_result_id')->nullable();
-        $table->unsignedBigInteger('department_id');
-        $table->string('transcript_path')->nullable();
-        $table->string('full_transcript_path')->nullable();
-        $table->timestamps();
-        $table->softDeletes();
-    });
-
-    Schema::create('activity_logs', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('actor_id')->nullable();
-        $table->unsignedBigInteger('target_user_id')->nullable();
-        $table->unsignedBigInteger('department_id')->nullable();
-        $table->string('action');
-        $table->string('description');
-        $table->string('subject_type')->nullable();
-        $table->unsignedBigInteger('subject_id')->nullable();
-        $table->text('properties')->nullable();
-        $table->timestamps();
-    });
+    \App\Models\AcademicSession::create(['name' => '2025/2026', 'start_year' => 2025, 'end_year' => 2026, 'is_active' => true]);
 });
 
 it('imports a result sheet when the metadata uses session as the label', function () {
@@ -121,6 +31,7 @@ it('imports a result sheet when the metadata uses session as the label', functio
     ]);
 
     $course = Courses::create([
+        'academic_session_id' => \App\Models\AcademicSession::first()->id,
         'code' => 'CSC101',
         'title' => 'Introduction to Computing',
         'credit_unit' => 3,
@@ -146,6 +57,12 @@ it('imports a result sheet when the metadata uses session as the label', functio
         'level' => '100',
         'password' => 'password',
     ]);
+
+    $registeredCourse = $course;
+    if ($course->department_id !== $student->department_id) {
+        $registeredCourse = Courses::create(array_merge($course->only(['code', 'title', 'credit_unit', 'semester', 'level', 'academic_session_id']), ['department_id' => $student->department_id]));
+    }
+    \App\Models\CourseRegistration::create(['user_id' => $student->id, 'course_id' => $registeredCourse->id, 'semester' => 'First', 'session' => '2025/2026', 'status' => 'registered', 'registration_date' => now()]);
 
     $rows = new Collection([
         ['COURSE', 'CSC101'],
@@ -188,6 +105,7 @@ it('imports a result sheet when the session is stored in a single merged cell st
     ]);
 
     $course = Courses::create([
+        'academic_session_id' => \App\Models\AcademicSession::first()->id,
         'code' => 'CSC101',
         'title' => 'Introduction to Computing',
         'credit_unit' => 3,
@@ -213,6 +131,12 @@ it('imports a result sheet when the session is stored in a single merged cell st
         'level' => '100',
         'password' => 'password',
     ]);
+
+    $registeredCourse = $course;
+    if ($course->department_id !== $student->department_id) {
+        $registeredCourse = Courses::create(array_merge($course->only(['code', 'title', 'credit_unit', 'semester', 'level', 'academic_session_id']), ['department_id' => $student->department_id]));
+    }
+    \App\Models\CourseRegistration::create(['user_id' => $student->id, 'course_id' => $registeredCourse->id, 'semester' => 'First', 'session' => '2025/2026', 'status' => 'registered', 'registration_date' => now()]);
 
     $rows = new Collection([
         ['COURSE CODE CSC101'],
@@ -255,6 +179,7 @@ it('imports a shared course for a student department even when the selected cour
     ]);
 
     $course = Courses::create([
+        'academic_session_id' => \App\Models\AcademicSession::first()->id,
         'code' => 'ENT 101',
         'title' => 'Entrepreneurship Fundamentals',
         'credit_unit' => 2,
@@ -280,6 +205,12 @@ it('imports a shared course for a student department even when the selected cour
         'level' => '100',
         'password' => 'password',
     ]);
+
+    $registeredCourse = $course;
+    if ($course->department_id !== $student->department_id) {
+        $registeredCourse = Courses::create(array_merge($course->only(['code', 'title', 'credit_unit', 'semester', 'level', 'academic_session_id']), ['department_id' => $student->department_id]));
+    }
+    \App\Models\CourseRegistration::create(['user_id' => $student->id, 'course_id' => $registeredCourse->id, 'semester' => 'First', 'session' => '2025/2026', 'status' => 'registered', 'registration_date' => now()]);
 
     $rows = new Collection([
         ['COURSE CODE', 'ENT 101'],
@@ -317,6 +248,7 @@ it('imports a result sheet when the table starts from column a on row 8', functi
     ]);
 
     $course = Courses::create([
+        'academic_session_id' => \App\Models\AcademicSession::first()->id,
         'code' => 'CSC102',
         'title' => 'Programming Fundamentals',
         'credit_unit' => 3,
@@ -342,6 +274,12 @@ it('imports a result sheet when the table starts from column a on row 8', functi
         'level' => '100',
         'password' => 'password',
     ]);
+
+    $registeredCourse = $course;
+    if ($course->department_id !== $student->department_id) {
+        $registeredCourse = Courses::create(array_merge($course->only(['code', 'title', 'credit_unit', 'semester', 'level', 'academic_session_id']), ['department_id' => $student->department_id]));
+    }
+    \App\Models\CourseRegistration::create(['user_id' => $student->id, 'course_id' => $registeredCourse->id, 'semester' => 'First', 'session' => '2025/2026', 'status' => 'registered', 'registration_date' => now()]);
 
     $rows = new Collection([
         ['COURSE CODE', 'CSC102'],
@@ -379,6 +317,7 @@ it('generates the result upload template with an optional name column', function
     ]);
 
     $course = Courses::create([
+        'academic_session_id' => \App\Models\AcademicSession::first()->id,
         'code' => 'CSC103',
         'title' => 'Computer Applications',
         'credit_unit' => 2,
@@ -391,6 +330,5 @@ it('generates the result upload template with an optional name column', function
     $rows = $sheet->array();
 
     expect($rows[7])->toBe(['S/NO', 'MATRIC NO.', 'NAME', 'CA', 'EXAM', 'Total'])
-        ->and($rows[8][2])->toBe('')
-        ->and($rows[9][2])->toBe('');
+        ->and($rows)->toHaveCount(8);
 });

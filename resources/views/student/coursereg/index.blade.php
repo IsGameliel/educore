@@ -65,16 +65,24 @@
                                 <th>Credit Unit</th>
                                 <th>Semester</th>
                                 <th>Status</th>
+                                <th>Published results</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($courses as $registration)
                                 <tr>
-                                    <td>{{ $registration->course->code }}</td>
+                                    <td>{{ $registration->course->code }} @if($registration->previous_result_id)<span class="badge bg-warning text-dark">Carryover</span>@endif</td>
                                     <td>{{ $registration->course->title }}</td>
                                     <td>{{ $registration->course->credit_unit }}</td>
                                     <td>{{ $registration->semester }}</td>
                                     <td>{{ ucfirst($registration->status) }}</td>
+                                    <td>
+                                        @forelse($registration->results->where('workflow_status', 'published') as $result)
+                                            <div><a href="{{ route('academic.show', $result) }}">{{ ucfirst($result->attempt_type) }}: {{ $result->score ?? ucfirst(str_replace('_', ' ', $result->outcome_status)) }} {{ $result->grade }}</a></div>
+                                        @empty
+                                            <span class="text-muted">No published result</span>
+                                        @endforelse
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

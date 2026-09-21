@@ -163,7 +163,7 @@
                                             href="{{ route('admin.course-registrations.show', $student->id) }}?semester=First&session={{ urlencode($currentSession) }}"
                                             class="btn btn-sm btn-brand"
                                         >
-                                            <i class="mdi mdi-pencil-box-outline me-1"></i> Manage
+                                            <i class="mdi mdi-pencil-box-outline me-1"></i> Courses &amp; Results
                                         </a>
                                     </td>
                                 </tr>
@@ -184,5 +184,6 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection

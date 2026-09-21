@@ -38,7 +38,7 @@ class Courses extends Model
     // Define the relationship with CourseRegistration
     public function courseRegistrations()
     {
-        return $this->hasMany(CourseRegistration::class);
+        return $this->hasMany(CourseRegistration::class, 'course_id');
     }
 
     /**

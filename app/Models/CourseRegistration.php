@@ -13,6 +13,7 @@ class CourseRegistration extends Model
     protected $fillable = [
         'user_id',
         'acted_by',
+        'previous_result_id',
         'course_id',
         'status',
         'semester',
@@ -24,6 +25,46 @@ class CourseRegistration extends Model
     protected $casts = [
         'registration_date' => 'datetime',
     ];
+
+    public function previousResult()
+    {
+        return $this->belongsTo(Result::class, 'previous_result_id');
+    }
+
+    public function results()
+    {
+        return $this->hasMany(Result::class, 'course_registration_id')->orderBy('attempt_number')->orderBy('id');
+    }
+
+    public function assertCanRemove(): void
+    {
+        if ($this->results()->withoutGlobalScopes()->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'course_registration' => 'This registration has result history and cannot be removed or withdrawn.',
+            ]);
+        }
+    }
+
+    public function save(array $options = [])
+    {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($options) {
+            User::whereKey($this->user_id)->lockForUpdate()->first();
+            if ($this->exists && ($this->isDirty(['user_id', 'course_id', 'session', 'semester'])
+                || ($this->isDirty('status') && ! in_array($this->status, \App\Services\Academic\ResultRegistration::ELIGIBLE_STATUSES, true)))) {
+                $this->assertCanRemove();
+            }
+            return parent::save($options);
+        });
+    }
+
+    public function delete()
+    {
+        return \Illuminate\Support\Facades\DB::transaction(function () {
+            User::whereKey($this->user_id)->lockForUpdate()->first();
+            $this->assertCanRemove();
+            return parent::delete();
+        });
+    }
 
     // Define relationship with Courses
     public function course()

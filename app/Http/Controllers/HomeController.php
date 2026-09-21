@@ -185,7 +185,7 @@ class HomeController extends Controller
             'material_updated' => ['label' => 'Lecture Material', 'status' => 'Updated', 'color' => 'warning'],
             'test_published' => ['label' => 'Test Notification', 'status' => 'Published', 'color' => 'danger'],
             'test_updated' => ['label' => 'Test Notification', 'status' => 'Updated', 'color' => 'warning'],
-            'result_uploaded' => ['label' => 'Result Published', 'status' => 'Published', 'color' => 'success'],
+            'result_uploaded' => ['label' => 'Result Draft', 'status' => 'Draft', 'color' => 'success'],
             'result_updated' => ['label' => 'Result Updated', 'status' => 'Updated', 'color' => 'warning'],
             'pass_mark_updated' => ['label' => 'Pass Mark Updated', 'status' => 'Updated', 'color' => 'warning'],
             'registration_created' => ['label' => 'Course Registration', 'status' => 'Registered', 'color' => 'info'],

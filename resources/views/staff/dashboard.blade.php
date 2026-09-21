@@ -17,4 +17,5 @@
         @include('dashboard.widgets')
     </div>
 </div>
+</div>
 @endsection

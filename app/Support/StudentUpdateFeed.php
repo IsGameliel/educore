@@ -25,8 +25,7 @@ class StudentUpdateFeed
                 'material_updated',
                 'test_published',
                 'test_updated',
-                'result_uploaded',
-                'result_updated',
+                'result_published',
                 'pass_mark_updated',
             ])
             ->where(function ($query) use ($user) {
@@ -37,7 +36,7 @@ class StudentUpdateFeed
             ->take(max($limit * 4, 30))
             ->get()
             ->filter(function (ActivityLog $activity) use ($user, $studentLevel) {
-                if (in_array($activity->action, ['result_uploaded', 'result_updated'], true)) {
+                if (in_array($activity->action, ['result_published'], true)) {
                     return (int) $activity->target_user_id === (int) $user->id;
                 }
 
@@ -85,7 +84,7 @@ class StudentUpdateFeed
             'material_updated' => ['label' => 'Lecture Material', 'status' => 'Updated', 'color' => 'warning', 'icon' => 'mdi-file-document-edit-outline'],
             'test_published' => ['label' => 'Test Notification', 'status' => 'Published', 'color' => 'danger', 'icon' => 'mdi-clipboard-text-outline'],
             'test_updated' => ['label' => 'Test Notification', 'status' => 'Updated', 'color' => 'warning', 'icon' => 'mdi-clipboard-edit-outline'],
-            'result_uploaded' => ['label' => 'Result Published', 'status' => 'Published', 'color' => 'success', 'icon' => 'mdi-file-document-check-outline'],
+            'result_published' => ['label' => 'Result Published', 'status' => 'Published', 'color' => 'success', 'icon' => 'mdi-file-document-check-outline'],
             'result_updated' => ['label' => 'Result Updated', 'status' => 'Updated', 'color' => 'warning', 'icon' => 'mdi-file-document-edit-outline'],
             'pass_mark_updated' => ['label' => 'Pass Mark Updated', 'status' => 'Updated', 'color' => 'warning', 'icon' => 'mdi-percent-outline'],
             default => ['label' => 'Activity', 'status' => 'Updated', 'color' => 'secondary', 'icon' => 'mdi-bell-outline'],
