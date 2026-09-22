@@ -20,6 +20,7 @@
     <!-- endinject -->
     <!-- Layout styles -->
     <link rel="stylesheet" href="{{ asset('dash/assets/css/style.css')}}">
+    <link rel="stylesheet" href="{{ asset('dash/assets/css/educore-dashboard.css')}}">
     <!-- End layout styles -->
     <link rel="shortcut icon" href="{{ asset('dash/assets/images/favicon.png')}}" />
     @livewireStyles
@@ -27,19 +28,18 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
-<div class="container-scroller">
-
-    <!-- partial:partials/_navbar.html -->
     @include('partials/top')
     <!-- partial -->
-    <div class="container-fluid page-body-wrapper">
+    <div class="container-fluid page-body-wrapper" style="margin-top: 71px;">
         @if(Auth::user()->usertype == 'student')
             @include('partials/student_side')
-        @elseif(Auth::user()->usertype == 'lecturer')
+        @elseif(Auth::user()->dashboardRole() === 'lecturer')
             @include('partials/lecturer_side')
+        @elseif(Auth::user()->isStaff() && Auth::user()->dashboardRole() !== 'admin')
+            @include('partials/staff_side')
         @else
             @include('partials/side')
         @endif
@@ -75,6 +75,7 @@
 <!-- endinject -->
 <!-- Custom js for this page -->
 <script src="{{ asset('dash/assets/js/dashboard.js')}}"></script>
+<script src="{{ asset('dash/assets/js/educore-dashboard.js')}}"></script>
 <!-- End custom js for this page -->
 @stack('modals')
 @livewireScripts

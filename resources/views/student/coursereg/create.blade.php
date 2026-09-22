@@ -63,19 +63,14 @@
                         <!-- Level Field -->
                         <div class="form-group">
                             <label for="level">Select Level:</label>
-                            <select name="level" id="level" class="form-control" required>
-                                <option value="">-- Select Level --</option>
-                                <option value="100" @selected(old('level', (string) auth()->user()->level) === '100')>100 Level</option>
-                                <option value="200" @selected(old('level', (string) auth()->user()->level) === '200')>200 Level</option>
-                                <option value="300" @selected(old('level', (string) auth()->user()->level) === '300')>300 Level</option>
-                                <option value="400" @selected(old('level', (string) auth()->user()->level) === '400')>400 Level</option>
-                            </select>
+                            <input id="level" type="hidden" name="level" value="{{ auth()->user()->level }}">
+                            <div class="form-control">{{ auth()->user()->level }} Level</div>
                         </div>
 
                         <!-- Courses Field -->
                         <div class="form-group">
                             <label for="courses">Select Courses:</label>
-                            <select name="course_ids[]" id="courses" class="form-control" multiple required>
+                            <select name="course_ids[]" id="courses" class="form-control" multiple>
                                 @forelse($courses as $course)
                                     <option
                                         value="{{ $course->id }}"
@@ -96,6 +91,21 @@
                             </select>
                         </div>
 
+                        <fieldset class="form-group">
+                            <legend class="h5">Outstanding / Carryover Courses</legend>
+                            <p>Register outstanding courses from earlier sessions alongside your current courses. Previous marks remain on record. Carryover credits count toward your semester limit.</p>
+                            @forelse($carryoverCourses as $carryover)
+                                <label class="d-block carryover-option" data-semester="{{ $carryover->semester }}">
+                                    <input type="checkbox" name="carryover_ids[]" value="{{ $carryover->id }}"
+                                           data-credit-unit="{{ $carryover->credit_unit }}" @checked(in_array($carryover->id, old('carryover_ids', [])))>
+                                    {{ $carryover->code }} — {{ $carryover->title }} ({{ $carryover->credit_unit }} credits)
+                                    — Failed in {{ $carryover->failedResult->session }}, {{ $carryover->semester }} semester
+                                </label>
+                            @empty
+                                <p class="text-muted">No outstanding courses are available in this session. If a failed course is missing, ask the exam officer to check the published result and the current session course offering.</p>
+                            @endforelse
+                        </fieldset>
+
                         <div class="mt-2">
                             <strong>Total Selected Credit Units: </strong>
                             <span id="totalCredits">0</span>
@@ -110,7 +120,7 @@
                         <!-- Courses Field -->
                         {{-- <div class="form-group">
                             <label for="courses">Select Courses:</label>
-                            <select name="course_ids[]" id="courses" class="form-control" multiple required>
+                            <select name="course_ids[]" id="courses" class="form-control" multiple>
                                 @foreach($courses as $course)
                                     <option value="{{ $course->id }}">
                                         {{ $course->title }} ({{ $course->credit_unit }} credits)
@@ -172,6 +182,9 @@
             totalCredits += parseInt(courseCreditMapping[courseId] || 0);
         });
 
+        $('.carryover-option input:checked:not(:disabled)').each(function () {
+            if (!selected.includes(String(this.value))) totalCredits += Number($(this).data('credit-unit'));
+        });
         $('#totalCredits').text(totalCredits);
 
         let level = $('#level').val();
@@ -184,7 +197,18 @@
         }
     }
 
+    function filterCarryovers() {
+        $('.carryover-option').each(function () {
+            const visible = $(this).data('semester') === $('#semester').val();
+            $(this).toggle(visible).find('input').prop('disabled', !visible);
+            if (!visible) $(this).find('input').prop('checked', false);
+        });
+        updateCreditTotals();
+    }
+    $('.carryover-option input').on('change', updateCreditTotals);
+    filterCarryovers();
     $('#level, #semester').on('change', function () {
+        filterCarryovers();
         let level = $('#level').val();
         let semester = $('#semester').val();
         let session = $('#academic_session').val();

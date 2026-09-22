@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Result;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Services\Academic\Grading;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -71,12 +72,14 @@ class ResultsImport implements ToCollection
         $effectiveLevel = $level ?: $this->course->level;
         $courseVariants = Courses::query()
             ->where('code', $this->course->code)
+            ->when($this->course->academic_session_id, fn ($q) => $q->where('academic_session_id', $this->course->academic_session_id))
             ->where('semester', $semester)
             ->when($effectiveLevel, fn ($query) => $query->where('level', $effectiveLevel))
             ->get()
             ->keyBy('department_id');
         $courseVariantsFallback = Courses::query()
             ->where('code', $this->course->code)
+            ->when($this->course->academic_session_id, fn ($q) => $q->where('academic_session_id', $this->course->academic_session_id))
             ->where('semester', $semester)
             ->get()
             ->keyBy('department_id');
@@ -131,38 +134,37 @@ class ResultsImport implements ToCollection
             $department = Department::find($resultDepartmentId);
             $passMark = $department?->pass_mark;
 
-            $caScore = $this->numericAt($cells, $columnMap['ca_score']);
-            $examScore = $this->numericAt($cells, $columnMap['exam_score']);
-            $totalScore = $this->numericAt($cells, $columnMap['score']);
-
-            if ($caScore !== null && $caScore > 30) {
-                $this->skipRow($rowNumber, "CA score for {$matricNumber} is above the allowed maximum of 30.");
+            try {
+                $registration = \App\Services\Academic\ResultRegistration::requireForCourse($student->id, $courseForStudent, $session, $semester);
+                $caScore = $this->numericAt($cells, $columnMap['ca_score']);
+                $examScore = $this->numericAt($cells, $columnMap['exam_score']);
+                $totalScore = $this->numericAt($cells, $columnMap['score']);
+                $existing = Result::where('user_id', $student->id)->where('department_id', $resultDepartmentId)
+                    ->where('session', $session)->where('semester', $semester)->where('course_code', $courseForStudent->code)->where('attempt_type', '!=', 'resit')->first();
+                $policy = $existing?->policy_snapshot ?? Grading::policy($resultDepartmentId, $session);
+                $gradeData = Grading::calculate(['ca_score' => $caScore, 'exam_score' => $examScore, 'score' => $totalScore], $policy);
+                $score = $gradeData['score'];
+                if ($existing && $existing->workflow_status !== 'draft') {
+                    $this->skipRow($rowNumber, "Result for {$matricNumber} is locked; use the correction workflow.");
+                    continue;
+                }
+            } catch (ValidationException $exception) {
+                $this->skipRow($rowNumber, "{$matricNumber}: ".implode(' ', \Illuminate\Support\Arr::flatten($exception->errors())));
                 continue;
             }
 
-            if ($examScore !== null && $examScore > 70) {
-                $this->skipRow($rowNumber, "Exam score for {$matricNumber} is above the allowed maximum of 70.");
-                continue;
-            }
-
-            $score = Result::resolveScore($totalScore, $caScore, $examScore);
-            if ($score === null || $score < 0 || $score > 100) {
-                $this->skipRow($rowNumber, "Total score for {$matricNumber} is missing or invalid.");
-                continue;
-            }
-
-            $gradeData = Result::calculateGradeAndPoint($score, $passMark);
             $resultKey = [
                 'user_id' => $student->id,
                 'session' => $session,
                 'semester' => $semester,
-                'level' => $level ?: $student->level,
                 'course_code' => $courseForStudent->code,
                 'department_id' => $resultDepartmentId,
                 'source_result_id' => null,
             ];
 
             $attributes = [
+                'course_registration_id' => $registration->id,
+                'level' => $level ?: $student->level,
                 'uploaded_by' => $this->actorId,
                 'matric_number' => $student->matric_number,
                 'course_title' => $courseForStudent->title,
@@ -174,7 +176,7 @@ class ResultsImport implements ToCollection
                 'grade_point' => $gradeData['grade_point'],
             ];
 
-            $existingResult = Result::where($resultKey)->first();
+            $existingResult = Result::where($resultKey)->where('attempt_type', '!=', 'resit')->first();
 
             if ($existingResult) {
                 $existingResult->update($attributes);
@@ -426,11 +428,10 @@ class ResultsImport implements ToCollection
             return null;
         }
 
-        if (preg_match('/-?\d+(?:\.\d+)?/', str_replace(',', '', $value), $matches) !== 1) {
-            return null;
+        if (!is_numeric($value) || !is_finite((float) $value)) {
+            throw ValidationException::withMessages(['score' => 'Marks must be numeric, without text or symbols.']);
         }
-
-        return round((float) $matches[0], 2);
+        return round((float) $value, 2);
     }
 
     protected function normalizeMatricNumber(?string $value): string
@@ -464,13 +465,6 @@ class ResultsImport implements ToCollection
         if ($course) {
             return [
                 'course' => $course,
-                'department_id' => $departmentId,
-            ];
-        }
-
-        if ($this->course->exists) {
-            return [
-                'course' => $this->course,
                 'department_id' => $departmentId,
             ];
         }

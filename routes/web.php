@@ -8,8 +8,13 @@ use App\Http\Controllers\{
     BursarController, HomeController, CourseRegistrationController, CourseController,
     FacultyController, DepartmentController, ClassScheduleController, StudentScheduleController,
     CourseMaterialController, TestController, StudentManagementController, StaffManagementController,
-    CustomProfileController, ResultController, AcademicSessionController, DashboardWidgetController
+    CustomProfileController, ResultController, AcademicSessionController, DashboardWidgetController,
+    AttendanceController, AdmissionController
 };
+
+use App\Http\Controllers\AcademicPortalController;
+
+Route::get('/verify-transcript/{code}', [AcademicPortalController::class, 'verify'])->whereUuid('code')->middleware('throttle:30,1')->name('academic.verify');
 
 // Public Routes
 Route::get('/', function () {
@@ -42,6 +47,17 @@ Route::get('/register', function () {
 })->middleware(['guest'])->name('register');
 
 
+// Email verification must be accessible before the verified middleware.
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', [\App\Http\Controllers\EmailOtpController::class, 'show'])->name('verification.notice');
+    Route::post('/email/verify', [\App\Http\Controllers\EmailOtpController::class, 'verify'])
+        ->middleware('throttle:5,1')->name('verification.otp');
+    Route::post('/email/verification-notification', [\App\Http\Controllers\EmailOtpController::class, 'resend'])
+        ->middleware('throttle:3,1')->name('verification.send');
+    // Retire the link-based endpoint: email verification now requires a code.
+    Route::get('/email/verify/{id}/{hash}', fn () => abort(404))->name('verification.verify');
+});
+
 // Authenticated Routes
 Route::middleware([
     'auth:sanctum',
@@ -53,6 +69,41 @@ Route::middleware([
         ->name('documents.transcripts.show');
 
     Route::get('/home', [HomeController::class, 'index'])->name('dashboard');
+
+    Route::prefix('academic')->name('academic.')->group(function () {
+        Route::get('/', [AcademicPortalController::class, 'index'])->name('index');
+        Route::get('/policies', [AcademicPortalController::class, 'policies'])->name('policies');
+        Route::post('/policies', [AcademicPortalController::class, 'storePolicy'])->name('policies.store');
+        Route::get('/reports', [AcademicPortalController::class, 'reports'])->name('reports');
+        Route::get('/appeals', [AcademicPortalController::class, 'appeals'])->name('appeals');
+        Route::post('/appeals', [AcademicPortalController::class, 'storeAppeal'])->middleware('throttle:10,1')->name('appeals.store');
+        Route::post('/appeals/{appeal}/resolve', [AcademicPortalController::class, 'resolveAppeal'])->name('appeals.resolve');
+        Route::get('/appeals/{appeal}/evidence', [AcademicPortalController::class, 'evidence'])->name('appeals.evidence');
+        Route::get('/transcripts', [AcademicPortalController::class, 'transcripts'])->name('transcripts');
+        Route::post('/transcripts', [AcademicPortalController::class, 'requestTranscript'])->middleware('throttle:5,1')->name('transcripts.request');
+        Route::post('/transcripts/{transcriptRequest}/decide', [AcademicPortalController::class, 'decideTranscript'])->name('transcripts.decide');
+        Route::post('/documents/{document}/revoke', [AcademicPortalController::class, 'revoke'])->name('transcripts.revoke');
+        Route::post('/batch', [AcademicPortalController::class, 'batch'])->name('batch');
+        Route::post('/corrections/{correction}/decide', [AcademicPortalController::class, 'decideCorrection'])->name('correction.decide');
+        Route::middleware('usertype:admin,exam_officer')->group(function () {
+            Route::get('/entry', [ResultController::class, 'create'])->name('entry');
+            Route::get('/upload', [ResultController::class, 'upload'])->name('upload');
+            Route::post('/results', [ResultController::class, 'store'])->name('results.store');
+            Route::post('/results/upload', [ResultController::class, 'storeUpload'])->name('results.storeUpload');
+            Route::get('/results/template', [ResultController::class, 'downloadTemplate'])->name('results.template.download');
+            Route::get('/results/get-students/{department_id}', [ResultController::class, 'getStudentsByDepartment'])->name('results.students');
+        });
+        Route::get('/result/{result}', [AcademicPortalController::class, 'show'])->name('show');
+        Route::post('/result/{result}/resit', [AcademicPortalController::class, 'resit'])->name('resit');
+        Route::put('/result/{result}', [AcademicPortalController::class, 'update'])->name('update');
+        Route::post('/result/{result}/transition', [AcademicPortalController::class, 'transition'])->name('transition');
+        Route::post('/result/{result}/correction', [AcademicPortalController::class, 'correction'])->name('correction');
+    });
+
+    Route::get('/admission', [AdmissionController::class, 'create'])->name('admissions.create');
+    Route::post('/admission', [AdmissionController::class, 'store'])->name('admissions.store');
+    Route::get('/attendance/scan/{token}', [AttendanceController::class, 'registerByScan'])
+        ->name('attendance.scan.register');
 
     Route::prefix('dashboard/widgets')->name('dashboard.widgets.')->group(function () {
         Route::post('/todos', [DashboardWidgetController::class, 'storeTodo'])->name('todos.store');
@@ -101,10 +152,10 @@ Route::middleware([
                 ->name('show');
 
             // ✅ Student transcript route
-            Route::get('/{userId}/{semester}/transcript', [ResultController::class, 'generateTranscriptForSemester'])
+            Route::post('/{userId}/{semester}/transcript', [ResultController::class, 'generateTranscriptForSemester'])
                 ->where(['userId' => '[0-9]+', 'semester' => 'First|Second'])
                 ->name('transcript.bySemester');
-            Route::get('/{userId}/{session}/{semester}/transcript', [ResultController::class, 'generateTranscriptForSemester'])
+            Route::post('/{userId}/{session}/{semester}/transcript', [ResultController::class, 'generateTranscriptForSemester'])
                 ->where('session', '.*')
                 ->name('transcript');
         });
@@ -114,6 +165,17 @@ Route::middleware([
     // ADMIN ROUTES
     // -------------------------
     Route::prefix('admin')->name('admin.')->middleware('usertype:admin')->group(function () {
+        Route::prefix('backups')->name('backups.')->controller(\App\Http\Controllers\Admin\BackupController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->middleware('throttle:3,1')->name('store');
+            Route::get('/{backup}/download', 'download')->where('backup', '[a-f0-9]{64}')->name('download');
+            Route::get('/{backup}/restore', 'confirm')->where('backup', '[a-f0-9]{64}')->name('confirm');
+            Route::post('/{backup}/restore', 'restore')->where('backup', '[a-f0-9]{64}')->middleware('throttle:3,1')->name('restore');
+        });
+
+        Route::get('/admitted-students', [App\Http\Controllers\AdmittedStudentController::class, 'index'])->name('admitted-students.index');
+        Route::get('/admitted-students/{application}', [App\Http\Controllers\AdmittedStudentController::class, 'show'])->name('admitted-students.show');
+        Route::get('/admitted-students/{application}/documents/{document}', [App\Http\Controllers\AdmittedStudentController::class, 'document'])->name('admitted-students.document');
         Route::get('/faculty/import', [FacultyController::class, 'ShowImportForm'])->name('faculties.import.form');
         Route::post('/faculty/import', [FacultyController::class, 'import'])->name('faculties.import');
         Route::get('/departments/import', [DepartmentController::class, 'showImportForm'])->name('departments.import.form');
@@ -130,11 +192,21 @@ Route::middleware([
         Route::get('courses/{course}/prerequisites', [CourseController::class, 'showPrerequisites'])->name('courses.prerequisites');
         Route::post('courses/{course}/prerequisites', [CourseController::class, 'assignPrerequisites'])->name('courses.assignPrerequisites');
         
+        // Class schedules routes - define custom routes before resource
+        Route::get('/class-schedules/courses/filtered', [ClassScheduleController::class, 'getFilteredCourses'])
+            ->name('class-schedules.courses.filtered');
+        
         Route::resources([
             'faculties' => FacultyController::class,
             'departments' => DepartmentController::class,
             'class-schedules' => ClassScheduleController::class,
         ]);
+        Route::post('attendance/scan-code', [AttendanceController::class, 'createScanSession'])
+            ->name('attendance.scan-code.store');
+        Route::post('attendance/{attendance}/scan-code', [AttendanceController::class, 'sendScanCode'])
+            ->name('attendance.scan-code.send');
+        Route::resource('attendance', AttendanceController::class)
+            ->parameters(['attendance' => 'attendance']);
 
         Route::get('/course-registrations', [AdminCourseRegistrationController::class, 'index'])
             ->name('course-registrations.index');
@@ -254,6 +326,13 @@ Route::middleware([
     });
 
     Route::prefix('lecturer')->name('lecturer.')->middleware('usertype:lecturer')->group(function () {
+        Route::post('attendance/scan-code', [AttendanceController::class, 'createScanSession'])
+            ->name('attendance.scan-code.store');
+        Route::post('attendance/{attendance}/scan-code', [AttendanceController::class, 'sendScanCode'])
+            ->name('attendance.scan-code.send');
+        Route::resource('attendance', AttendanceController::class)
+            ->parameters(['attendance' => 'attendance']);
+
         Route::prefix('tests')->name('tests.')->group(function () {
             Route::get('/', [TestController::class, 'adminIndex'])->name('index');
             Route::get('/create', [TestController::class, 'create'])->name('create');

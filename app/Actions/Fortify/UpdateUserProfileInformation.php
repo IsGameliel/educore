@@ -5,7 +5,6 @@ namespace App\Actions\Fortify;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\UpdatesUserProfileInformation;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 
@@ -39,7 +38,7 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
                 'name' => $input['name'],
                 'email' => $input['email'],
                 'department_id' => $input['department_id'] ?? $user->department_id, // Save department
-                'level' => $input['level'],
+                'level' => $input['level'] ?? $user->level,
                 'matric_number' => $input['matric_number'] ?? $user->matric_number,
                 'entry_year' => $input['entry_year'] ?? $user->entry_year,
 
@@ -47,24 +46,8 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         }
         // Handle profile photo update
         if (isset($input['photo'])) {
-            $this->updateProfilePhoto($user, $input['photo']);
+            $user->updateProfilePhoto($input['photo']);
         }
-    }
-
-    protected function updateProfilePhoto($user, $photo)
-    {
-        // Delete the old profile photo if it exists
-        if ($user->profile_photo_path) {
-            Storage::disk('public')->delete($user->profile_photo_path);
-        }
-
-        // Store the new photo
-        $filePath = $photo->store('profile_photos', 'public');
-
-        // Update the user's profile photo path
-        $user->forceFill([
-            'profile_photo_path' => $filePath,
-        ])->save();
     }
 
 

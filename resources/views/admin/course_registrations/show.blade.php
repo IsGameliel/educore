@@ -199,6 +199,7 @@
                                 <th>Title</th>
                                 <th>Credit Unit</th>
                                 <th>Status</th>
+                                <th>Results</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -210,10 +211,22 @@
                                     <td>
                                         <span class="status-badge">{{ $reg->status ?? 'registered' }}</span>
                                     </td>
+                                    <td>
+                                        @forelse($reg->results as $result)
+                                            <div class="mb-2"><a href="{{ route('academic.show', $result) }}">{{ ucfirst($result->attempt_type) }}: {{ $result->score ?? ucfirst(str_replace('_', ' ', $result->outcome_status)) }} {{ $result->grade }}</a>
+                                                <span class="status-badge">{{ $result->workflow_status }}</span></div>
+                                        @empty
+                                            @if(in_array($reg->status, \App\Services\Academic\ResultRegistration::ELIGIBLE_STATUSES))
+                                                <a class="btn btn-sm btn-primary" href="{{ route('academic.entry', ['registration_id' => $reg->id]) }}">Enter result</a>
+                                            @else
+                                                <span class="text-muted">Registration not active</span>
+                                            @endif
+                                        @endforelse
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted py-4">
+                                    <td colspan="5" class="text-center text-muted py-4">
                                         No registered courses for {{ $semester }} Semester in {{ $session }}.
                                     </td>
                                 </tr>

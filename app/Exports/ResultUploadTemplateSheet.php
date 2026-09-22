@@ -16,7 +16,7 @@ class ResultUploadTemplateSheet implements FromArray, WithTitle
 
     public function array(): array
     {
-        return [
+        $rows = [
             ['MUDIAME UNIVERSITY IRRUA RESULT SHEET'],
             ['School', ''],
             ['Department', $this->course->department->name ?? ''],
@@ -25,9 +25,16 @@ class ResultUploadTemplateSheet implements FromArray, WithTitle
             ['Course title', $this->course->title],
             ['Semester', $this->course->semester],
             ['S/NO', 'MATRIC NO.', 'NAME', 'CA', 'EXAM', 'Total'],
-            [1, 'MUI/SBMS/NS/24/0001', '', 18, 30, 48],
-            [2, 'MUI/SBMS/NS/24/0002', '', 22, 38, 60],
+
         ];
+        $registrations = \App\Models\CourseRegistration::with('student')->where('course_id', $this->course->id)
+            ->where('session', $this->course->academicSession?->name)->where('semester', $this->course->semester)
+            ->whereIn('status', \App\Services\Academic\ResultRegistration::ELIGIBLE_STATUSES)
+            ->orderBy('user_id')->get()->unique('user_id');
+        foreach ($registrations as $registration) {
+            $rows[] = [count($rows) - 7, $registration->student?->matric_number, $registration->student?->name, null, null, null];
+        }
+        return $rows;
     }
 
     public function title(): string

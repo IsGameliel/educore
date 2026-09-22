@@ -4,6 +4,10 @@
 
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
     <ul class="nav">
+        @if(in_array(auth()->user()->dashboardRole(), ['admin','exam_officer','lecturer','student']))
+        <li class="nav-item"><a class="nav-link" href="{{ route('academic.index') }}"><span class="menu-title">Academic Records</span><i class="mdi mdi-school menu-icon"></i></a></li>
+        @endif
+
         <li class="nav-item nav-profile">
             <a href="#" class="nav-link">
                 <div class="nav-profile-image">
@@ -28,6 +32,12 @@
             <a class="nav-link {{ $routeName === 'profile.show' ? 'active' : '' }}" href="{{ route('profile.show') }}">
                 <span class="menu-title">Profile</span>
                 <i class="mdi mdi-account-circle menu-icon"></i>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ str_starts_with($routeName, 'lecturer.attendance.') ? 'active' : '' }}" href="{{ route('lecturer.attendance.index') }}">
+                <span class="menu-title">Attendance</span>
+                <i class="mdi mdi-qrcode-scan menu-icon"></i>
             </a>
         </li>
         <li class="nav-item">

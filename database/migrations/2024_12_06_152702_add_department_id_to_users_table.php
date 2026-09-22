@@ -13,6 +13,10 @@ class AddDepartmentIdToUsersTable extends Migration
      */
     public function up()
     {
+        if (Schema::hasColumn('users', 'department_id')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
             $table->foreignId('department_id')->nullable()->constrained()->cascadeOnDelete(); // Add the department_id column as a foreign key
         });
@@ -25,6 +29,10 @@ class AddDepartmentIdToUsersTable extends Migration
      */
     public function down()
     {
+        if (! Schema::hasColumn('users', 'department_id')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
             $table->dropForeign(['department_id']); // Drop the foreign key constraint
             $table->dropColumn('department_id');  // Drop the department_id column

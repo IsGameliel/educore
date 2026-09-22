@@ -9,6 +9,7 @@
                   <i class="mdi mdi-home"></i>
                 </span> Dashboard
                     </h3>
+                    <a href="{{ route('admin.backups.index') }}" class="btn btn-outline-primary"><i class="mdi mdi-database me-1"></i> Backup &amp; Restore</a>
                     <nav aria-label="breadcrumb">
                         <ul class="breadcrumb">
                             <li class="breadcrumb-item active" aria-current="page">

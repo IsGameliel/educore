@@ -1,0 +1,10 @@
+<div class="row g-3">
+<div class="col-md-3"><label for="outcome">Outcome</label><select id="outcome" name="outcome_status" class="form-control">@foreach(['graded','absent','incomplete','withheld','deferred','withdrawn','not_submitted'] as $outcome)<option value="{{ $outcome }}" @selected(old('outcome_status',$result->outcome_status) === $outcome)>{{ ucfirst(str_replace('_',' ',$outcome)) }}</option>@endforeach</select></div>
+<div class="col-md-3"><label for="attempt">Exam attempt</label><input id="attempt" value="{{ ucfirst($result->attempt_type) }}" class="form-control" readonly><input type="hidden" name="attempt_type" value="{{ $result->attempt_type }}"></div>
+<div class="col-md-3"><label for="credits">Credit units</label><input id="credits" name="credit_unit" type="number" min="1" max="30" required value="{{ old('credit_unit',$result->credit_unit) }}" class="form-control"></div>
+<div class="col-md-3"><label for="score">Total (when CA/exam are blank)</label><input id="score" name="score" type="number" step="0.01" min="0" max="100" value="{{ old('score',$result->score) }}" class="form-control"></div>
+<div class="col-md-3"><label for="ca">CA (max {{ $result->policy_snapshot['ca_max'] ?? 30 }})</label><input id="ca" name="ca_score" type="number" step="0.01" min="0" max="100" value="{{ old('ca_score',$result->ca_score) }}" class="form-control"></div>
+<div class="col-md-3"><label for="exam">Exam (max {{ $result->policy_snapshot['exam_max'] ?? 70 }})</label><input id="exam" name="exam_score" type="number" step="0.01" min="0" max="100" value="{{ old('exam_score',$result->exam_score) }}" class="form-control"></div>
+<div class="col-md-6"><label for="reason">Reason for change</label><textarea id="reason" name="reason" class="form-control" required minlength="5" maxlength="2000">{{ old('reason') }}</textarea></div>
+</div>
+<p class="text-muted mt-2">Exceptional outcomes have no numeric grade and are excluded from GPA until resolved. For a graded result, enter both assessment components or a total only.</p>

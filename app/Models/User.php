@@ -12,7 +12,7 @@ use Laravel\Sanctum\HasApiTokens;
 use App\Models\Courses;
 use App\Models\ActivityLog;
 
-class User extends Authenticatable
+class User extends Authenticatable implements \Illuminate\Contracts\Auth\MustVerifyEmail
 {
     use HasApiTokens, HasFactory, HasProfilePhoto, HasTeams, Notifiable, TwoFactorAuthenticatable;
 
@@ -24,6 +24,7 @@ class User extends Authenticatable
         'matric_number',
         'department_id',
         'level',
+        'entry_year',
     ];
 
     const ROLES = [
@@ -34,7 +35,38 @@ class User extends Authenticatable
         'vc' => 'VC',
         'registrar' => 'Registrar',
         'bursar' => 'Bursar',
+        'dean' => 'Dean',
+        'hod' => 'HOD',
+        'librarian' => 'Librarian',
+        'admission_officer' => 'Admission Officer',
+        'accountant' => 'Accountant',
     ];
+
+    public function dashboardRole(): string
+    {
+        $role = str_replace([' ', '-'], '_', strtolower(trim((string) $this->usertype)));
+
+        return match ($role) {
+            'lectuer' => 'lecturer',
+            'liberian' => 'librarian',
+            'burser' => 'bursar',
+            'admissions_officer' => 'admission_officer',
+            default => $role,
+        };
+    }
+
+    public function isStaff(): bool
+    {
+        return in_array($this->dashboardRole(), [
+            'admin', 'lecturer', 'dean', 'hod', 'librarian', 'admission_officer',
+            'accountant', 'bursar', 'exam_officer', 'vc', 'registrar',
+        ], true);
+    }
+
+    public function isAdmissionApplicant(): bool
+    {
+        return in_array($this->dashboardRole(), ['user', 'applicant', 'guest', ''], true);
+    }
 
     public function isRole($role): bool
     {
@@ -47,6 +79,11 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'email_otp_hash',
+        'email_otp_address',
+        'email_otp_expires_at',
+        'email_otp_sent_at',
+        'email_otp_attempts',
         'two_factor_recovery_codes',
         'two_factor_secret',
     ];
@@ -59,14 +96,27 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'email_otp_expires_at' => 'datetime',
+            'email_otp_sent_at' => 'datetime',
+            'email_otp_attempts' => 'integer',
             'password' => 'hashed',
             'role' => 'string',
         ];
     }
 
+    public function sendEmailVerificationNotification()
+    {
+        try {
+            app(\App\Services\EmailVerificationOtpService::class)->send($this);
+        } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $exception) {
+            report($exception);
+            session()->flash('otp_error', 'We could not send your verification code. Please use Resend Code to try again.');
+        }
+    }
+
     public function getRoleNameAttribute(): string
     {
-        return self::ROLES[$this->usertype] ?? 'Unknown Role';
+        return self::ROLES[$this->dashboardRole()] ?? 'Unknown Role';
     }
 
     public function courseRegistrations()
@@ -87,7 +137,7 @@ class User extends Authenticatable
 
     public function classSchedules()
     {
-        return $this->hasMany(ClassSchedule::class, 'lecturer', 'id');
+        return $this->hasMany(ClassSchedule::class, 'lecturer_id', 'id');
     }
 
     public function assignedCourses()
@@ -98,5 +148,10 @@ class User extends Authenticatable
     public function activityLogs()
     {
         return $this->hasMany(ActivityLog::class, 'actor_id');
+    }
+
+    public function attendanceRecords()
+    {
+        return $this->hasMany(AttendanceRecord::class, 'student_id');
     }
 }

@@ -1,7 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
-@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
+@php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : (auth()->user()->usertype === 'exam_officer' ? 'academic' : 'admin'))
 @php($studentsEndpoint = url($routePrefix . '/results/get-students'))
 
 <div class="main-panel">
@@ -48,6 +48,8 @@
                                     <option
                                         value="{{ $course->id }}"
                                         data-code="{{ $course->code }}"
+                                        data-semester="{{ $course->semester }}"
+                                        data-level="{{ $course->level }}"
                                         data-title="{{ $course->title }}"
                                         data-credit-unit="{{ $course->credit_unit }}"
                                         data-department-id="{{ $course->department_id }}"
@@ -74,7 +76,7 @@
                             <label for="user_id">Student</label>
                             <select name="user_id" id="student_id" class="form-control" required>
                                 <option value="">Select Student</option>
-                                {{-- Dynamically filled --}}
+                                {{-- Registered students for the selected course/session only --}}
                             </select>
                         </div>
 
@@ -100,7 +102,7 @@
 
                         <div class="form-group">
                             <label for="level">Level</label>
-                            <input type="text" name="level" id="level" class="form-control" required>
+                            <input type="text" name="level" id="level" class="form-control" readonly>
                         </div>
 
                         <div class="form-group">
@@ -119,6 +121,8 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="outcome_status">Outcome</label>
+                            <select name="outcome_status" id="outcome_status" class="form-control mb-3">@foreach(['graded','absent','incomplete','withheld','deferred','withdrawn','not_submitted'] as $outcome)<option value="{{ $outcome }}">{{ ucfirst(str_replace('_',' ',$outcome)) }}</option>@endforeach</select>
                             <label for="ca_score">CA</label>
                             <input type="number" name="ca_score" id="ca_score" class="form-control score-part" value="{{ old('ca_score') }}" step="0.01" min="0" max="100">
                         </div>
@@ -148,23 +152,27 @@
 <script>
 $(document).ready(function () {
 
-    // Load students dynamically when department changes
+    let studentRequest;
+    // Offer only the registered roster for this course and semester.
     function loadStudents(departmentId) {
+        if (studentRequest) studentRequest.abort();
         $('#student_id').html('<option value="">Loading...</option>');
 
         if (departmentId) {
-            $.ajax({
+            studentRequest = $.ajax({
                 url: "{{ $studentsEndpoint }}/" + departmentId,
                 type: 'GET',
+                data: {course_id: $('#course_id').val(), session: $('#session').val(), semester: $('#semester').val()},
                 success: function (data) {
                     $('#student_id').empty().append('<option value="">Select Student</option>');
                     $.each(data, function (key, student) {
-                        $('#student_id').append(
-                            '<option value="' + student.id + '" data-level="' + student.level + '">' +
-                            student.name + ' (' + student.matric_number + ')' +
-                            '</option>'
-                        );
+                        $('#student_id').append(new Option(student.name + ' (' + (student.matric_number || '') + ')', student.id));
                     });
+                    $('#student_id').val(@json(old('user_id', '')));
+                    if (!data.length) $('#student_id').html('<option value="">No active registered students</option>');
+                },
+                error: function (_xhr, status) {
+                    if (status !== 'abort') $('#student_id').html('<option value="">Unable to load registered students. Please retry.</option>');
                 }
             });
         } else {
@@ -176,16 +184,13 @@ $(document).ready(function () {
         loadStudents($(this).val());
     });
 
-    // Auto-fill level when student is selected
-    $('#student_id').on('change', function () {
-        const level = this.options[this.selectedIndex].getAttribute('data-level');
-        $('#level').val(level || '');
-    });
-
     $('#course_id').on('change', function () {
         const selectedOption = this.options[this.selectedIndex];
         const departmentId = selectedOption.getAttribute('data-department-id') || '';
 
+        $('#semester').val(selectedOption.getAttribute('data-semester') || 'First');
+        $('#level').val(selectedOption.getAttribute('data-level') || '');
+        if (selectedOption.value) $('#session').val(selectedOption.getAttribute('data-session'));
         $('#course_code').val(selectedOption.getAttribute('data-code') || '');
         $('#course_title').val(selectedOption.getAttribute('data-title') || '');
         $('#credit_unit').val(selectedOption.getAttribute('data-credit-unit') || '');
@@ -212,7 +217,8 @@ $(document).ready(function () {
         }
     }
 
-    $('#session').on('change', filterCoursesBySession);
+    $('#session').on('change', function () { filterCoursesBySession(); loadStudents($('#department_id').val()); });
+    $('#semester').on('change', function () { loadStudents($('#department_id').val()); });
 
     function updateScoreField() {
         const caValue = $('#ca_score').val();

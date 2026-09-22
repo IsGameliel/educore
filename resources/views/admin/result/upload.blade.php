@@ -1,7 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
-    @php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin')
+    @php($routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : (auth()->user()->usertype === 'exam_officer' ? 'academic' : 'admin'))
     <div class="main-panel">
         <div class="content-wrapper">
             <div class="page-header">
@@ -73,7 +73,7 @@
                                     </label>
                                 @endforeach
                             </div>
-                            <small class="text-muted">Tick one or more courses. The template will create one worksheet per selected course in the same order shown here.</small>
+                            <small class="text-muted">Tick one or more courses. The template creates one worksheet per selected course, listing active registered students with blank marks. Only registered students can receive results.</small>
                         </div>
 
                         <div class="form-group mt-3">

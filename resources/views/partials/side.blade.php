@@ -1,5 +1,54 @@
 @php
     $routeName = request()->route()?->getName() ?? '';
+    $link = static fn ($label, $route, $patterns, $icon = null) => [
+        'label' => $label,
+        'url' => route($route),
+        'active' => collect($patterns)->contains(fn ($pattern) => \Illuminate\Support\Str::is($pattern, $routeName)),
+        'icon' => $icon,
+    ];
+    $sections = [
+        'Administration' => [
+            ['label' => 'Students', 'icon' => 'mdi-account-school', 'id' => 'students-menu', 'children' => [
+                $link('Manage Students', 'admin.students.index', ['admin.students.*']),
+                $link('Admitted Students', 'admin.admitted-students.index', ['admin.admitted-students.*']),
+                $link('Course Registrations', 'admin.course-registrations.index', ['admin.course-registrations.*']),
+            ]],
+            $link('Manage Staff', 'admin.staffs.index', ['admin.staffs.*'], 'mdi-account-key'),
+        ],
+        'Academics' => [
+            ['label' => 'Academic Setup', 'icon' => 'mdi-library-shelves', 'id' => 'academic-menu', 'children' => [
+                ['label' => 'Academic Sessions', 'url' => route('dashboard').'#academic-sessions-panel', 'active' => false],
+                $link('Faculties', 'admin.faculties.index', ['admin.faculties.*']),
+                array_merge($link('Departments', 'admin.departments.index', ['admin.departments.*']), [
+                    'active' => str_starts_with($routeName, 'admin.departments.') && !str_starts_with($routeName, 'admin.departments.passmarks'),
+                ]),
+                $link('Courses', 'admin.courses.index', ['admin.courses.*']),
+                $link('Pass Marks', 'admin.departments.passmarks', ['admin.departments.passmarks*']),
+                $link('Grading Policies', 'academic.policies', ['academic.policies*']),
+            ]],
+            ['label' => 'Teaching & Tests', 'icon' => 'mdi-human-male-board', 'id' => 'delivery-menu', 'children' => [
+                $link('Class Schedules', 'admin.class-schedules.index', ['admin.class-schedules.*']),
+                $link('Attendance', 'admin.attendance.index', ['admin.attendance.*']),
+                $link('Lecture Materials', 'admin.course-materials.index', ['admin.course-materials.*']),
+                $link('Tests', 'admin.tests.index', ['admin.tests.*']),
+            ]],
+        ],
+        'Results & Records' => [
+            ['label' => 'Results', 'icon' => 'mdi-clipboard-text', 'id' => 'assessment-menu', 'children' => [
+                $link('Review & Publish', 'academic.index', ['academic.index', 'academic.show', 'academic.update', 'academic.transition', 'academic.batch', 'academic.resit', 'academic.correction*']),
+                $link('Enter Results', 'academic.entry', ['academic.entry', 'academic.results.store', 'academic.results.students', 'admin.results.create', 'admin.results.store']),
+                $link('Upload Results', 'academic.upload', ['academic.upload', 'academic.results.storeUpload', 'academic.results.template.*', 'admin.results.upload', 'admin.results.storeUpload']),
+                $link('Student Results', 'admin.results.index', ['admin.results.index', 'admin.results.show', 'admin.results.edit', 'admin.results.update']),
+            ]],
+            $link('Result Appeals', 'academic.appeals', ['academic.appeals*'], 'mdi-comment-alert-outline'),
+            $link('Transcripts', 'academic.transcripts', ['academic.transcripts*'], 'mdi-file-document'),
+            $link('Academic Reports', 'academic.reports', ['academic.reports*'], 'mdi-chart-bar'),
+        ],
+        'System & Account' => [
+            $link('Backup & Restore', 'admin.backups.index', ['admin.backups.*'], 'mdi-database'),
+            $link('My Profile', 'profile.show', ['profile.*'], 'mdi-account-circle'),
+        ],
+    ];
 @endphp
 
 <style>
@@ -46,10 +95,10 @@
     }
 </style>
 
-<nav class="sidebar sidebar-offcanvas" id="sidebar">
+<nav class="sidebar sidebar-offcanvas" id="sidebar" aria-label="Admin navigation" data-route-navigation="true">
     <ul class="nav">
         <li class="nav-item nav-profile">
-            <a href="#" class="nav-link">
+            <a href="{{ route('profile.show') }}" class="nav-link">
                 <div class="nav-profile-image">
                     <img src="{{ Auth::user()->profile_photo_url }}" alt="profile" />
                     <span class="login-status online"></span>
@@ -62,186 +111,50 @@
             </a>
         </li>
 
-        <li class="nav-item">
-            <a class="nav-link {{ request()->is('home') ? 'active' : '' }}" href="{{ url('home') }}">
+
+        <li class="nav-item {{ $routeName === 'dashboard' ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('dashboard') }}" @if($routeName === 'dashboard') aria-current="page" @endif>
                 <span class="menu-title">Dashboard</span>
                 <i class="mdi mdi-home menu-icon"></i>
             </a>
         </li>
 
-        <li class="nav-item">
-            <a class="nav-link {{ $routeName === 'profile.show' ? 'active' : '' }}" href="{{ route('profile.show') }}">
-                <span class="menu-title">Profile</span>
-                <i class="mdi mdi-account-circle menu-icon"></i>
-            </a>
-        </li>
-
-        <li class="admin-section-heading">
-            <span class="admin-section-heading__label">Administration</span>
-        </li>
-
-        <li class="nav-item">
-            <a
-                class="nav-link"
-                data-bs-toggle="collapse"
-                href="#students-menu"
-                aria-expanded="{{ str_starts_with($routeName, 'admin.students.') || str_starts_with($routeName, 'admin.course-registrations.') ? 'true' : 'false' }}"
-                aria-controls="students-menu"
-            >
-                <span class="menu-title">Students</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-account-school menu-icon"></i>
-            </a>
-            <div class="collapse {{ str_starts_with($routeName, 'admin.students.') || str_starts_with($routeName, 'admin.course-registrations.') ? 'show' : '' }}" id="students-menu">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'admin.students.') ? 'active' : '' }}" href="{{ route('admin.students.index') }}">
-                            Manage Students
+        @foreach($sections as $heading => $items)
+            <li class="admin-section-heading">
+                <span class="admin-section-heading__label">{{ $heading }}</span>
+            </li>
+            @foreach($items as $item)
+                @php
+                    $hasChildren = isset($item['children']);
+                    $isActive = $hasChildren ? collect($item['children'])->contains('active', true) : $item['active'];
+                @endphp
+                <li class="nav-item {{ $isActive ? 'active' : '' }}">
+                    @if($hasChildren)
+                        <a class="nav-link" data-bs-toggle="collapse" href="#{{ $item['id'] }}"
+                           aria-expanded="{{ $isActive ? 'true' : 'false' }}" aria-controls="{{ $item['id'] }}">
+                            <span class="menu-title">{{ $item['label'] }}</span>
+                            <i class="menu-arrow"></i>
+                            <i class="mdi {{ $item['icon'] }} menu-icon"></i>
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'admin.course-registrations.') ? 'active' : '' }}" href="{{ route('admin.course-registrations.index') }}">
-                            Course Registrations
+                        <div class="collapse {{ $isActive ? 'show' : '' }}" id="{{ $item['id'] }}">
+                            <ul class="nav flex-column sub-menu">
+                                @foreach($item['children'] as $child)
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ $child['active'] ? 'active' : '' }}" href="{{ $child['url'] }}"
+                                           @if($child['active']) aria-current="page" @endif>{{ $child['label'] }}</a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @else
+                        <a class="nav-link" href="{{ $item['url'] }}" @if($isActive) aria-current="page" @endif>
+                            <span class="menu-title">{{ $item['label'] }}</span>
+                            <i class="mdi {{ $item['icon'] }} menu-icon"></i>
                         </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-
-        <li class="nav-item">
-            <a
-                class="nav-link"
-                data-bs-toggle="collapse"
-                href="#staff-menu"
-                aria-expanded="{{ str_starts_with($routeName, 'admin.staffs.') ? 'true' : 'false' }}"
-                aria-controls="staff-menu"
-            >
-                <span class="menu-title">Staff</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-account-key menu-icon"></i>
-            </a>
-            <div class="collapse {{ str_starts_with($routeName, 'admin.staffs.') ? 'show' : '' }}" id="staff-menu">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'admin.staffs.') ? 'active' : '' }}" href="{{ route('admin.staffs.index') }}">
-                            Manage Staff
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-
-        <li class="admin-section-heading">
-            <span class="admin-section-heading__label">Academic Setup</span>
-        </li>
-
-        <li class="nav-item">
-            <a
-                class="nav-link"
-                data-bs-toggle="collapse"
-                href="#academic-menu"
-                aria-expanded="{{ str_starts_with($routeName, 'admin.courses.') || str_starts_with($routeName, 'admin.faculties.') || str_starts_with($routeName, 'admin.departments.') ? 'true' : 'false' }}"
-                aria-controls="academic-menu"
-            >
-                <span class="menu-title">Courses & Structure</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-library-shelves menu-icon"></i>
-            </a>
-            <div class="collapse {{ str_starts_with($routeName, 'admin.courses.') || str_starts_with($routeName, 'admin.faculties.') || str_starts_with($routeName, 'admin.departments.') ? 'show' : '' }}" id="academic-menu">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'admin.courses.') ? 'active' : '' }}" href="{{ route('admin.courses.index') }}">
-                            Courses
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'admin.faculties.') ? 'active' : '' }}" href="{{ route('admin.faculties.index') }}">
-                            Faculties
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'admin.departments.') && $routeName !== 'admin.departments.passmarks' && $routeName !== 'admin.departments.passmarks.update' ? 'active' : '' }}" href="{{ route('admin.departments.index') }}">
-                            Departments
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ $routeName === 'admin.departments.passmarks' || $routeName === 'admin.departments.passmarks.update' ? 'active' : '' }}" href="{{ route('admin.departments.passmarks') }}">
-                            Pass Marks
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->is('home') ? 'active' : '' }}" href="{{ route('dashboard') }}#academic-sessions-panel">
-                            Academic Sessions
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-
-        <li class="nav-item">
-            <a
-                class="nav-link"
-                data-bs-toggle="collapse"
-                href="#delivery-menu"
-                aria-expanded="{{ str_starts_with($routeName, 'admin.class-schedules.') || str_starts_with($routeName, 'admin.course-materials.') ? 'true' : 'false' }}"
-                aria-controls="delivery-menu"
-            >
-                <span class="menu-title">Teaching Delivery</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-human-male-board menu-icon"></i>
-            </a>
-            <div class="collapse {{ str_starts_with($routeName, 'admin.class-schedules.') || str_starts_with($routeName, 'admin.course-materials.') ? 'show' : '' }}" id="delivery-menu">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'admin.class-schedules.') ? 'active' : '' }}" href="{{ route('admin.class-schedules.index') }}">
-                            Class Schedules
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'admin.course-materials.') ? 'active' : '' }}" href="{{ route('admin.course-materials.index') }}">
-                            Lecture Materials
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-
-        <li class="admin-section-heading">
-            <span class="admin-section-heading__label">Assessment</span>
-        </li>
-
-        <li class="nav-item">
-            <a
-                class="nav-link"
-                data-bs-toggle="collapse"
-                href="#assessment-menu"
-                aria-expanded="{{ str_starts_with($routeName, 'admin.tests.') || str_starts_with($routeName, 'admin.results.') ? 'true' : 'false' }}"
-                aria-controls="assessment-menu"
-            >
-                <span class="menu-title">Tests & Results</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-clipboard-text menu-icon"></i>
-            </a>
-            <div class="collapse {{ str_starts_with($routeName, 'admin.tests.') || str_starts_with($routeName, 'admin.results.') ? 'show' : '' }}" id="assessment-menu">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'admin.tests.') ? 'active' : '' }}" href="{{ route('admin.tests.index') }}">
-                            Tests
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ $routeName === 'admin.results.index' ? 'active' : '' }}" href="{{ route('admin.results.index') }}">
-                            Results
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ $routeName === 'admin.results.create' ? 'active' : '' }}" href="{{ route('admin.results.create') }}">
-                            Publish Results
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
+                    @endif
+                </li>
+            @endforeach
+        @endforeach
 
         <li class="nav-item mt-3">
             <a

@@ -1,0 +1,2 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Database restored</title></head>
+<body style="font-family:system-ui;max-width:760px;margin:60px auto;padding:24px"><h1>Database restored</h1><p>The restore completed. You have been signed out. Use an administrator account from the restored backup to sign in.</p><a href="{{ route('login') }}">Sign in</a></body></html>

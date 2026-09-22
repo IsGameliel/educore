@@ -22,12 +22,16 @@ use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
+use App\Services\Academic\{ResultAccess, AcademicStanding, Transcripts};
+use App\Models\TranscriptDocument;
+
 class ResultController extends Controller
 {
     public function index(Request $request)
     {
         $query = Result::with(['user.department', 'department']);
         $actor = Auth::user();
+        abort_unless(in_array($actor->dashboardRole(), ['admin', 'exam_officer', 'lecturer', 'student'], true), 403);
 
         if ($actor->usertype === 'student') {
             $query->where('user_id', Auth::id())
@@ -152,21 +156,15 @@ class ResultController extends Controller
 
     public function viewStoredTranscript(string $filename)
     {
-        $safeFilename = basename($filename);
-        $relativePath = 'documents/transcripts/' . $safeFilename;
-
-        if (!Storage::disk('public')->exists($relativePath)) {
-            abort(404, 'Transcript file not found.');
-        }
-
-        return response()->file(Storage::disk('public')->path($relativePath), [
-            'Content-Type' => File::mimeType(Storage::disk('public')->path($relativePath)) ?: 'application/pdf',
-        ]);
+        abort_unless($filename === basename($filename), 404);
+        $document = TranscriptDocument::where('path', 'documents/transcripts/'.$filename)->firstOrFail();
+        return Transcripts::download($document, Auth::user());
     }
 
     public function show(Request $request, $userId, $sessionOrSemester, $semester = null)
     {
         $user = User::findOrFail($userId);
+        abort_unless(in_array(Auth::user()->dashboardRole(), ['admin', 'exam_officer', 'lecturer', 'student'], true), 403);
         [$session, $semester] = $this->resolveSessionAndSemester($request, $sessionOrSemester, $semester);
         $departmentId = $this->resolveDepartmentId($request, $user);
 
@@ -195,7 +193,7 @@ class ResultController extends Controller
 
         $totalCreditUnits = $results->sum('credit_unit');
         $weightedSum = $results->sum(fn($result) => $result->credit_unit * $result->grade_point);
-        $gpa = $totalCreditUnits > 0 ? round($weightedSum / $totalCreditUnits, 2) : 0;
+        $gpa = AcademicStanding::gpa($results);
 
         $allResultsQuery = Result::where('user_id', $userId)
             ->where('department_id', $departmentId);
@@ -204,19 +202,32 @@ class ResultController extends Controller
             $this->applyAccessibleCourseScope($allResultsQuery, Auth::user());
         }
 
-        $allResults = $allResultsQuery->get();
+        $allResults = $allResultsQuery->where('workflow_status', 'published')->where('session', '<=', $session)
+            ->when($semester === 'First', fn ($q) => $q->where(fn ($q) => $q->where('session', '<', $session)->orWhere('semester', 'First')))->get();
         $totalAllCreditUnits = $allResults->sum('credit_unit');
         $totalWeightedSum = $allResults->sum(fn($result) => $result->credit_unit * $result->grade_point);
-        $cgpa = $totalAllCreditUnits > 0 ? round($totalWeightedSum / $totalAllCreditUnits, 2) : null;
+        $standing = Auth::user()->dashboardRole() === 'lecturer'
+            ? ['cgpa' => null, 'standing' => 'Assigned course results only', 'failedThisSession' => $results->where('grade', 'F')->count(), 'outstanding' => collect()]
+            : AcademicStanding::report($user, $departmentId, $session, $semester);
+        $cgpa = $standing['cgpa'];
 
         return view('student.result.show', compact(
-            'user', 'results', 'totalCreditUnits', 'gpa', 'cgpa', 'session', 'semester', 'departmentId'
+            'user', 'results', 'totalCreditUnits', 'gpa', 'cgpa', 'session', 'semester', 'departmentId', 'standing'
         ));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $actor = Auth::user();
+        if ($request->filled('registration_id')) {
+            $registration = \App\Models\CourseRegistration::with(['course', 'student', 'results'])->findOrFail($request->integer('registration_id'));
+            $this->resolveManagedCourse($registration->course_id);
+            \App\Services\Academic\ResultRegistration::requireForCourse($registration->user_id, $registration->course, $registration->session, $registration->semester);
+            if ($existing = $registration->results->firstWhere('attempt_type', '!=', 'resit')) {
+                return redirect()->route('academic.show', $existing);
+            }
+            return view('academic.registration-result', compact('registration'));
+        }
         $courses = $this->getAccessibleCoursesForUser($actor);
         $departmentIds = $courses->pluck('department_id')->unique()->values();
         $departments = $this->isPrivilegedResultManager($actor)
@@ -252,7 +263,7 @@ class ResultController extends Controller
         return view('admin.result.edit-group', compact('results', 'students', 'departments', 'user_id', 'session', 'semester', 'departmentId'));
     }
 
-    public function getStudentsByDepartment($department_id)
+    public function getStudentsByDepartment(Request $request, $department_id)
     {
         if (Auth::user()->usertype === 'lecturer' && !$this->getAccessibleCoursesForUser(Auth::user())->where('department_id', (int) $department_id)->isNotEmpty()) {
             abort(403, 'Unauthorized');
@@ -260,6 +271,9 @@ class ResultController extends Controller
 
         $students = User::where('usertype', 'student')
             ->where('department_id', $department_id)
+            ->whereHas('courseRegistrations', fn ($q) => $q->where('course_id', $request->input('course_id', 0))
+                ->where('session', $request->input('session'))->where('semester', $request->input('semester'))
+                ->whereIn('status', \App\Services\Academic\ResultRegistration::ELIGIBLE_STATUSES))
             ->get(['id', 'name', 'matric_number', 'level']);
 
         return response()->json($students);
@@ -283,6 +297,7 @@ class ResultController extends Controller
         $user = User::where('usertype', 'student')->findOrFail($request->user_id);
         $course = $this->resolveManagedCourse($request->course_id);
         $this->ensureCourseBelongsToSession($course, $request->session);
+        $registration = \App\Services\Academic\ResultRegistration::requireForCourse($user->id, $course, $request->session, $request->semester);
         $department = Department::findOrFail($course->department_id);
 
         if ((int) $request->department_id !== (int) $course->department_id) {
@@ -299,17 +314,19 @@ class ResultController extends Controller
         $gradeData = Result::calculateGradeAndPoint($score, $department->pass_mark);
 
         $result = Result::create([
+            'course_registration_id' => $registration->id,
             'user_id' => $request->user_id,
             'uploaded_by' => $actor->id,
             'matric_number' => $user->matric_number,
             'session' => $request->session,
             'semester' => $request->semester,
-            'level' => $user->level,
+            'level' => $course->level,
             'course_code' => $course->code,
             'course_title' => $course->title,
             'credit_unit' => $course->credit_unit,
             'ca_score' => $request->filled('ca_score') ? $request->ca_score : null,
             'exam_score' => $request->filled('exam_score') ? $request->exam_score : null,
+            'outcome_status' => $request->input('outcome_status', 'graded'),
             'score' => $score,
             'grade' => $gradeData['grade'],
             'grade_point' => $gradeData['grade_point'],
@@ -376,6 +393,7 @@ class ResultController extends Controller
         $oldSemester = $result->semester;
         $oldSession = $result->session;
 
+        \App\Services\Academic\ResultRegistration::attach($result);
         $result->update([
             'user_id' => $request->user_id,
             'matric_number' => $user->matric_number,
@@ -387,6 +405,7 @@ class ResultController extends Controller
             'credit_unit' => $request->credit_unit,
             'ca_score' => $request->filled('ca_score') ? $request->ca_score : null,
             'exam_score' => $request->filled('exam_score') ? $request->exam_score : null,
+            'outcome_status' => $request->input('outcome_status', 'graded'),
             'score' => $score,
             'grade' => $gradeData['grade'],
             'grade_point' => $gradeData['grade_point'],
@@ -432,6 +451,7 @@ class ResultController extends Controller
         $departmentId = $this->resolveDepartmentId($request, $student);
         $department = Department::findOrFail($departmentId);
 
+        DB::transaction(function () use ($validated, $user_id, $session, $semester, $departmentId, $department, $actor, $student) {
         foreach ($validated['results'] as $resultId => $payload) {
             $result = Result::where('id', $resultId)
                 ->where('user_id', $user_id)
@@ -450,7 +470,8 @@ class ResultController extends Controller
             );
             $gradeData = Result::calculateGradeAndPoint($score, $department->pass_mark);
 
-            $result->update([
+            \App\Services\Academic\ResultRegistration::attach($result);
+        $result->update([
                 'course_code' => $payload['course_code'],
                 'course_title' => $payload['course_title'],
                 'credit_unit' => $payload['credit_unit'],
@@ -480,6 +501,8 @@ class ResultController extends Controller
             );
         }
 
+        });
+
         return redirect()->route($this->resultRouteName('editGroup.bySemester'), [
             $user_id,
             $semester,
@@ -507,7 +530,7 @@ class ResultController extends Controller
         $sourceResults = Result::where('user_id', $student->id)
             ->where('department_id', $sourceDepartmentId)
             ->orderBy('session')
-            ->orderByRaw("FIELD(semester, 'First', 'Second')")
+            ->orderBy('semester')
             ->get();
 
         if ($sourceResults->isEmpty()) {
@@ -540,7 +563,7 @@ class ResultController extends Controller
                     continue;
                 }
 
-                Result::create([
+                $copy = new Result([
                     'user_id' => $sourceResult->user_id,
                     'matric_number' => $sourceResult->matric_number,
                     'session' => $sourceResult->session,
@@ -559,6 +582,8 @@ class ResultController extends Controller
                     'transcript_path' => null,
                 ]);
 
+                \App\Services\Academic\ResultRegistration::attach($copy);
+                $copy->save();
                 $copiedCount++;
             }
         });
@@ -616,10 +641,13 @@ class ResultController extends Controller
                 ->with('error', 'No uploaded results were found for that student, session, and semester.');
         }
 
+        DB::transaction(function () use ($results) {
         foreach ($results as $result) {
             $this->ensureCanManageResultRecord($result);
             $result->delete();
         }
+
+        });
 
         return redirect()->route($this->resultRouteName('index'))
             ->with('success', $results->count() . ' result(s) deleted successfully.');
@@ -676,6 +704,7 @@ class ResultController extends Controller
             'created' => 0,
             'updated' => 0,
             'skipped' => 0,
+            'errors' => [],
         ];
 
         DB::transaction(function () use ($courses, $worksheets, $request, $actor, &$report) {
@@ -699,6 +728,7 @@ class ResultController extends Controller
                 $report['created'] += $sheetReport['created'];
                 $report['updated'] += $sheetReport['updated'];
                 $report['skipped'] += $sheetReport['skipped'];
+                $report['errors'] = array_merge($report['errors'], $sheetReport['errors']);
             }
         });
 
@@ -709,165 +739,41 @@ class ResultController extends Controller
         }
 
         return redirect()->route($this->resultRouteName('index'))
-                         ->with('success', $message);
+                         ->with('success', $message)->with('import_errors', $report['errors']);
     }
 
     public function generateTranscriptForSemester(Request $request, $userId, $sessionOrSemester, $semester = null)
     {
         $user = User::findOrFail($userId);
         [$session, $semester] = $this->resolveSessionAndSemester($request, $sessionOrSemester, $semester);
-        $departmentId = $this->resolveDepartmentId($request, $user);
-
-        // fetch all results for that user/session/semester
-        $results = Result::where('user_id', $userId)
-                        ->where('session', $session)
-                        ->where('semester', $semester)
-                        ->where('department_id', $departmentId)
-                        ->get();
-
-        if ($results->isEmpty()) {
-            return back()->with('error', 'No results found for this session and semester.');
-        }
-
-        $this->generateTranscript($user, $results, $session, $semester, $departmentId);
-
-        return back()->with('success', 'Transcript generated successfully.');
+        $document = Transcripts::issue($user, $this->resolveDepartmentId($request, $user), Auth::user(), $session, $semester);
+        return Transcripts::download($document, Auth::user());
     }
 
     public function generateFullTranscriptForStudent(Request $request, $userId)
     {
-        if (!$this->isPrivilegedResultManager(Auth::user())) {
-            abort(403, 'Unauthorized');
-        }
-
+        abort_unless(ResultAccess::manager(Auth::user()), 403);
         $user = User::findOrFail($userId);
-        $departmentId = $this->resolveDepartmentId($request, $user);
-
-        $results = Result::where('user_id', $userId)
-            ->where('department_id', $departmentId)
-            ->get();
-
-        if ($results->isEmpty()) {
-            return back()->with('error', 'No results found for this student in the selected department.');
-        }
-
-        $this->generateFullTranscript($user, $departmentId);
-
-        return back()->with('success', 'Full transcript generated successfully.');
+        $document = Transcripts::issue($user, $this->resolveDepartmentId($request, $user), Auth::user());
+        return Transcripts::download($document, Auth::user());
     }
 
-    protected function generateTranscript(User $user, $results, $session, $semester, $departmentId = null)
+    public function generateTranscriptsForAll(Request $request, $sessionOrSemester, $semester = null)
     {
-        $departmentId = $departmentId ?? $user->department_id;
-        $department = Department::find($departmentId);
-
-        // GPA for this semester
-        $totalCreditUnits = $results->sum('credit_unit');
-        $weightedSum = $results->sum(fn($res) => $res->credit_unit * $res->grade_point);
-        $gpa = $totalCreditUnits > 0 ? round($weightedSum / $totalCreditUnits, 2) : 0;
-
-        // CGPA across all results
-        $allResults = Result::where('user_id', $user->id)
-            ->where('department_id', $departmentId)
-            ->get();
-        $totalAllCreditUnits = $allResults->sum('credit_unit');
-        $totalWeightedSum = $allResults->sum(fn($res) => $res->credit_unit * $res->grade_point);
-        $cgpa = $totalAllCreditUnits > 0 ? round($totalWeightedSum / $totalAllCreditUnits, 2) : null;
-
-        // sanitize session & semester for filename
-        $sanitizedSession = str_replace(['/', ' ', '\\'], '_', $session);
-        $sanitizedSemester = str_replace(['/', ' ', '\\'], '_', $semester);
-
-        // build PDF
-        $pdf = Pdf::loadView('documents.transcript', [
-            'student'    => $user,
-            'results'    => $results,
-            'totalCreditUnits' => $totalCreditUnits,
-            'gpa'        => $gpa,
-            'cgpa'       => $cgpa,
-            'department' => $department,
-            'session'    => $session,
-            'semester'   => $semester,
-        ]);
-
-        $transcriptName = "transcript_{$user->id}_{$sanitizedSession}_{$sanitizedSemester}_" . time() . '.pdf';
-        $relativePath   = 'documents/transcripts/' . $transcriptName;
-
-        // save file
-        Storage::disk('public')->put($relativePath, $pdf->output());
-
-        // ✅ store the public URL in DB
-        $transcriptUrl = Storage::url($relativePath);
-
-        Result::where('user_id', $user->id)
-            ->where('session', $session)
-            ->where('semester', $semester)
-            ->where('department_id', $departmentId)
-            ->update(['transcript_path' => $transcriptUrl]);
-
-        return $transcriptUrl;
-    }
-
-
-    protected function generateFullTranscript(User $user, $departmentId = null)
-    {
-        $departmentId = $departmentId ?? $user->department_id;
-
-        // Load all results grouped by session and semester
-        $allResults = Result::where('user_id', $user->id)
-                            ->where('department_id', $departmentId)
-                            ->orderBy('session')
-                            ->orderByRaw("FIELD(semester, 'First', 'Second')")
-                            ->get()
-                            ->groupBy(fn($result) => $result->session . '_' . $result->semester);
-
-        $department = Department::find($departmentId);
-
-        // Build array with GPA per semester
-        $transcriptData = [];
-        foreach ($allResults as $key => $results) {
-            $results = collect($results);
-            $totalCreditUnits = $results->sum('credit_unit');
-            $weightedSum = $results->sum(fn($res) => $res->credit_unit * $res->grade_point);
-            $gpa = $totalCreditUnits > 0 ? round($weightedSum / $totalCreditUnits, 2) : 0;
-
-            $transcriptData[$key] = [
-                'results' => $results,
-                'totalCreditUnits' => $totalCreditUnits,
-                'gpa' => $gpa,
-            ];
+        abort_unless(ResultAccess::manager(Auth::user()), 403);
+        [$session, $semester] = $this->resolveSessionAndSemester($request, $sessionOrSemester, $semester);
+        $groups = Result::where('workflow_status', 'published')->where('session', $session)->where('semester', $semester)
+            ->get()->groupBy(fn ($r) => $r->user_id.'_'.$r->department_id);
+        foreach ($groups as $group) {
+            $first = $group->first();
+            Transcripts::issue($first->user, $first->department_id, Auth::user(), $session, $semester);
         }
-
-        // CGPA across all results
-        $totalAllCreditUnits = $allResults->flatten()->sum('credit_unit');
-        $totalWeightedSum = $allResults->flatten()->sum(fn($res) => $res->credit_unit * $res->grade_point);
-        $cgpa = $totalAllCreditUnits > 0 ? round($totalWeightedSum / $totalAllCreditUnits, 2) : null;
-
-        // build PDF
-        $pdf = Pdf::loadView('documents.full_transcript', [
-            'student'       => $user,
-            'transcriptData'=> $transcriptData,
-            'cgpa'          => $cgpa,
-            'department'    => $department,
-        ]);
-
-        // ✅ save to storage
-        $transcriptName = "full_transcript_{$user->id}_" . time() . '.pdf';
-        $relativePath   = 'documents/transcripts/' . $transcriptName;
-        Storage::disk('public')->put($relativePath, $pdf->output());
-
-        // ✅ store the public URL
-        $transcriptUrl = Storage::url($relativePath);
-
-        Result::where('user_id', $user->id)
-            ->where('department_id', $departmentId)
-            ->update(['full_transcript_path' => $transcriptUrl]);
-
-        return $transcriptUrl;
+        return back()->with('success', $groups->count().' student copies generated. Official issuance is available through transcript requests.');
     }
 
     protected function resolveResultScore($score = null, $caScore = null, $examScore = null)
     {
+        if (request('outcome_status', 'graded') !== 'graded') return null;
         $resolvedScore = Result::resolveScore($score, $caScore, $examScore);
 
         if ($resolvedScore === null) {
@@ -1021,6 +927,7 @@ class ResultController extends Controller
 
     protected function ensureCanManageResultRecord(Result $result)
     {
+        ResultAccess::edit(Auth::user(), $result);
         $this->ensureCourseCodeIsManageable($result->course_code, $result->department_id, $result->semester, $result->session);
     }
 
@@ -1049,6 +956,7 @@ class ResultController extends Controller
 
     protected function resultRouteName(string $name): string
     {
+        if (Auth::user()?->usertype === 'exam_officer' && $name === 'index') return 'academic.index';
         return (Auth::user()?->usertype === 'lecturer' ? 'lecturer' : 'admin') . '.results.' . $name;
     }
 
