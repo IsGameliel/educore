@@ -44,15 +44,23 @@ class Transcripts
                     $unpublished = Result::where('user_id', $student->id)->where('department_id', $departmentId)
                         ->where('workflow_status', '!=', 'published')
                         ->when($session, fn ($q) => $q->where('session', $session))
-                        ->when($semester, fn ($q) => $q->where('semester', $semester))->exists();
+                        ->when($semester, fn ($q) => $q->where('semester', $semester))
+                        ->orderBy('session')->orderBy('semester')->orderBy('course_code')->get();
                     $missing = CourseRegistration::with('course')->where('user_id', $student->id)
                         ->whereIn('status', ['registered', 'approved', 'completed'])
                         ->whereHas('course', fn ($q) => $q->where('department_id', $departmentId))
                         ->when($session, fn ($q) => $q->where('session', $session))
                         ->when($semester, fn ($q) => $q->where('semester', $semester))->get()
-                        ->contains(fn ($registration) => ! $results->contains(fn ($r) => $r->course_code === $registration->course->code && $r->session === $registration->session && $r->semester === $registration->semester));
-                    if ($unpublished || $missing) {
-                        throw ValidationException::withMessages(['transcript' => 'Official issuance requires complete, published results for the registered courses.']);
+                        ->filter(fn ($registration) => ! $results->concat($unpublished)->contains(fn ($r) => $r->course_code === $registration->course->code && $r->session === $registration->session && $r->semester === $registration->semester));
+                    if ($unpublished->isNotEmpty() || $missing->isNotEmpty()) {
+                        $problems = ['Official issuance requires complete, published results for the registered courses.'];
+                        foreach ($unpublished as $result) {
+                            $problems[] = "{$result->course_code} ({$result->session}, {$result->semester} semester): result is {$result->workflow_status}. Complete the result review, approval and publication workflow.";
+                        }
+                        foreach ($missing as $registration) {
+                            $problems[] = "{$registration->course->code} ({$registration->session}, {$registration->semester} semester): no result has been entered. Enter and publish the result before issuing this transcript.";
+                        }
+                        throw ValidationException::withMessages(['transcript' => $problems]);
                     }
                 }
                 $code = (string) Str::uuid();

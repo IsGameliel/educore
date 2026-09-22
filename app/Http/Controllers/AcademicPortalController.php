@@ -93,6 +93,25 @@ class AcademicPortalController extends Controller
         return redirect()->route('academic.show', $attempt)->with('success', 'Resit authorized. Enter the new score on this separate attempt; the original result is preserved.');
     }
 
+    public function revokeResit(Request $request, Result $result)
+    {
+        abort_unless(ResultAccess::manager($request->user()), 403, 'Only admin or exam officers can revoke a resit.');
+        $request->validate(['reason' => 'required|string|min:5|max:2000']);
+
+        DB::transaction(function () use ($request, $result) {
+            $result = Result::lockForUpdate()->findOrFail($result->id);
+            if ($result->attempt_type !== 'resit' || $result->workflow_status !== 'draft'
+                || $result->outcome_status !== 'not_submitted' || ! $result->resit_authorized_at) {
+                throw ValidationException::withMessages(['resit' => 'Only an untouched, unauthorized resit draft can be revoked.']);
+            }
+
+            ResultWorkflow::record($result, $result->attributesToArray(), 'resit_revoked', $request->input('reason'), null, $request->user()->id);
+            $result->delete();
+        });
+
+        return redirect()->route('academic.index')->with('success', 'Resit authorization revoked.');
+    }
+
     public function transition(Request $request, Result $result)
     {
         $data = $request->validate(['action' => 'required|in:submit,review,approve,publish,return', 'reason' => 'required|string|min:5|max:2000']);

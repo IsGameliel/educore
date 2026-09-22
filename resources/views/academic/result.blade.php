@@ -13,6 +13,9 @@
 </tbody></table></div>
 @endif
 @if(!$student && $result->resit_authorized_at)<p>Resit authorized by staff #{{ $result->resit_authorized_by }} on {{ $result->resit_authorized_at->format('d M Y H:i') }}. The authorization reason is recorded in the change history.</p>@endif
+@if($manager && $result->attempt_type === 'resit' && $result->workflow_status === 'draft' && $result->outcome_status === 'not_submitted' && $result->resit_authorized_at)
+<form method="POST" action="{{ route('academic.resit.revoke',$result) }}" class="card card-body mt-4">@csrf<h3>Revoke resit authorization</h3><p>This is available only before marks are entered or the resit is submitted.</p><label>Reason for revoking<input name="reason" class="form-control" minlength="5" maxlength="2000" required></label><button class="btn btn-outline-danger mt-2">Revoke resit</button></form>
+@endif
 @if(!$student)
 @if($problems)<div class="alert alert-warning"><strong>Completeness checks</strong><ul>@foreach($problems as $problem)<li>{{ $problem }}</li>@endforeach</ul></div>@else<div class="alert alert-success">Course completeness checks passed.</div>@endif
 @if($result->workflow_status === 'draft')
@@ -31,7 +34,7 @@
     $nextAction = ['draft'=>'submit','submitted'=>'review','reviewed'=>'approve','approved'=>'publish'][$result->workflow_status] ?? null;
     $needsAnotherReviewer = auth()->user()->dashboardRole() !== 'admin' && in_array(auth()->id(), [$result->uploaded_by, $result->submitted_by], true) && in_array($nextAction, ['review', 'approve'], true);
     $canAdvance = $nextAction && ($manager || $nextAction === 'submit') && !$needsAnotherReviewer;
-    $canReturn = $manager && in_array($result->workflow_status,['submitted','reviewed']);
+    $canReturn = $manager && (auth()->user()->dashboardRole() === 'admin' || in_array($result->workflow_status,['submitted','reviewed']));
 @endphp
 @if($needsAnotherReviewer)<p class="alert alert-info">Another authorized staff member must review and approve your submission.</p>@endif
 @if($canAdvance || $canReturn)
@@ -45,10 +48,10 @@
 <h3>Corrections</h3>
 @forelse($corrections as $correction)<div class="card mb-3"><div class="card-body"><p>#{{ $correction->id }} · {{ $correction->status }} · Requested by staff #{{ $correction->requested_by }} · Base version {{ $correction->base_version }}</p><p>{{ $correction->reason }}</p><table class="table"><tbody>@foreach(['score'=>'Total score','ca_score'=>'CA','exam_score'=>'Exam','grade'=>'Grade','grade_point'=>'Grade point','credit_unit'=>'Credit units','outcome_status'=>'Outcome'] as $key=>$label)<tr><th>{{ $label }}</th><td>{{ $correction->proposed[$key] ?? '—' }}</td></tr>@endforeach</tbody></table>
 @if(isset($correction->proposed['policy_snapshot']))<p>Proposed policy version {{ $correction->proposed['policy_snapshot']['version'] ?? 'Default' }}, pass mark {{ $correction->proposed['policy_snapshot']['pass_mark'] }}.</p>@endif<p>{{ $correction->decision_reason }}</p>
-@if($manager && $correction->status === 'pending' && (int) auth()->id() === (int) $correction->requested_by)
+@if($manager && $correction->status === 'pending' && auth()->user()->dashboardRole() !== 'admin' && (int) auth()->id() === (int) $correction->requested_by)
 <p class="alert alert-info">Another admin or exam officer must approve or reject your correction request.</p>
 @endif
-@if($manager && $correction->status === 'pending' && (int) auth()->id() !== (int) $correction->requested_by)<form method="POST" action="{{ route('academic.correction.decide',$correction) }}">@csrf<label>Decision<select name="decision" class="form-control"><option value="approved">Approve</option><option value="rejected">Reject</option></select></label><label class="d-block">Decision reason<input name="reason" class="form-control" required minlength="5" maxlength="2000"></label><button class="btn btn-primary mt-2">Save decision</button></form>@endif
+@if($manager && $correction->status === 'pending' && (auth()->user()->dashboardRole() === 'admin' || (int) auth()->id() !== (int) $correction->requested_by))<form method="POST" action="{{ route('academic.correction.decide',$correction) }}">@csrf<label>Decision<select name="decision" class="form-control"><option value="approved">Approve</option><option value="rejected">Reject</option></select></label><label class="d-block">Decision reason<input name="reason" class="form-control" required minlength="5" maxlength="2000"></label><button class="btn btn-primary mt-2">Save decision</button></form>@endif
 </div></div>@empty<p>No corrections requested.</p>@endforelse
 <h3>Change history</h3>
 @foreach($revisions as $revision)<details class="border p-3 mb-2"><summary>{{ $revision->created_at }} · {{ $revision->action }} · Version {{ $revision->version }} · Actor #{{ $revision->actor_id }} @if($revision->approver_id) · Approver #{{ $revision->approver_id }} @endif</summary><p>{{ $revision->reason }}</p><table class="table"><thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead><tbody>

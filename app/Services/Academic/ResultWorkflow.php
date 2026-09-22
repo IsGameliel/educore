@@ -81,9 +81,23 @@ class ResultWorkflow
                 'approve' => ['reviewed', 'approved'], 'publish' => ['approved', 'published']];
             $before = $result->attributesToArray();
             if ($action === 'return') {
-                abort_unless(in_array($result->workflow_status, ['submitted', 'reviewed'], true) && ResultAccess::stage($actor, $result->department_id, 'review'), 403);
+                abort_unless($actor->dashboardRole() === 'admin'
+                    || (in_array($result->workflow_status, ['submitted', 'reviewed'], true)
+                        && ResultAccess::stage($actor, $result->department_id, 'review')), 403);
+                if ($result->workflow_status !== 'draft') {
+                    $result->version++;
+                }
+                foreach (TranscriptDocument::where('user_id', $result->user_id)->where('status', 'valid')->get() as $document) {
+                    if (array_key_exists($result->id, $document->result_versions)) {
+                        $document->update(['status' => 'revoked', 'revoked_by' => $actor->id, 'revocation_reason' => 'A source result was returned to draft.']);
+                    }
+                }
                 $result->workflow_status = 'draft';
                 $result->submitted_by = null;
+                $result->approved_by = null;
+                $result->published_at = null;
+                $result->transcript_path = null;
+                $result->full_transcript_path = null;
             } else {
                 abort_unless(isset($steps[$action]), 422);
                 [$from, $to] = $steps[$action];
@@ -155,7 +169,7 @@ class ResultWorkflow
             $result = Result::lockForUpdate()->findOrFail($correction->result_id);
             $correction = ResultCorrection::lockForUpdate()->findOrFail($correction->id);
             abort_unless(ResultAccess::stage($actor, $result->department_id, 'approve'), 403);
-            if ((int) $actor->id === (int) $correction->requested_by) {
+            if ($actor->dashboardRole() !== 'admin' && (int) $actor->id === (int) $correction->requested_by) {
                 throw ValidationException::withMessages([
                     'correction' => 'Another admin or exam officer must approve or reject your correction request.',
                 ]);

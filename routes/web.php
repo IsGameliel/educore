@@ -95,6 +95,7 @@ Route::middleware([
         });
         Route::get('/result/{result}', [AcademicPortalController::class, 'show'])->name('show');
         Route::post('/result/{result}/resit', [AcademicPortalController::class, 'resit'])->name('resit');
+        Route::post('/result/{result}/resit/revoke', [AcademicPortalController::class, 'revokeResit'])->name('resit.revoke');
         Route::put('/result/{result}', [AcademicPortalController::class, 'update'])->name('update');
         Route::post('/result/{result}/transition', [AcademicPortalController::class, 'transition'])->name('transition');
         Route::post('/result/{result}/correction', [AcademicPortalController::class, 'correction'])->name('correction');
@@ -216,6 +217,9 @@ Route::middleware([
 
         Route::get('/course-registrations/{student}/edit', [AdminCourseRegistrationController::class, 'edit'])
             ->name('course-registrations.edit');
+
+        Route::put('/course-registrations/{student}/credit-limit', [AdminCourseRegistrationController::class, 'updateCreditLimit'])
+            ->name('course-registrations.credit-limit');
 
         Route::put('/course-registrations/{student}', [AdminCourseRegistrationController::class, 'update'])
             ->name('course-registrations.update');
