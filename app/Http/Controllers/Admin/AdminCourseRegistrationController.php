@@ -14,13 +14,6 @@ use Illuminate\Support\Facades\DB;
 
 class AdminCourseRegistrationController extends Controller
 {
-    private $creditUnitLimits = [
-        '100' => 24,
-        '200' => 24,
-        '300' => 24,
-        '400' => 24,
-    ];
-
     private function normalizeSemester($semester)
     {
         $semester = strtolower(trim((string) $semester));
@@ -31,9 +24,32 @@ class AdminCourseRegistrationController extends Controller
         return 'First';
     }
 
-    private function getCreditUnitLimitForLevel($level)
+    public function updateCreditLimit(User $student, Request $request)
     {
-        return $this->creditUnitLimits[$level] ?? 30;
+        abort_unless($student->dashboardRole() === 'student', 404);
+        $data = $request->validate([
+            'session' => ['required', 'exists:academic_sessions,name'],
+            'semester' => ['required', 'in:First,Second'],
+            'credit_limit' => ['nullable', 'integer', 'min:1', 'max:1000'],
+        ]);
+        DB::transaction(function () use ($student, $request, $data) {
+            User::whereKey($student->id)->lockForUpdate()->firstOrFail();
+            $key = ['user_id' => $student->id, 'session' => $data['session'], 'semester' => $data['semester']];
+            $before = \App\Services\Academic\StudentCreditLimit::for($student, $data['session'], $data['semester']);
+            if (($data['credit_limit'] ?? null) === null) {
+                DB::table('student_credit_limits')->where($key)->delete();
+            } else {
+                DB::table('student_credit_limits')->updateOrInsert($key, [
+                    'credit_limit' => $data['credit_limit'], 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+            ActivityLogger::log($request->user(), 'credit_limit_updated', 'Updated student registration credit limit', [
+                'target_user' => $student, 'department_id' => $student->department_id,
+                'properties' => $key + ['before' => $before, 'after' => \App\Services\Academic\StudentCreditLimit::for($student, $data['session'], $data['semester'])],
+            ]);
+        });
+
+        return back()->with('success', 'Student credit limit updated.');
     }
 
     public function index(Request $request)
@@ -166,7 +182,7 @@ class AdminCourseRegistrationController extends Controller
             }
         }
 
-        $limit = $this->getCreditUnitLimitForLevel($student->level);
+        $limit = \App\Services\Academic\StudentCreditLimit::for($student, $session, $semester);
         $newTotal = $courses->sum('credit_unit');
 
         if ($newTotal > $limit) {

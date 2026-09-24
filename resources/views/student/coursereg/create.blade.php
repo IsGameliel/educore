@@ -93,7 +93,7 @@
 
                         <fieldset class="form-group">
                             <legend class="h5">Outstanding / Carryover Courses</legend>
-                            <p>Register outstanding courses from earlier sessions alongside your current courses. Previous marks remain on record. Carryover credits count toward your semester limit.</p>
+                            <p>Outstanding failed courses from earlier sessions are automatically made available in their original semester. Select them to register alongside your current courses. Previous marks remain on record. Carryover credits count toward your semester limit.</p>
                             @forelse($carryoverCourses as $carryover)
                                 <label class="d-block carryover-option" data-semester="{{ $carryover->semester }}">
                                     <input type="checkbox" name="carryover_ids[]" value="{{ $carryover->id }}"
@@ -102,17 +102,18 @@
                                     — Failed in {{ $carryover->failedResult->session }}, {{ $carryover->semester }} semester
                                 </label>
                             @empty
-                                <p class="text-muted">No outstanding courses are available in this session. If a failed course is missing, ask the exam officer to check the published result and the current session course offering.</p>
+                                <p class="text-muted">No outstanding published failures from earlier sessions are available. If a failed course is missing, ask the exam officer to check its published result.</p>
                             @endforelse
                         </fieldset>
 
                         <div class="mt-2">
+                            <p>Maximum credit load this semester: <strong id="creditLimit">{{ $creditLimits[$defaultSemester] }}</strong></p>
                             <strong>Total Selected Credit Units: </strong>
                             <span id="totalCredits">0</span>
                         </div>
 
                         <div id="creditWarning" style="display:none; color:red; font-weight:bold; margin-top:10px;">
-                            You have exceeded the maximum allowed credit units for this level!
+                            You have exceeded the maximum allowed credit units for this semester!
                         </div>
 
 
@@ -151,12 +152,7 @@
    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
-    let creditLimits = {
-        '100': 24,
-        '200': 24,
-        '300': 24,
-        '400': 24
-    };
+    let creditLimits = @json($creditLimits);
 
     let courseCreditMapping = {}; // Store course_id => credit_unit
 
@@ -188,7 +184,8 @@
         $('#totalCredits').text(totalCredits);
 
         let level = $('#level').val();
-        let maxLimit = creditLimits[level];
+        let maxLimit = creditLimits[$('#semester').val()];
+        $('#creditLimit').text(maxLimit);
 
         if (maxLimit && totalCredits > maxLimit) {
             $('#creditWarning').show();

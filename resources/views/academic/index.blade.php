@@ -5,7 +5,7 @@
 @include('academic.filters')
 @if(auth()->user()->dashboardRole() !== 'student')
 <p>Only published results are visible to students. {{ \App\Services\Academic\AcademicStanding::REPEAT_FAILURE_THRESHOLD }} or more outstanding failed courses in a session means repeat.</p>
-<p>{{ auth()->user()->dashboardRole() === 'admin' ? 'As admin, you may submit, review and approve your own results. All workflow stages and completeness checks still apply.' : 'After submission, another authorized staff member must review and approve your results.' }}</p>
+<p>{{ auth()->user()->dashboardRole() === 'admin' ? 'As admin, you may submit, review and approve your own results, and return results from any stage to draft. Approval and publication still require complete results.' : 'After submission, another authorized staff member must review and approve your results.' }}</p>
 <div class="mb-3"><a class="btn btn-primary" href="{{ route(auth()->user()->dashboardRole() === 'lecturer' ? 'lecturer.results.create' : 'academic.entry') }}">Enter result</a> <a class="btn btn-secondary" href="{{ route(auth()->user()->dashboardRole() === 'lecturer' ? 'lecturer.results.upload' : 'academic.upload') }}">Import workbook</a></div>
 @endif
 <form method="POST" action="{{ route('academic.batch') }}">@csrf

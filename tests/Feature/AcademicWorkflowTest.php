@@ -183,8 +183,7 @@ it('adopts a revised pass mark only through an approved correction for published
     expect($f['result']->fresh()->grade)->toBe('D');
     $this->post(route('academic.correction', $f['result']), ['ca_score' => 15, 'exam_score' => 30, 'score' => 45, 'credit_unit' => 3, 'outcome_status' => 'graded', 'attempt_type' => 'regular', 'reason' => 'Apply approved policy change', 'adopt_policy' => 1])->assertSessionHasNoErrors();
     $correction = ResultCorrection::firstOrFail();
-    $this->post(route('academic.correction.decide', $correction), ['decision' => 'approved', 'reason' => 'Approve own proposed change'])->assertForbidden();
-    $this->actingAs($f['officer'])->post(route('academic.correction.decide', $correction), ['decision' => 'approved', 'reason' => 'Policy change verified'])->assertSessionHasNoErrors();
+    $this->post(route('academic.correction.decide', $correction), ['decision' => 'approved', 'reason' => 'Approve own proposed change'])->assertSessionHasNoErrors();
     expect($f['result']->fresh()->grade)->toBe('F')->and($f['result']->fresh()->policy_snapshot['pass_mark'])->toBe(50);
     expect(ResultRevision::where('action', 'correction_approved')->first()->before['grade'])->toBe('D');
 });
@@ -243,6 +242,23 @@ it('rejects official issuance while registered course marks are missing', functi
     CourseRegistration::create(['user_id' => $f['student']->id, 'course_id' => $course->id, 'session' => $f['session']->name, 'semester' => 'Second', 'status' => 'registered', 'registration_date' => now()]);
     $request = TranscriptRequest::create(['user_id' => $f['student']->id, 'department_id' => $f['department']->id, 'purpose' => 'Official application']);
     $this->actingAs($f['officer'])->post(route('academic.transcripts.decide', $request), ['decision' => 'issue', 'reason' => 'Ready for issuance'])->assertSessionHasErrors('transcript');
+    expect(session('errors')->get('transcript'))->toContain('MISSING101 (2025/2026, Second semester): no result has been entered. Enter and publish the result before issuing this transcript.');
+    expect(TranscriptDocument::count())->toBe(0)->and($request->fresh()->status)->toBe('pending');
+});
+
+it('identifies unpublished course marks blocking official issuance', function () {
+    Storage::fake('local');
+    $f = academicFixture();
+    publishAcademicFixture($f);
+    $course = Courses::create(['code' => 'DRAFT101', 'title' => 'Draft marks', 'credit_unit' => 3, 'department_id' => $f['department']->id, 'semester' => 'Second', 'level' => '100', 'academic_session_id' => $f['session']->id]);
+    $registration = CourseRegistration::create(['user_id' => $f['student']->id, 'course_id' => $course->id, 'session' => $f['session']->name, 'semester' => 'Second', 'status' => 'registered', 'registration_date' => now()]);
+    Result::create(['course_registration_id' => $registration->id, 'user_id' => $f['student']->id, 'uploaded_by' => $f['lecturer']->id, 'matric_number' => 'TEST001', 'session' => $f['session']->name, 'semester' => 'Second', 'level' => '100', 'course_code' => $course->code, 'course_title' => $course->title, 'credit_unit' => 3, 'ca_score' => 20, 'exam_score' => 50, 'department_id' => $f['department']->id]);
+    $request = TranscriptRequest::create(['user_id' => $f['student']->id, 'department_id' => $f['department']->id, 'purpose' => 'Official application']);
+
+    $this->actingAs($f['officer'])->post(route('academic.transcripts.decide', $request), ['decision' => 'issue', 'reason' => 'Ready for issuance'])->assertSessionHasErrors('transcript');
+
+    expect(session('errors')->get('transcript'))->toHaveCount(2)
+        ->toContain('DRAFT101 (2025/2026, Second semester): result is draft. Complete the result review, approval and publication workflow.');
     expect(TranscriptDocument::count())->toBe(0)->and($request->fresh()->status)->toBe('pending');
 });
 
@@ -467,17 +483,35 @@ it('rejects carryover registration without an outstanding published failure', fu
     expect(\App\Services\Academic\CarryoverRegistration::available($f['student'], '2026/2027'))->toBeEmpty();
 });
 
-it('explains self correction decisions and lets another manager reject without changing marks', function () {
+it('explains self correction decisions and lets another manager reject without changing marks', function (bool $resit) {
     $f = academicFixture();
+    if ($resit) {
+        $f['result']->update(['ca_score' => 10, 'exam_score' => 10]);
+    }
     publishAcademicFixture($f);
     $result = $f['result']->fresh();
-    ResultWorkflow::requestCorrection($result, $f['admin'], [
+    if ($resit) {
+        $this->actingAs($f['admin'])->post(route('academic.resit', $result), [
+            'reason' => 'Authorized supplementary examination',
+        ])->assertSessionHasNoErrors();
+        $result = Result::where('attempt_type', 'resit')->firstOrFail();
+        $this->put(route('academic.update', $result), [
+            'outcome_status' => 'graded', 'attempt_type' => 'resit', 'credit_unit' => 3,
+            'ca_score' => 20, 'exam_score' => 50, 'reason' => 'Supplementary marks checked',
+        ])->assertSessionHasNoErrors();
+        ResultWorkflow::transition($result, $f['admin'], 'submit', 'Submit supplementary marks');
+        foreach (['review', 'approve', 'publish'] as $action) {
+            ResultWorkflow::transition($result, $f['officer'], $action, 'Checked supplementary marks');
+        }
+        $result->refresh();
+    }
+    ResultWorkflow::requestCorrection($result, $f['officer'], [
         'score' => 60, 'ca_score' => null, 'exam_score' => null, 'outcome_status' => 'graded',
-        'credit_unit' => 3, 'attempt_type' => 'regular',
+        'credit_unit' => 3, 'attempt_type' => $result->attempt_type,
     ], 'Please check the original script');
     $correction = ResultCorrection::firstOrFail();
     $url = route('academic.correction.decide', $correction);
-    $this->actingAs($f['admin'])->get(route('academic.show', $result))
+    $this->actingAs($f['officer'])->get(route('academic.show', $result))
         ->assertOk()->assertSee('Another admin or exam officer must approve or reject your correction request.')
         ->assertDontSee('action="'.$url.'"', false);
     foreach (['approved', 'rejected'] as $decision) {
@@ -486,11 +520,155 @@ it('explains self correction decisions and lets another manager reject without c
         ])->assertRedirect(route('academic.show', $result))->assertSessionHasErrors('correction');
         expect($correction->fresh()->status)->toBe('pending');
     }
-    $this->actingAs($f['officer'])->post($url, [
+    $this->actingAs($f['admin'])->post($url, [
         'decision' => 'rejected', 'reason' => 'Original marks are correct',
     ])->assertRedirect()->assertSessionHas('success', 'Correction rejected. The existing result and scores remain unchanged.');
     expect($correction->fresh()->status)->toBe('rejected')
         ->and($result->fresh()->score)->toEqual(70)
         ->and($result->fresh()->workflow_status)->toBe('published');
     expect(ResultRevision::where('result_id', $result->id)->where('action', 'correction_rejected')->exists())->toBeTrue();
+})->with(['original exam' => false, 'resit exam' => true]);
+
+it('allows admins to approve or reject their own corrections with an audit record', function (string $decision) {
+    $f = academicFixture();
+    publishAcademicFixture($f);
+    $result = $f['result']->fresh();
+    ResultWorkflow::requestCorrection($result, $f['admin'], [
+        'score' => 60, 'ca_score' => null, 'exam_score' => null, 'outcome_status' => 'graded',
+        'credit_unit' => 3, 'attempt_type' => 'regular',
+    ], 'Correct the original script marks');
+    $correction = ResultCorrection::firstOrFail();
+    $url = route('academic.correction.decide', $correction);
+
+    $this->actingAs($f['admin'])->get(route('academic.show', $result))
+        ->assertOk()->assertSee('action="'.$url.'"', false)
+        ->assertDontSee('Another admin or exam officer must approve or reject your correction request.');
+    $this->post($url, ['decision' => $decision, 'reason' => 'Checked the original script'])
+        ->assertRedirect()->assertSessionHasNoErrors()->assertSessionHas('success');
+
+    expect($correction->fresh()->status)->toBe($decision)
+        ->and($correction->fresh()->decided_by)->toBe($f['admin']->id)
+        ->and($result->fresh()->score)->toEqual($decision === 'approved' ? 60 : 70)
+        ->and($result->fresh()->workflow_status)->toBe($decision === 'approved' ? 'approved' : 'published');
+    $revision = ResultRevision::where('result_id', $result->id)->where('action', 'correction_'.$decision)->sole();
+    expect($revision->actor_id)->toBe($f['admin']->id);
+})->with(['approved', 'rejected']);
+
+it('allows admins to return resits to draft through batch actions from every stage', function (string $status) {
+    $f = academicFixture();
+    $f['result']->update(['ca_score' => 10, 'exam_score' => 10]);
+    publishAcademicFixture($f);
+    $this->actingAs($f['admin'])->post(route('academic.resit', $f['result']), [
+        'reason' => 'Authorize supplementary exam',
+    ])->assertSessionHasNoErrors();
+    $resit = Result::where('attempt_type', 'resit')->sole();
+    $resit->forceFill([
+        'workflow_status' => $status, 'submitted_by' => $f['admin']->id,
+        'approved_by' => $f['admin']->id, 'published_at' => now(),
+    ])->saveQuietly();
+    $version = $resit->version;
+    $this->get(route('academic.show', $resit))->assertOk()->assertSee('Return to draft');
+    $this->post(route('academic.batch'), [
+        'result_ids' => [$resit->id], 'action' => 'return', 'reason' => 'Reopen supplementary marks',
+    ])->assertRedirect()->assertSessionHasNoErrors()->assertSessionHas('success');
+    $resit->refresh();
+    expect($resit->workflow_status)->toBe('draft')
+        ->and($resit->submitted_by)->toBeNull()
+        ->and($resit->approved_by)->toBeNull()
+        ->and($resit->published_at)->toBeNull()
+        ->and($resit->version)->toBe($version + ($status === 'draft' ? 0 : 1))
+        ->and($f['result']->fresh()->workflow_status)->toBe('published');
+    expect(ResultRevision::where('result_id', $resit->id)->where('action', 'return')->sole()->actor_id)->toBe($f['admin']->id);
+    $this->actingAs($f['student'])->get(route('academic.show', $resit))->assertNotFound();
+})->with(['draft', 'submitted', 'reviewed', 'approved', 'published']);
+
+it('still prevents exam officers from returning published results to draft', function () {
+    $f = academicFixture();
+    publishAcademicFixture($f);
+    $this->actingAs($f['officer'])->post(route('academic.batch'), [
+        'result_ids' => [$f['result']->id], 'action' => 'return', 'reason' => 'Reopen published marks',
+    ])->assertForbidden();
+    expect($f['result']->fresh()->workflow_status)->toBe('published');
+});
+
+it('revokes transcripts when an admin returns a published result to draft', function () {
+    Storage::fake('local');
+    $f = academicFixture();
+    publishAcademicFixture($f);
+    $request = TranscriptRequest::create(['user_id' => $f['student']->id, 'department_id' => $f['department']->id, 'purpose' => 'Graduate application']);
+    $document = Transcripts::issue($f['student'], $f['department']->id, $f['admin'], null, null, $request);
+    $this->actingAs($f['admin'])->post(route('academic.transition', $f['result']), [
+        'action' => 'return', 'reason' => 'Recheck the published marks',
+    ])->assertSessionHasNoErrors();
+    expect($document->fresh()->status)->toBe('revoked')
+        ->and($document->fresh()->revoked_by)->toBe($f['admin']->id);
+    $this->get(route('documents.transcripts.show', basename($document->path)))->assertStatus(410);
+});
+
+it('automatically makes failed courses available for every student in the matching new-session semester', function (string $semester) {
+    $f = academicFixture();
+    $f['course']->update(['semester' => $semester]);
+    CourseRegistration::where('user_id', $f['student']->id)->update(['semester' => $semester]);
+    $f['result']->update(['semester' => $semester, 'ca_score' => 5, 'exam_score' => 10]);
+    publishAcademicFixture($f);
+    $secondStudent = User::factory()->create([
+        'usertype' => 'student', 'department_id' => $f['department']->id, 'level' => '200',
+    ]);
+    $secondFailure = $f['result']->fresh()->replicate();
+    $secondFailure->user_id = $secondStudent->id;
+    $secondFailure->course_registration_id = null;
+    $secondFailure->saveQuietly();
+    $f['session']->update(['is_active' => false]);
+    $next = AcademicSession::create(['name' => '2026/2027', 'start_year' => 2026, 'end_year' => 2027, 'is_active' => true]);
+    $f['student']->update(['level' => '200']);
+
+    foreach ([$f['student'], $secondStudent] as $student) {
+        $this->actingAs($student)->get(route('student.courses.registration'))
+            ->assertOk()->assertSee('CSC101');
+        $available = \App\Services\Academic\CarryoverRegistration::available($student, $next->name);
+        expect($available)->toHaveCount(1);
+        $offering = $available->first();
+        expect($offering->semester)->toBe($semester)
+            ->and($offering->level)->toBe('100')
+            ->and($offering->failedResult->user_id)->toBe($student->id);
+        $this->post(route('student.courses.register'), [
+            'semester' => $semester === 'First' ? 'Second' : 'First',
+            'carryover_ids' => [$offering->id],
+        ])->assertSessionHasErrors('course_registration');
+        $this->post(route('student.courses.register'), [
+            'semester' => $semester, 'carryover_ids' => [$offering->id],
+        ])->assertSessionHasNoErrors()->assertSessionHas('success');
+        expect(CourseRegistration::where('user_id', $student->id)->where('session', $next->name)->sole()->previous_result_id)
+            ->toBe($offering->failedResult->id);
+    }
+    expect(Courses::forAcademicSession($next->name)->where('code', 'CSC101')->count())->toBe(1)
+        ->and($f['result']->fresh()->score)->toEqual(15);
+})->with(['First', 'Second']);
+
+it('lets admins set scoped student credit limits and enforces them during registration', function () {
+    $f = academicFixture();
+    $extraCourse = $f['course']->replicate();
+    $extraCourse->code = 'CSC102';
+    $extraCourse->save();
+    $url = route('admin.course-registrations.credit-limit', $f['student']);
+    $payload = ['session' => $f['session']->name, 'semester' => 'First', 'credit_limit' => 2];
+    $this->actingAs($f['student'])->put($url, $payload)->assertForbidden();
+    $this->actingAs($f['admin'])->put($url, $payload)->assertSessionHasNoErrors();
+    expect(\App\Services\Academic\StudentCreditLimit::for($f['student'], $f['session']->name, 'First'))->toBe(2)
+        ->and(\App\Services\Academic\StudentCreditLimit::for($f['student'], $f['session']->name, 'Second'))->toBe(24)
+        ->and(\App\Services\Academic\StudentCreditLimit::for($f['student'], '2026/2027', 'First'))->toBe(24);
+    $other = User::factory()->create(['usertype' => 'student', 'level' => '100']);
+    expect(\App\Services\Academic\StudentCreditLimit::for($other, $f['session']->name, 'First'))->toBe(24);
+    $this->actingAs($f['student'])->get(route('student.courses.registration'))
+        ->assertOk()->assertSee('id="creditLimit">2', false);
+    $registration = ['semester' => 'First', 'course_ids' => [$extraCourse->id], 'credit_limit' => 100];
+    $this->post(route('student.courses.register'), $registration)->assertSessionHasErrors('course_registration');
+    $this->actingAs($f['admin'])->put($url, array_replace($payload, ['credit_limit' => 30]))->assertSessionHasNoErrors();
+    $this->actingAs($f['student'])->post(route('student.courses.register'), $registration)
+        ->assertSessionHasNoErrors()->assertSessionHas('success');
+    $this->actingAs($f['admin'])->put($url, array_replace($payload, ['credit_limit' => 0]))->assertSessionHasErrors('credit_limit');
+    $this->put($url, array_replace($payload, ['credit_limit' => null]))->assertSessionHasNoErrors();
+    expect(\App\Services\Academic\StudentCreditLimit::for($f['student'], $f['session']->name, 'First'))->toBe(24);
+    $this->get(route('admin.course-registrations.show', [$f['student'], 'session' => $f['session']->name, 'semester' => 'First']))
+        ->assertOk()->assertSee('Save credit load');
 });

@@ -2,6 +2,19 @@
 @extends('layouts.dash')
 
 @section('content')
+<div class="card card-body mb-3">
+    <h4>Student credit load — {{ $session }}, {{ $semester }} semester</h4>
+    <p>Current maximum: {{ \App\Services\Academic\StudentCreditLimit::for($student, $session, $semester) }} credits. Changes apply to future registration submissions; existing courses remain registered.</p>
+    <form method="POST" action="{{ route('admin.course-registrations.credit-limit', $student) }}">
+        @csrf @method('PUT')
+        <input type="hidden" name="session" value="{{ $session }}">
+        <input type="hidden" name="semester" value="{{ $semester }}">
+        <label for="credit_limit">Maximum credits (leave blank to restore the level default)</label>
+        <input class="form-control" id="credit_limit" name="credit_limit" type="number" min="1" max="1000" value="{{ old('credit_limit', \App\Services\Academic\StudentCreditLimit::for($student, $session, $semester)) }}">
+        @error('credit_limit')<p class="text-danger">{{ $message }}</p>@enderror
+        <button class="btn btn-primary mt-2">Save credit load</button>
+    </form>
+</div>
 <style>
     .course-reg-page .page-title-text {
         color: #001f54;

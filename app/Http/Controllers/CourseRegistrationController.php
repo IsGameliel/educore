@@ -19,14 +19,6 @@ use Illuminate\Http\JsonResponse;
 
 class CourseRegistrationController extends Controller
 {
-    // Maximum allowed credit units per semester
-    private $creditUnitLimits = [
-        '100' => 24, // Max 24 credit units for 100-level
-        '200' => 24, // Max 30 credit units for 200-level
-        '300' => 24, // Max 30 credit units for 300-level
-        '400' => 24, // Max 30 credit units for 400-level
-    ];
-
     private function normalizeSemester($semester)
     {
         $semester = strtolower(trim((string) $semester));
@@ -56,9 +48,12 @@ class CourseRegistrationController extends Controller
             ->orderBy('code')
             ->get();
         $carryoverCourses = \App\Services\Academic\CarryoverRegistration::available($user, $currentSession);
+        $creditLimits = collect(['First', 'Second'])->mapWithKeys(fn ($semester) => [
+            $semester => \App\Services\Academic\StudentCreditLimit::for($user, $currentSession, $semester),
+        ])->all();
         $departments = Department::all();
 
-        return view('student.coursereg.create', compact('courses', 'departments', 'defaultSemester', 'currentSession', 'carryoverCourses'));
+        return view('student.coursereg.create', compact('courses', 'departments', 'defaultSemester', 'currentSession', 'carryoverCourses', 'creditLimits'));
     }
 
     public function getCoursesByLevel(Request $request)
@@ -81,14 +76,6 @@ class CourseRegistrationController extends Controller
     }
 
 
-
-    /**
-     * Get the credit unit limit based on student's level.
-     */
-    private function getCreditUnitLimitForLevel($level)
-    {
-        return $this->creditUnitLimits[$level] ?? 30; // Default to 30 if level is not found
-    }
 
     /**
      * Register a student for multiple courses (bulk registration).
@@ -183,7 +170,7 @@ class CourseRegistrationController extends Controller
         $totalCreditUnits = CourseRegistration::getTotalCreditUnitsForSemester($userId, $semester, $session);
 
         // Step 3: Check if the total credit units exceed the allowed limit for the student level
-        $creditUnitLimit = $this->getCreditUnitLimitForLevel($level);
+        $creditUnitLimit = \App\Services\Academic\StudentCreditLimit::for($user, $session, $semester);
         $totalCourseCredits = $courses->sum('credit_unit');
 
         if (($totalCreditUnits + $totalCourseCredits) > $creditUnitLimit) {
