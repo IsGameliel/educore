@@ -47,6 +47,63 @@ function publishAcademicFixture(array $f): void
     $f['result']->refresh();
 }
 
+it('downloads the published departmental broadsheet as a real Excel workbook', function () {
+    $f = academicFixture();
+    publishAcademicFixture($f);
+    $f['student']->update(['name' => '=1+1']);
+    DB::table('results')->where('id', $f['result']->id)->update(['matric_number' => '000123', 'score' => 0, 'grade' => 'F']);
+    $filters = ['department_id' => $f['department']->id, 'session' => $f['session']->name, 'semester' => 'First'];
+    $this->actingAs($f['admin'])->get(route('academic.reports', $filters))->assertOk()->assertSee('Export broadsheet (Excel)');
+    $response = $this->get(route('academic.reports', $filters + ['export_broadsheet' => 1]));
+    $response->assertOk()->assertDownload('departmental-broadsheet.xlsx');
+    $path = $response->baseResponse->getFile()->getPathname();
+    try {
+        $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+        $sheet = $book->getActiveSheet();
+        expect($sheet->getCell('B2')->getValue())->toBe('Computing')
+            ->and($sheet->getCell('C6')->getValue())->toBe('CSC101 (First, regular)')
+            ->and($sheet->getCell('A7')->getValue())->toBe('=1+1')
+            ->and($sheet->getCell('A7')->getDataType())->toBe('s')
+            ->and($sheet->getCell('B7')->getValue())->toBe('000123')
+            ->and($sheet->getCell('C7')->getValue())->toBe('0 / F')
+            ->and($sheet->getFreezePane())->toBe('C7');
+        $book->disconnectWorksheets();
+    } finally {
+        @unlink($path);
+    }
+});
+
+it('limits broadsheet exports to published results matching all selected filters', function () {
+    $f = academicFixture();
+    \Maatwebsite\Excel\Facades\Excel::fake();
+    $this->actingAs($f['officer']);
+    $filters = ['department_id' => $f['department']->id, 'session' => $f['session']->name, 'export_broadsheet' => 1];
+    $assertEmpty = function (array $params) {
+        $this->get(route('academic.reports', $params))->assertOk();
+        \Maatwebsite\Excel\Facades\Excel::assertDownloaded('departmental-broadsheet.xlsx', fn ($export) => $export->results->isEmpty());
+    };
+    $assertEmpty($filters); // Drafts are excluded.
+    publishAcademicFixture($f);
+    $assertEmpty($filters + ['semester' => 'Second']);
+    $other = Department::create(['name' => 'Other', 'faculty_id' => $f['department']->faculty_id, 'pass_mark' => 40]);
+    $assertEmpty(array_replace($filters, ['department_id' => $other->id]));
+    AcademicSession::create(['name' => '2026/2027', 'start_year' => 2026, 'end_year' => 2027]);
+    $assertEmpty(array_replace($filters, ['session' => '2026/2027']));
+    $this->get(route('academic.reports', $filters))->assertOk();
+    \Maatwebsite\Excel\Facades\Excel::assertDownloaded('departmental-broadsheet.xlsx', fn ($export) => $export->results->modelKeys() === [$f['result']->id]);
+});
+
+it('requires report permissions and valid filters for a broadsheet export', function () {
+    $f = academicFixture();
+    foreach ([$f['student'], $f['lecturer']] as $actor) {
+        $this->actingAs($actor)->get(route('academic.reports', ['export_broadsheet' => 1]))->assertForbidden();
+    }
+    $this->actingAs($f['admin'])->get(route('academic.reports', ['export_broadsheet' => 1]))
+        ->assertSessionHasErrors(['department_id', 'session']);
+    $this->get(route('academic.reports', ['export_broadsheet' => 1, 'department_id' => $f['department']->id, 'session' => 'invalid', 'semester' => 'Third']))
+        ->assertSessionHasErrors(['session', 'semester']);
+});
+
 it('keeps drafts private and permits only admin or exam officer release through every stage', function () {
     $f = academicFixture();
     $this->actingAs($f['student'])->get(route('academic.index'))->assertOk()->assertDontSee('CSC101');

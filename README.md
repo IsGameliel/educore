@@ -6,7 +6,19 @@ Educore already includes a Laravel backup command:
 php artisan backup:database
 ```
 
-The app scheduler also already registers that command to run every Sunday at `01:00` in `routes/console.php`.
+The app scheduler registers that command every Sunday at `01:00` Africa/Lagos time (every seven days) in `routes/console.php`.
+
+## Windows automatic backups
+
+On this computer, with Windows set to West Central Africa time, install the weekly task from PowerShell as an administrator:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-weekly-backup.ps1
+```
+
+The task runs every Sunday at 01:00 local Windows time, including while signed out. If the computer is unavailable at that time, Windows runs the missed backup when available. PHP and MySQL must be available, and the project must remain at its installed location. The task runs under the installing user without storing their password. Re-run the installer if the project or PHP location changes.
+
+Use either this Windows task or the Laravel/cPanel scheduler for this database to avoid duplicate weekly backups.
 
 ## Recommended cPanel setup
 

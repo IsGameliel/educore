@@ -39,31 +39,8 @@
                                 <option value="500">500 Level</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="semester">Semester</label>
-                            <select name="semester" id="semester" class="form-control" required>
-                                <option value="First">Choose semester</option>
-                                <option value="First">First</option>
-                                <option value="Second">Second</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="department_id">Course</label>
-                            <select name="course_id" id="course_id" class="form-control" required>
-                                @foreach($courses as $course)
-                                    <option value="{{ $course->id }}">{{ $course->title }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="department_id">Department</label>
-                            <select name="department_id" id="department_id" class="form-control" required>
-                                @foreach($departments as $department)
-                                    <option value="{{ $department->id }}">{{ $department->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
+                        @include('admin.courses.materials.course-fields')
+                    <div class="form-group">
                             <label for="file">Upload Course Material (PDF)</label>
                             <input type="file" name="file" id="file" class="form-control" accept="application/pdf" required>
                         </div>

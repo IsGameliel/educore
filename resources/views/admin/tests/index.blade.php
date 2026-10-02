@@ -21,6 +21,9 @@
         </div>
 
         <!-- Tests Table Card -->
+        @if(session('success'))
+            <div class="alert alert-success" role="status">{{ session('success') }}</div>
+        @endif
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -68,6 +71,13 @@
                                                class="btn btn-sm btn-outline-info">
                                                 <i class="mdi mdi-pencil"></i> Edit Test
                                             </a>
+                                            <form action="{{ route($routePrefix.'.tests.destroy', $test->id) }}" method="POST"
+                                                  data-test-name="{{ $test->name }}"
+                                                  onsubmit="return confirm('Delete ' + this.dataset.testName + '? All questions and student responses for this test will also be permanently deleted.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="mdi mdi-delete"></i> Delete Test</button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>

@@ -15,6 +15,10 @@ class ClassScheduledNotification extends Mailable implements ShouldQueue
 
     public $schedule;
     public $courseTitle;
+    public $studentName;
+
+    public $tries = 3;
+    public $backoff = 60;
 
     /**
      * Create a new message instance.
@@ -22,10 +26,11 @@ class ClassScheduledNotification extends Mailable implements ShouldQueue
      * @param  mixed  $schedule
      * @param  string  $courseTitle
      */
-    public function __construct($schedule, $courseTitle)
+    public function __construct($schedule, $courseTitle, $studentName = 'Student')
     {
         $this->schedule = $schedule;
         $this->courseTitle = $courseTitle;
+        $this->studentName = $studentName;
     }
 
     /**
@@ -48,6 +53,7 @@ class ClassScheduledNotification extends Mailable implements ShouldQueue
             with: [
                 'schedule' => $this->schedule,
                 'courseTitle' => $this->courseTitle,
+                'studentName' => $this->studentName,
             ],
         );
     }

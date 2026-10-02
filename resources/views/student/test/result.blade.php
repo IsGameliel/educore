@@ -8,12 +8,12 @@
             <h3 class="page-title">
                 <span class="page-title-icon bg-gradient-primary text-white me-2">
                     <i class="mdi mdi-home"></i>
-                </span> Course Registration
+                </span> Test Results
             </h3>
             <nav aria-label="breadcrumb">
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item active" aria-current="page">
-                        <span></span> Register for Courses
+                        <span></span> Test Results
                         <i class="mdi mdi-alert-circle-outline icon-sm text-primary align-middle"></i>
                     </li>
                 </ul>
@@ -31,7 +31,7 @@
 
                     <!-- Conditional Styling for Score -->
                     <div class="alert {{ $score >= $total_marks * 0.5 ? 'alert-success' : 'alert-danger' }}">
-                        {{ $score >= $total_marks * 0.5 ? 'Great job! You passed.' : 'Unfortunately, you did not pass. Try again!' }}
+                        {{ $score >= $total_marks * 0.5 ? 'Great job! You passed.' : 'Unfortunately, you did not pass.' }}
                     </div>
 
                     <!-- Action Buttons -->

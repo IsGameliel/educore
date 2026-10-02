@@ -98,14 +98,14 @@
                         </span>
                         <span class="count-symbol bg-secondary notification-count-default d-none" data-notification-default-indicator></span>
                     @else
-                        <span class="count-symbol bg-secondary notification-count-default" data-notification-default-indicator></span>
+                        <span class="count-symbol bg-secondary notification-count-default d-none" data-notification-default-indicator></span>
                     @endif
                 </a>
                 <div class="dropdown-menu dropdown-menu-end navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
                     <h6 class="p-3 mb-0">Notifications</h6>
                     <div class="dropdown-divider"></div>
 
-                    @forelse(($studentUpdateNotifications ?? collect()) as $notification)
+                    @foreach(($studentUpdateNotifications ?? collect()) as $notification)
                         <button
                             type="button"
                             class="dropdown-item preview-item student-notification-item"
@@ -141,14 +141,13 @@
                                 </p>
                             </div>
                         </button>
-                        <div class="dropdown-divider"></div>
-                    @empty
-                        <div class="px-3 py-4 text-center">
+                        <div class="dropdown-divider" data-notification-divider></div>
+                    @endforeach
+                        <div class="px-3 py-4 text-center {{ ($studentUpdateNotificationCount ?? 0) > 0 ? 'd-none' : '' }}" data-notification-empty>
                             <i class="mdi mdi-bell-outline text-muted" style="font-size: 32px;"></i>
                             <p class="text-muted mb-0 mt-2">No new updates yet.</p>
                         </div>
                         <div class="dropdown-divider"></div>
-                    @endforelse
 
                     <a href="{{ route('dashboard') }}" class="dropdown-item text-center">
                         View dashboard updates
@@ -225,35 +224,40 @@
             const notificationItems = Array.from(document.querySelectorAll('.student-notification-item'));
             const countBadge = document.querySelector('[data-notification-count]');
             const defaultIndicator = document.querySelector('[data-notification-default-indicator]');
+            const emptyState = document.querySelector('[data-notification-empty]');
             const notificationModalElement = document.getElementById('studentNotificationModal');
 
-            if (!notificationItems.length || !notificationModalElement) {
+            if (!notificationModalElement) {
                 return;
             }
 
             function safeReadMap() {
                 try {
                     const raw = window.localStorage.getItem(storageKey);
-                    return raw ? JSON.parse(raw) : {};
+                    const parsed = raw ? JSON.parse(raw) : {};
+                    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
                 } catch (error) {
                     return {};
                 }
             }
 
-            function writeReadMap(value) {
-                window.localStorage.setItem(storageKey, JSON.stringify(value));
-            }
-
-            function getUnreadCount() {
-                const readMap = safeReadMap();
-
-                return notificationItems.filter(function (item) {
-                    return !readMap[item.dataset.notificationId];
-                }).length;
-            }
+            let readMap = safeReadMap();
 
             function renderNotificationCount() {
-                const unreadCount = getUnreadCount();
+                let unreadCount = 0;
+                notificationItems.forEach(function (item) {
+                    const isRead = !!readMap[item.dataset.notificationId];
+                    item.classList.toggle('d-none', isRead);
+                    const divider = item.nextElementSibling;
+                    if (divider && divider.hasAttribute('data-notification-divider')) {
+                        divider.classList.toggle('d-none', isRead);
+                    }
+                    if (!isRead) unreadCount++;
+                });
+
+                if (emptyState) {
+                    emptyState.classList.toggle('d-none', unreadCount > 0);
+                }
 
                 if (countBadge) {
                     if (unreadCount > 0) {
@@ -265,7 +269,7 @@
                 }
 
                 if (defaultIndicator) {
-                    defaultIndicator.classList.toggle('d-none', unreadCount > 0);
+                    defaultIndicator.classList.add('d-none');
                 }
             }
 
@@ -274,9 +278,13 @@
                     return;
                 }
 
-                const readMap = safeReadMap();
+                readMap = { ...safeReadMap(), ...readMap };
                 readMap[notificationId] = true;
-                writeReadMap(readMap);
+                try {
+                    window.localStorage.setItem(storageKey, JSON.stringify(readMap));
+                } catch (error) {
+                    // Still dismiss the notification when browser storage is unavailable.
+                }
                 renderNotificationCount();
             }
 
@@ -309,8 +317,18 @@
                     modalFields.iconWrap.style.height = '46px';
                     modalFields.icon.className = `mdi ${item.dataset.notificationIcon || 'mdi-bell-outline'}`;
 
-                    markAsRead(item.dataset.notificationId);
                 });
+            });
+
+            notificationModalElement.addEventListener('shown.bs.modal', function (event) {
+                markAsRead(event.relatedTarget?.dataset.notificationId);
+            });
+
+            window.addEventListener('storage', function (event) {
+                if (event.key === storageKey || event.key === null) {
+                    readMap = safeReadMap();
+                    renderNotificationCount();
+                }
             });
 
             renderNotificationCount();
