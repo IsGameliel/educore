@@ -100,7 +100,6 @@ class BackupDatabase extends Command
             $binary,
             '--single-transaction',
             '--quick',
-            '--set-gtid-purged=OFF',
             '--routines',
             '--triggers',
             '--default-character-set=utf8mb4',

@@ -7,8 +7,9 @@ use App\Models\ClassSchedule;
 use App\Models\Department;
 use App\Models\Courses;
 use App\Models\User;
-// use Illuminate\Support\Facades\Notification;
+use App\Models\ActivityLog;
 use App\Mail\ClassScheduledNotification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 class ClassScheduleController extends Controller
@@ -100,19 +101,46 @@ class ClassScheduleController extends Controller
         }
         $courseTitle = $course->title;
 
-        // Create the schedule
-        $schedule = ClassSchedule::create($validated);
+        DB::transaction(function () use ($validated, $request, $course, $courseTitle) {
+            $schedule = ClassSchedule::create($validated);
+            $schedule->load(['lecturer', 'department', 'course']);
 
-        // Fetch students in the same department and level
-        $students = User::where('department_id', $validated['department_id'])->get();
+            ActivityLog::create([
+                'actor_id' => $request->user()->id,
+                'department_id' => $schedule->department_id,
+                'action' => 'class_scheduled',
+                'description' => $course->code.' — '.$courseTitle.': '.$schedule->day.', '
+                    .$schedule->start_time.'–'.$schedule->end_time.' in '.$schedule->room
+                    .'. Lecturer: '.($schedule->lecturer?->name ?? 'To be confirmed')
+                    .'. Level: '.$schedule->level.'.',
+                'subject_type' => $schedule->getMorphClass(),
+                'subject_id' => $schedule->id,
+                'properties' => [
+                    'course_code' => $course->code,
+                    'course_title' => $courseTitle,
+                    'semester' => $schedule->semester,
+                    'level' => $schedule->level,
+                    'day' => $schedule->day,
+                    'start_time' => $schedule->start_time,
+                    'end_time' => $schedule->end_time,
+                    'room' => $schedule->room,
+                ],
+            ]);
 
-        // Notify each student
-        foreach ($students as $student) {
-            Mail::to($student->email)->queue(new ClassScheduledNotification($schedule, $courseTitle));
-        }
+            // Every student in the department is notified, regardless of level.
+            User::where('usertype', 'student')
+                ->where('department_id', $schedule->department_id)
+                ->chunkById(200, function ($students) use ($schedule, $courseTitle) {
+                    foreach ($students as $student) {
+                        Mail::to($student->email)->queue(
+                            (new ClassScheduledNotification($schedule, $courseTitle, $student->name))->afterCommit()
+                        );
+                    }
+                });
+        });
 
         // Redirect to the schedule list with a success message
-        return redirect()->route('admin.class-schedules.index')->with('success', 'Schedule created successfully, and students were notified via email.');
+        return redirect()->route('admin.class-schedules.index')->with('success', 'Schedule created. Dashboard notifications are available and student emails have been queued.');
     }
 
 

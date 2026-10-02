@@ -26,7 +26,7 @@ class DatabaseBackups
             if ($file->isLink() || ! $path || ! str_starts_with($path, $root.DIRECTORY_SEPARATOR) || $file->getExtension() !== 'sql') {
                 continue;
             }
-            $relative = substr($path, strlen($root) + 1);
+            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($path, strlen($root) + 1));
             $backups[] = ['id' => hash('sha256', $relative), 'name' => $file->getFilename(),
                 'folder' => dirname($relative), 'path' => $path, 'size' => $file->getSize(), 'modified' => $file->getMTime()];
         }
@@ -98,7 +98,16 @@ class DatabaseBackups
         if (! empty($config['unix_socket'])) {
             $arguments[] = '--socket='.$config['unix_socket'];
         }
-        $process = new Process(array_merge($arguments, $options), base_path(), ['MYSQL_PWD' => $config['password'] ?? '']);
+        $environment = ['MYSQL_PWD' => $config['password'] ?? ''];
+        // Web SAPIs may omit SystemRoot from the inherited subprocess environment.
+        // Windows needs it to initialize the MySQL client's TCP/IP sockets.
+        if (PHP_OS_FAMILY === 'Windows') {
+            $systemRoot = getenv('SystemRoot') ?: getenv('windir');
+            if ($systemRoot !== false && $systemRoot !== '') {
+                $environment['SystemRoot'] = $systemRoot;
+            }
+        }
+        $process = new Process(array_merge($arguments, $options), base_path(), $environment);
         $process->setTimeout(config('backups.timeout'));
 
         return $process;
@@ -150,7 +159,7 @@ class DatabaseBackups
         $partial = $path.'.partial';
         try {
             $this->run($this->process(config('backups.dump_binary'), [
-                '--single-transaction', '--quick', '--routines', '--triggers', '--hex-blob', '--no-tablespaces', '--set-gtid-purged=OFF',
+                '--single-transaction', '--quick', '--routines', '--triggers', '--hex-blob', '--no-tablespaces',
                 '--result-file='.$partial, $config['database'],
             ]));
             if (! is_file($partial) || filesize($partial) === 0) {

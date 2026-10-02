@@ -24,8 +24,8 @@
             <div class="card">
                 <div class="card-body">
                     <h3>Edit Questions for: {{ $test->name }}</h3>
+                    @include('admin.tests.question-feedback')
                     <ul class="list-group">
-                        @foreach ($test->questions as $question)
                             <li class="list-group-item mb-4">
                                 <form action="{{ route($routePrefix.'.tests.questions.update', [$test->id, $question->id]) }}" method="POST">
                                     @csrf
@@ -33,26 +33,30 @@
 
                                     <div class="mb-3">
                                         <label for="question_text_{{ $question->id }}" class="form-label">Question</label>
-                                        <textarea name="question_text" id="question_text_{{ $question->id }}" class="form-control" rows="3" required>{{ $question->question_text }}</textarea>
+                                        <textarea name="question_text" id="question_text_{{ $question->id }}" class="form-control" rows="3" required>{{ old('question_text', $question->question_text) }}</textarea>
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label">Options</label>
                                         <div>
                                             @foreach ($question->options as $index => $option)
-                                                <input type="text" name="options[]" class="form-control mb-2" value="{{ $option }}" placeholder="Option {{ $index + 1 }}" required>
+                                                <input type="text" name="options[]" class="form-control mb-2" value="{{ old('options.'.$index, $option) }}" placeholder="Option {{ $index + 1 }}" required>
                                             @endforeach
                                         </div>
                                     </div>
 
                                     <div class="mb-3">
-                                        <label for="correct_option_{{ $question->id }}" class="form-label">Correct Option (e.g., 1, 2, 3, 4)</label>
-                                        <input type="number" name="correct_option" id="correct_option_{{ $question->id }}" class="form-control" value="{{ $question->correct_option }}" required>
+                                        <label for="correct_option_{{ $question->id }}" class="form-label">Correct Option</label>
+                                        <select name="correct_option" id="correct_option_{{ $question->id }}" class="form-control" required>
+                                            @foreach($question->options as $index => $option)
+                                                <option value="{{ $index }}" @selected((string) old('correct_option', $question->correct_option) === (string) $index)>Option {{ $index + 1 }}</option>
+                                            @endforeach
+                                        </select>
                                     </div>
 
                                     <div class="mb-3">
                                         <label for="marks_{{ $question->id }}" class="form-label">Marks</label>
-                                        <input type="number" name="marks" id="marks_{{ $question->id }}" class="form-control" value="{{ $question->marks }}" required>
+                                        <input type="number" name="marks" id="marks_{{ $question->id }}" class="form-control" value="{{ old('marks', $question->marks) }}" min="1" required>
                                     </div>
 
                                     <button type="submit" class="btn btn-success">Update Question</button>
@@ -63,7 +67,6 @@
                                     <button type="submit" class="btn btn-danger">Delete Question</button>
                                 </form>
                             </li>
-                        @endforeach
                     </ul>
                 </div>
             </div>

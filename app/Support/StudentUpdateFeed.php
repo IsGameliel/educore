@@ -27,6 +27,7 @@ class StudentUpdateFeed
                 'test_updated',
                 'result_published',
                 'pass_mark_updated',
+                'class_scheduled',
             ])
             ->where(function ($query) use ($user) {
                 $query->where('target_user_id', $user->id)
@@ -40,7 +41,7 @@ class StudentUpdateFeed
                     return (int) $activity->target_user_id === (int) $user->id;
                 }
 
-                if ($activity->action === 'pass_mark_updated') {
+                if (in_array($activity->action, ['pass_mark_updated', 'class_scheduled'], true)) {
                     return (int) $activity->department_id === (int) $user->department_id;
                 }
 
@@ -78,6 +79,7 @@ class StudentUpdateFeed
     protected static function meta(string $action): array
     {
         return match ($action) {
+            'class_scheduled' => ['label' => 'Class Scheduled', 'status' => 'Scheduled', 'color' => 'primary', 'icon' => 'mdi-calendar-clock'],
             'course_created' => ['label' => 'Course Update', 'status' => 'Added', 'color' => 'info', 'icon' => 'mdi-book-plus'],
             'course_updated' => ['label' => 'Course Update', 'status' => 'Changed', 'color' => 'warning', 'icon' => 'mdi-book-edit'],
             'material_uploaded' => ['label' => 'Lecture Material', 'status' => 'Uploaded', 'color' => 'primary', 'icon' => 'mdi-file-upload-outline'],
