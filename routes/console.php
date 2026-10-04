@@ -14,6 +14,7 @@ Artisan::command('inspire', function () {
 Schedule::command('backup:database')
     ->sundays()
     ->at('01:00')
+    ->timezone('Africa/Lagos')
     ->withoutOverlapping();
 
 Schedule::command('payments:reconcile')->everyTenMinutes()->withoutOverlapping();

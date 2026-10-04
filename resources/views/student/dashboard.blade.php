@@ -103,7 +103,7 @@
                             <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
                                 <div>
                                     <h4 class="card-title mb-1">Recent Updates</h4>
-                                    <p class="text-muted mb-0">Course and result updates that apply to your department or record.</p>
+                                    <p class="text-muted mb-0">Class schedules, course and result updates for your department or record.</p>
                                 </div>
                                 <span class="badge badge-gradient-primary">Live</span>
                             </div>
@@ -142,7 +142,7 @@
                                 <div class="text-center py-5">
                                     <i class="mdi mdi-bell-outline text-muted" style="font-size: 42px;"></i>
                                     <h5 class="mt-3 mb-1 text-dark">No recent updates yet</h5>
-                                    <p class="text-muted mb-0">Course changes and published results for you will appear here.</p>
+                                    <p class="text-muted mb-0">New class schedules, course changes and published results for you will appear here.</p>
                                 </div>
                             @endforelse
                         </div>

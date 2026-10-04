@@ -435,6 +435,16 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
         return redirect()->route($this->testRouteName('index'))->with('success', 'Test updated successfully');
     }
 
+    public function destroy($testId)
+    {
+        $test = Tests::findOrFail($testId);
+        $this->ensureCanManageTest($test);
+        $test->delete();
+
+        return redirect()->route($this->testRouteName('index'))
+            ->with('success', 'Test deleted successfully. Its questions and student responses were also deleted.');
+    }
+
     public function manageQuestions($testId)
     {
         $test = Tests::with('questions')->findOrFail($testId);
@@ -449,8 +459,9 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
 
         $validated = $request->validate([
             'question_text' => 'required|string',
-            'options' => 'required|array|min:2',
-            'correct_option' => 'required|in:' . implode(',', array_keys($request->options)),
+            'options' => 'required|array|list|min:2',
+            'options.*' => 'required|string',
+            'correct_option' => ['required', 'integer', \Illuminate\Validation\Rule::in(array_keys((array) $request->input('options', [])))],
             'marks' => 'required|integer|min:1',
         ]);
 
@@ -481,9 +492,10 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
 
         $validatedData = $request->validate([
             'question_text' => 'required|string',
-            'options' => 'required|array',
-            'correct_option' => 'required|string|in:' . implode(',', array_keys($request->options)),
-            'marks' => 'required|integer',
+            'options' => 'required|array|list|min:2',
+            'options.*' => 'required|string',
+            'correct_option' => ['required', 'integer', \Illuminate\Validation\Rule::in(array_keys((array) $request->input('options', [])))],
+            'marks' => 'required|integer|min:1',
         ]);
 
         $question->update($validatedData);

@@ -289,6 +289,7 @@ Route::middleware([
             Route::post('/', [TestController::class, 'store'])->name('store');
             Route::get('/{testId}/edit', [TestController::class, 'edit'])->name('edit');
             Route::put('/{testId}', [TestController::class, 'update'])->name('update');
+            Route::delete('/{testId}', [TestController::class, 'destroy'])->name('destroy');
             Route::get('/{testId}/questions', [TestController::class, 'manageQuestions'])->name('questions');
             Route::post('/{testId}/questions', [TestController::class, 'storeQuestions'])->name('questions.store');
             Route::get('/{testId}/questions/{questionId}/edit', [TestController::class, 'editQuestion'])->name('questions.edit');
@@ -392,6 +393,7 @@ Route::middleware([
             Route::post('/', [TestController::class, 'store'])->name('store');
             Route::get('/{testId}/edit', [TestController::class, 'edit'])->name('edit');
             Route::put('/{testId}', [TestController::class, 'update'])->name('update');
+            Route::delete('/{testId}', [TestController::class, 'destroy'])->name('destroy');
             Route::get('/{testId}/questions', [TestController::class, 'manageQuestions'])->name('questions');
             Route::post('/{testId}/questions', [TestController::class, 'storeQuestions'])->name('questions.store');
             Route::get('/{testId}/questions/{questionId}/edit', [TestController::class, 'editQuestion'])->name('questions.edit');

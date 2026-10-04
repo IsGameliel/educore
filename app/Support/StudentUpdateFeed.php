@@ -30,6 +30,7 @@ class StudentUpdateFeed
                 'student_service_appeal',
                 'student_service_transcript',
                 'student_service_transcript_document',
+                'class_scheduled',
             ])
             ->where(function ($query) use ($user) {
                 $query->where('target_user_id', $user->id)
@@ -44,7 +45,7 @@ class StudentUpdateFeed
                     return (int) $activity->target_user_id === (int) $user->id;
                 }
 
-                if ($activity->action === 'pass_mark_updated') {
+                if (in_array($activity->action, ['pass_mark_updated', 'class_scheduled'], true)) {
                     return (int) $activity->department_id === (int) $user->department_id;
                 }
 
@@ -85,6 +86,7 @@ class StudentUpdateFeed
             'student_service_appeal' => ['label'=>'Appeal Update','status'=>'Updated','color'=>'info','icon'=>'mdi-comment-alert-outline'],
             'student_service_transcript' => ['label'=>'Transcript Update','status'=>'Updated','color'=>'info','icon'=>'mdi-file-document'],
             'student_service_transcript_document' => ['label'=>'Transcript Revoked','status'=>'Action needed','color'=>'warning','icon'=>'mdi-file-document'],
+            'class_scheduled' => ['label' => 'Class Scheduled', 'status' => 'Scheduled', 'color' => 'primary', 'icon' => 'mdi-calendar-clock'],
             'course_created' => ['label' => 'Course Update', 'status' => 'Added', 'color' => 'info', 'icon' => 'mdi-book-plus'],
             'course_updated' => ['label' => 'Course Update', 'status' => 'Changed', 'color' => 'warning', 'icon' => 'mdi-book-edit'],
             'material_uploaded' => ['label' => 'Lecture Material', 'status' => 'Uploaded', 'color' => 'primary', 'icon' => 'mdi-file-upload-outline'],

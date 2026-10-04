@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\DepartmentalBroadsheetExport;
 use App\Models\AcademicSession;
 use App\Models\CourseRegistration;
 use App\Models\Department;
@@ -354,6 +355,9 @@ class AcademicPortalController extends Controller
     public function reports(Request $request)
     {
         abort_unless(ResultAccess::manager($request->user()), 403);
+        if ($request->boolean('export_broadsheet')) {
+            $request->validate(['department_id' => 'required', 'session' => 'required']);
+        }
         $data = $request->validate(['department_id' => 'nullable|exists:departments,id', 'session' => ['nullable', Rule::exists('academic_sessions', 'name')], 'semester' => 'nullable|in:First,Second']);
         $rows = collect();
         $distribution = collect();
@@ -368,6 +372,14 @@ class AcademicPortalController extends Controller
                 ->when($data['semester'] ?? null, fn ($q, $semester) => $q->where('semester', $semester))->get();
             $counts = $results->countBy('workflow_status');
             $published = $results->where('workflow_status', 'published');
+            if ($request->boolean('export_broadsheet')) {
+                return \Maatwebsite\Excel\Facades\Excel::download(
+                    new DepartmentalBroadsheetExport($published, Department::findOrFail($departmentId)->name, $session, $data['semester'] ?? null),
+                    'departmental-broadsheet.xlsx',
+                    \Maatwebsite\Excel\Excel::XLSX,
+                    ['Cache-Control' => 'private, no-store'],
+                );
+            }
             $graded = $published->where('outcome_status', 'graded');
             $passedCount = $graded->filter(fn ($r) => $r->grade_point > 0)->count();
             $performance = ['graded' => $graded->count(), 'passed' => $passedCount, 'failed' => $graded->count() - $passedCount, 'pass_rate' => $graded->isEmpty() ? null : round(100 * $passedCount / $graded->count(), 1)];

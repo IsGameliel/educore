@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Department;
 use App\Models\Courses;
+use Illuminate\Validation\Rule;
 
 
 class CourseMaterialController extends Controller
@@ -37,9 +38,11 @@ class CourseMaterialController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'level' => 'required|string',
-            'semester' => 'required|string',
-            'department_id' => 'nullable|exists:departments,id',
-            'course_id' => 'nullable|exists:courses,id',
+            'semester' => 'required|in:First,Second',
+            'department_id' => 'required|exists:departments,id',
+            'course_id' => ['required', Rule::exists('courses', 'id')->where(fn ($query) => $query
+                ->where('department_id', $request->input('department_id'))
+                ->where('semester', $request->input('semester')))],
             'file' => 'required|file|mimes:pdf|max:20480', // Validate for PDF files
             'cover_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5048', // Validate for images
         ]);
@@ -109,9 +112,11 @@ class CourseMaterialController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'level' => 'required|string',
-            'semester' => 'required|string',
-            'department_id' => 'nullable|exists:departments,id',
-            'course_id' => 'nullable|exists:courses,id',
+            'semester' => 'required|in:First,Second',
+            'department_id' => 'required|exists:departments,id',
+            'course_id' => ['required', Rule::exists('courses', 'id')->where(fn ($query) => $query
+                ->where('department_id', $request->input('department_id'))
+                ->where('semester', $request->input('semester')))],
             'file' => 'nullable|file|mimes:pdf|max:20480', // Validate for PDF files
             'cover_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5048', // Validate for images
         ]);
