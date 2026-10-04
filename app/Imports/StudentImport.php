@@ -31,6 +31,7 @@ class StudentImport implements ToCollection, WithHeadingRow
                 'matric_number' => trim((string) ($row['matric_number'] ?? '')) ?: null,
                 'level' => trim((string) ($row['level'] ?? '')),
                 'department_id' => $row['department_id'] ?? null,
+                'entry_year' => $row['entry_year'] ?? null,
             ];
 
             $validator = Validator::make($data, [
@@ -39,6 +40,7 @@ class StudentImport implements ToCollection, WithHeadingRow
                 'matric_number' => ['nullable', 'string', 'max:255', Rule::unique('users', 'matric_number')],
                 'level' => ['required', Rule::in(['100', '200', '300', '400', '500', '600'])],
                 'department_id' => ['required', 'exists:departments,id'],
+                'entry_year' => ['required', 'integer', 'between:1900,2100'],
             ]);
 
             if ($validator->fails()) {
@@ -62,6 +64,7 @@ class StudentImport implements ToCollection, WithHeadingRow
                         'matric_number' => $data['matric_number'],
                         'level' => $data['level'],
                         'department_id' => $data['department_id'],
+                        'entry_year' => $data['entry_year'],
                     ]);
 
                     $user->ownedTeams()->create([

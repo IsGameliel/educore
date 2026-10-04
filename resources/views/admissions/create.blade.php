@@ -20,6 +20,7 @@
             </a>
             <div class="flex items-center gap-3 text-sm">
                 <span class="hidden text-slate-500 sm:inline">{{ $user->email }}</span>
+                <a href="{{ route('payments.index') }}" class="font-semibold text-blue-700">My payments</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-600 hover:bg-slate-100" type="submit">Logout</button>
@@ -38,6 +39,10 @@
         @if($application)
             <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
                 Application <strong>{{ $application->application_number }}</strong> is {{ $application->status }}.
+                @if($application->status === 'awaiting_payment' && $application->payment)
+                    Your form is saved. Pay the application fee to activate student access.
+                    <a href="{{ route('payments.show', $application->payment) }}" class="block mt-2 font-bold underline">Continue payment — &#8358;10,000</a>
+                @endif
                 @if($user->usertype === 'student')
                     Your account is already a student account.
                 @endif
@@ -58,6 +63,10 @@
         <div class="grid gap-8 lg:grid-cols-[1fr_320px]">
             <form method="POST" action="{{ route('admissions.store') }}" class="space-y-6" enctype="multipart/form-data">
                 @csrf
+                @if($application?->status === 'awaiting_payment')
+                    <p class="rounded-lg bg-blue-50 p-4 text-blue-900">Your submitted form is saved below. Use Continue payment above to finish your admission.</p>
+                @endif
+                <fieldset class="space-y-6" @disabled($application?->status === 'awaiting_payment')>
 
                 <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
                     <div class="border-b border-slate-100 px-6 py-5">
@@ -250,12 +259,13 @@
                 <div class="flex flex-col gap-3 rounded-lg border border-blue-100 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h3 class="font-bold text-blue-950">Submit admission application</h3>
-                        <p class="text-sm text-blue-800">Once submitted, your account becomes a student account.</p>
+                        <p class="text-sm text-blue-800">Pay the &#8358;10,000 application fee through Paystack. Student access activates after payment is confirmed.</p>
                     </div>
                     <button class="rounded-lg bg-blue-700 px-6 py-3 font-bold text-white shadow-sm hover:bg-blue-800" type="submit">
-                        Complete Admission
+                        Continue to payment — &#8358;10,000
                     </button>
                 </div>
+                </fieldset>
             </form>
 
             <aside class="space-y-4">
@@ -264,7 +274,7 @@
                     <ol class="mt-4 space-y-3 text-sm text-slate-600">
                         <li class="flex gap-3"><span class="font-bold text-blue-700">1.</span> Create an account.</li>
                         <li class="flex gap-3"><span class="font-bold text-blue-700">2.</span> Choose your applicant type and fill all sections.</li>
-                        <li class="flex gap-3"><span class="font-bold text-blue-700">3.</span> Submit to activate student access.</li>
+                        <li class="flex gap-3"><span class="font-bold text-blue-700">3.</span> Pay &#8358;10,000 to complete admission and activate student access.</li>
                     </ol>
                 </div>
                 <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">

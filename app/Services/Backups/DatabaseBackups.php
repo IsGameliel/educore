@@ -14,6 +14,7 @@ use Throwable;
 
 class DatabaseBackups
 {
+    protected ?array $configuredConnection = null;
     public function listing(): array
     {
         $root = realpath(config('backups.directory'));
@@ -26,7 +27,7 @@ class DatabaseBackups
             if ($file->isLink() || ! $path || ! str_starts_with($path, $root.DIRECTORY_SEPARATOR) || $file->getExtension() !== 'sql') {
                 continue;
             }
-            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($path, strlen($root) + 1));
+            $relative = str_replace('\\', '/', substr($path, strlen($root) + 1));
             $backups[] = ['id' => hash('sha256', $relative), 'name' => $file->getFilename(),
                 'folder' => dirname($relative), 'path' => $path, 'size' => $file->getSize(), 'modified' => $file->getMTime()];
         }
@@ -71,13 +72,13 @@ class DatabaseBackups
 
         return ['database' => $database, 'tables_with_data' => array_keys($tables),
             'complete' => str_contains($tail, '-- Dump completed on '),
-            'compatible' => ! $unsafe && $database === config('database.connections.'.config('database.default').'.database'),
+            'compatible' => ! $unsafe && $database === ($this->configuredConnection['database'] ?? config('database.connections.'.config('database.default').'.database')),
             'checksum' => hash_file('sha256', $backup['path'])];
     }
 
     protected function connection(): array
     {
-        $config = config('database.connections.'.config('database.default'));
+        $config = $this->configuredConnection ?? config('database.connections.'.config('database.default'));
         if (($config['driver'] ?? null) !== 'mysql' || empty($config['database'])) {
             throw new RuntimeException('Dashboard database backups and restores require a configured MySQL database.');
         }
@@ -99,12 +100,14 @@ class DatabaseBackups
             $arguments[] = '--socket='.$config['unix_socket'];
         }
         $environment = ['MYSQL_PWD' => $config['password'] ?? ''];
-        // Web SAPIs may omit SystemRoot from the inherited subprocess environment.
-        // Windows needs it to initialize the MySQL client's TCP/IP sockets.
         if (PHP_OS_FAMILY === 'Windows') {
-            $systemRoot = getenv('SystemRoot') ?: getenv('windir');
-            if ($systemRoot !== false && $systemRoot !== '') {
-                $environment['SystemRoot'] = $systemRoot;
+            // Web SAPIs may omit these from $_SERVER; Symfony then filters them
+            // out of the child environment, preventing Winsock initialization.
+            foreach (['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'PATH'] as $variable) {
+                $value = getenv($variable, true);
+                if ($value !== false && $value !== '') {
+                    $environment[$variable] = $value;
+                }
             }
         }
         $process = new Process(array_merge($arguments, $options), base_path(), $environment);
@@ -156,10 +159,19 @@ class DatabaseBackups
         File::ensureDirectoryExists($directory, 0700);
         $name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $config['database']).'_'.now()->format('Y-m-d_His').'_'.Str::random(8).'.sql';
         $path = $directory.'/'.$name;
+        $this->writeDump($path);
+
+        return $this->find(hash('sha256', $folder.'/'.$name));
+    }
+
+    protected function writeDump(string $path): void
+    {
+        $config = $this->connection();
         $partial = $path.'.partial';
         try {
             $this->run($this->process(config('backups.dump_binary'), [
                 '--single-transaction', '--quick', '--routines', '--triggers', '--hex-blob', '--no-tablespaces',
+                ...$this->replicationOptions($this->dumpVersion()),
                 '--result-file='.$partial, $config['database'],
             ]));
             if (! is_file($partial) || filesize($partial) === 0) {
@@ -178,7 +190,49 @@ class DatabaseBackups
             throw $exception;
         }
 
-        return $this->find(hash('sha256', $folder.'/'.$name));
+    }
+
+    public function scheduled(array $connection, string $directory, int $retentionDays, bool $cleanupOnly = false): array
+    {
+        $manager = clone $this;
+        $manager->configuredConnection = $connection;
+        $manager->connection();
+        return $manager->exclusive(function () use ($manager, $directory, $retentionDays, $cleanupOnly) {
+            File::ensureDirectoryExists($directory, 0700);
+            $root = realpath($directory);
+            if (! $root) { throw new RuntimeException('Backup directory is unavailable.'); }
+            $prefix = preg_replace('/[^a-zA-Z0-9_-]/', '_', $manager->connection()['database']).'_';
+            $path = null;
+            if (! $cleanupOnly) {
+                $path = $root.DIRECTORY_SEPARATOR.$prefix.now()->format('Y-m-d_His').'_'.Str::random(8).'.sql';
+                $manager->writeDump($path);
+            }
+            $deleted = 0;
+            foreach (File::files($root) as $file) {
+                $resolved = $file->getRealPath();
+                if ($file->isLink() || ! $resolved || dirname($resolved) !== $root || $file->getExtension() !== 'sql'
+                    || ! str_starts_with($file->getFilename(), $prefix) || $file->getMTime() >= now()->subDays(max(1, $retentionDays))->timestamp) { continue; }
+                $inspection = $manager->inspect(['path' => $resolved, 'size' => $file->getSize()]);
+                if ($inspection['complete'] && $inspection['compatible']) { File::delete($resolved); $deleted++; }
+            }
+            return compact('path', 'deleted');
+        });
+    }
+
+    protected function dumpVersion(): string
+    {
+        $version = $this->process(config('backups.dump_binary'), ['--version']);
+        if ($version->run() !== 0) {
+            throw new RuntimeException('Unable to identify the database backup client. Check DB_BACKUP_BINARY.');
+        }
+
+        return $version->getOutput();
+    }
+
+    protected function replicationOptions(string $version): array
+    {
+        // MariaDB does not support MySQL's --set-gtid-purged option.
+        return stripos($version, 'MariaDB') !== false ? [] : ['--set-gtid-purged=OFF'];
     }
 
     /** Remove dump-only replication state; retain all schema and record statements. */

@@ -6,8 +6,15 @@ use App\Models\Faculty;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
+use App\Models\Payment;
 
 beforeEach(function () {
+    config(['services.paystack.secret_key' => 'sk_test_example']);
+    Http::preventStrayRequests();
+    Http::fake(['api.paystack.co/transaction/initialize' => fn ($request) => Http::response([
+        'status' => true, 'data' => ['reference' => $request['reference'], 'authorization_url' => 'https://checkout.paystack.com/test-checkout'],
+    ])]);
     Storage::fake('public');
     $this->applicant = User::factory()->create(['usertype' => 'applicant']);
     $faculty = Faculty::create(['name' => 'Science', 'code' => 'SCI']);
@@ -39,11 +46,23 @@ it('submits each applicant type with academic records and documents', function (
         'transcript' => UploadedFile::fake()->create('transcript.pdf', 10, 'application/pdf'),
     ]);
     $this->actingAs($this->applicant)->post(route('admissions.store'), $payload)
-        ->assertSessionHasNoErrors()->assertRedirect(route('dashboard'));
+        ->assertSessionHasNoErrors()->assertRedirect('https://checkout.paystack.com/test-checkout');
     $application = AdmissionApplication::where('user_id', $this->applicant->id)->sole();
     expect($application->admission_type)->toBe($type)
         ->and($application->qualification)->toBe($qualification)
-        ->and($this->applicant->fresh()->usertype)->toBe('student');
+        ->and($this->applicant->fresh()->usertype)->toBe('applicant')
+        ->and($application->status)->toBe('awaiting_payment')
+        ->and($application->completed_at)->toBeNull();
+    $payment = Payment::sole();
+    expect($payment->amount)->toBe(1000000);
+    Http::fake(['api.paystack.co/transaction/verify/*' => Http::response([
+        'status' => true, 'data' => ['id' => 123456, 'reference' => $payment->reference, 'status' => 'success',
+            'amount' => 1000000, 'currency' => 'NGN', 'domain' => 'test', 'customer' => ['email' => $payment->email]],
+    ])]);
+    $this->get(route('payments.callback', ['reference' => $payment->reference]))->assertRedirect(route('dashboard'));
+    expect($this->applicant->fresh()->usertype)->toBe('student')
+        ->and($application->fresh()->status)->toBe('completed')
+        ->and($payment->fresh()->status)->toBe('success');
     if ($qualification === 'Olevel') {
         expect($application->olevel_results)->toBe([
             ['subject' => 'Mathematics', 'grade' => 'A1'],
@@ -74,6 +93,26 @@ it('requires country for foreign applicants', function () {
     $this->actingAs($this->applicant)->post(route('admissions.store'), array_merge($this->payload, [
         'admission_type' => 'foreign', 'country' => '',
     ]))->assertSessionHasErrors('country');
+});
+
+it('preserves applicant access until payment and reuses a saved application', function () {
+    $this->actingAs($this->applicant);
+    $this->post(route('admissions.store'), $this->payload)->assertRedirect('https://checkout.paystack.com/test-checkout');
+    $this->post(route('admissions.store'), $this->payload)->assertRedirect('https://checkout.paystack.com/test-checkout');
+    expect(Payment::count())->toBe(1)->and(AdmissionApplication::count())->toBe(1)
+        ->and($this->applicant->fresh()->usertype)->toBe('applicant');
+    Http::assertSentCount(1);
+    $this->get(route('admissions.create'))->assertOk()->assertSee('Continue payment');
+    $this->get(route('payments.show', Payment::sole()))->assertOk()->assertSee('10,000');
+});
+
+it('keeps the complete admission form saved when the payment gateway is unavailable', function () {
+    Http::swap(new \Illuminate\Http\Client\Factory);
+    Http::preventStrayRequests();
+    Http::fake(['api.paystack.co/transaction/initialize' => Http::response([], 503)]);
+    $this->actingAs($this->applicant)->post(route('admissions.store'), $this->payload)->assertSessionHasErrors('payment');
+    expect(AdmissionApplication::sole()->status)->toBe('awaiting_payment')
+        ->and($this->applicant->fresh()->usertype)->toBe('applicant');
 });
 
 it('rejects unsupported and oversized uploads', function () {

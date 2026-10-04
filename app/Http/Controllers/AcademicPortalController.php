@@ -223,12 +223,13 @@ class AcademicPortalController extends Controller
         $actor = $request->user();
         $manager = ResultAccess::manager($actor);
         abort_unless($manager || $actor->dashboardRole() === 'student', 403);
-        $appeals = ResultAppeal::when(! $manager, fn ($q) => $q->where('user_id', $actor->id))->latest()->paginate(20);
+        $appeals = ResultAppeal::with('payment')->when($manager, fn ($q) => $q->where('status', '!=', 'awaiting_payment'))
+            ->when(! $manager, fn ($q) => $q->where('user_id', $actor->id))->latest()->paginate(20);
 
         return view('academic.appeals', compact('appeals', 'manager') + $this->options());
     }
 
-    public function storeAppeal(Request $request)
+    public function storeAppeal(Request $request, \App\Services\PaystackPayments $gateway)
     {
         abort_unless($request->user()->dashboardRole() === 'student', 403);
         $data = $request->validate(['session' => ['required', Rule::exists('academic_sessions', 'name')], 'semester' => 'required|in:First,Second', 'course_code' => 'required|string|max:100', 'message' => 'required|string|min:10|max:5000', 'evidence' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120']);
@@ -239,9 +240,14 @@ class AcademicPortalController extends Controller
         if ($request->hasFile('evidence')) {
             $data['evidence_path'] = $request->file('evidence')->store('appeal-evidence', 'local');
         }
-        ResultAppeal::create($data);
+        $payment = DB::transaction(function () use ($data, $request, $gateway) {
+            User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+            $appeal = ResultAppeal::firstOrCreate($data + ['status' => 'awaiting_payment']);
 
-        return back()->with('success', 'Appeal submitted. You can track the response here.');
+            return $gateway->create($appeal, $request->user(), 'appeal');
+        }, 3);
+
+        return app(PaymentController::class)->start($payment, $gateway);
     }
 
     public function resolveAppeal(Request $request, ResultAppeal $appeal)
@@ -250,6 +256,9 @@ class AcademicPortalController extends Controller
         $data = $request->validate(['status' => 'required|in:in_review,resolved,rejected', 'response' => 'required|string|min:5|max:5000']);
         DB::transaction(function () use ($appeal, $data, $request) {
             $appeal = ResultAppeal::lockForUpdate()->findOrFail($appeal->id);
+            if ($appeal->status === 'awaiting_payment') {
+                throw ValidationException::withMessages(['appeal' => 'Payment is required before this appeal can be reviewed.']);
+            }
             if (in_array($appeal->status, ['resolved', 'rejected'], true)) {
                 throw ValidationException::withMessages(['appeal' => 'This appeal is already closed.']);
             }
@@ -262,6 +271,7 @@ class AcademicPortalController extends Controller
     public function evidence(Request $request, ResultAppeal $appeal)
     {
         abort_unless(ResultAccess::manager($request->user()) || $request->user()->id === $appeal->user_id, 403);
+        abort_if($appeal->status === 'awaiting_payment' && $request->user()->id !== $appeal->user_id, 403);
         abort_unless($appeal->evidence_path && Storage::disk('local')->exists($appeal->evidence_path), 404);
 
         return Storage::disk('local')->download($appeal->evidence_path, null, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
@@ -272,22 +282,35 @@ class AcademicPortalController extends Controller
         $actor = $request->user();
         $manager = ResultAccess::manager($actor);
         abort_unless($manager || $actor->dashboardRole() === 'student', 403);
-        $requests = TranscriptRequest::when(! $manager, fn ($q) => $q->where('user_id', $actor->id))->latest()->paginate(20);
+        $requests = TranscriptRequest::with('payment')->when($manager, fn ($q) => $q->where('status', '!=', 'awaiting_payment'))
+            ->when(! $manager, fn ($q) => $q->where('user_id', $actor->id))->latest()->paginate(20);
         $documents = TranscriptDocument::when(! $manager, fn ($q) => $q->where('user_id', $actor->id))->latest()->limit(50)->get();
 
         return view('academic.transcripts', compact('requests', 'documents', 'manager') + $this->options());
     }
 
-    public function requestTranscript(Request $request)
+    public function requestTranscript(Request $request, \App\Services\PaystackPayments $gateway)
     {
         $actor = $request->user();
         $manager = ResultAccess::manager($actor);
         abort_unless($manager || $actor->dashboardRole() === 'student', 403);
         $data = $request->validate(['user_id' => $manager ? 'required|exists:users,id' : 'nullable', 'purpose' => 'required|string|min:5|max:1000']);
         $student = $manager ? User::where('usertype', 'student')->findOrFail($data['user_id']) : $actor;
-        TranscriptRequest::create(['user_id' => $student->id, 'department_id' => $student->department_id, 'purpose' => $data['purpose']]);
+        abort_unless($student->department_id, 422, 'A department is required.');
+        $payment = DB::transaction(function () use ($student, $data, $gateway) {
+            User::whereKey($student->id)->lockForUpdate()->firstOrFail();
+            $transcript = TranscriptRequest::firstOrCreate([
+                'user_id' => $student->id, 'department_id' => $student->department_id,
+                'purpose' => $data['purpose'], 'status' => 'awaiting_payment',
+            ]);
 
-        return back()->with('success', 'Official transcript request submitted.');
+            return $gateway->create($transcript, $student, 'transcript');
+        }, 3);
+        if ($manager) {
+            return back()->with('success', 'Request saved. The student must pay ₦30,000 from their Payments page before it is submitted for review.');
+        }
+
+        return app(PaymentController::class)->start($payment, $gateway);
     }
 
     public function decideTranscript(Request $request, TranscriptRequest $transcriptRequest)

@@ -13,6 +13,9 @@ use App\Http\Controllers\{
 };
 
 use App\Http\Controllers\AcademicPortalController;
+use App\Http\Controllers\PaymentController;
+
+Route::post('/payments/paystack/webhook', [PaymentController::class, 'webhook'])->name('payments.webhook');
 
 Route::get('/verify-transcript/{code}', [AcademicPortalController::class, 'verify'])->whereUuid('code')->middleware('throttle:30,1')->name('academic.verify');
 
@@ -69,6 +72,45 @@ Route::middleware([
         ->name('documents.transcripts.show');
 
     Route::get('/home', [HomeController::class, 'index'])->name('dashboard');
+    Route::get('/academic-assistance', [\App\Http\Controllers\AcademicAssistanceController::class, 'index'])->name('academic.assistance');
+    Route::get('/student-services', [\App\Http\Controllers\StudentServicesController::class, 'index'])->name('student.services');
+    Route::get('/payments/paystack/callback', [PaymentController::class, 'callback'])->middleware('throttle:30,1')->name('payments.callback');
+    Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+    Route::get('/payments/receipts', [PaymentController::class, 'receipts'])->name('payments.receipts');
+    Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::post('/payments/{payment}/checkout', [PaymentController::class, 'checkout'])->middleware('throttle:10,1')->name('payments.checkout');
+    Route::post('/payments/{payment}/refresh', [PaymentController::class, 'refresh'])->middleware('throttle:10,1')->name('payments.refresh');
+
+    Route::middleware('usertype:student')->prefix('tuition')->name('tuition.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\TuitionController::class, 'index'])->name('index');
+        Route::get('/{invoice}', [\App\Http\Controllers\TuitionController::class, 'show'])->name('show');
+        Route::post('/{invoice}/pay', [\App\Http\Controllers\TuitionController::class, 'pay'])->middleware('throttle:10,1')->name('pay');
+    });
+    Route::middleware('usertype:admin,bursar,accountant')->prefix('finance')->name('finance.')->group(function () {
+        Route::get('/controls', [\App\Http\Controllers\Finance\FinancialControlController::class, 'index'])->name('controls');
+        Route::post('/approvals/{approval}/review', [\App\Http\Controllers\Finance\FinancialControlController::class, 'review'])->name('approvals.review');
+        Route::get('/payments/export', [\App\Http\Controllers\Admin\PaymentController::class, 'export'])->name('payments.export');
+        Route::get('/templates', [\App\Http\Controllers\Finance\TuitionTemplateController::class, 'index'])->name('templates');
+        Route::post('/templates', [\App\Http\Controllers\Finance\TuitionTemplateController::class, 'store'])->name('templates.store');
+        Route::post('/templates/{template}/apply', [\App\Http\Controllers\Finance\TuitionTemplateController::class, 'apply'])->name('templates.apply');
+        Route::delete('/templates/{template}', [\App\Http\Controllers\Finance\TuitionTemplateController::class, 'destroy'])->name('templates.destroy');
+        Route::get('/reminders', [\App\Http\Controllers\Finance\TuitionController::class, 'reminders'])->name('reminders');
+        Route::post('/invoices/{invoice}/withdrawal', [\App\Http\Controllers\Finance\TuitionController::class, 'resolveWithdrawal'])->name('invoices.withdrawal');
+        Route::get('/payments', [\App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('payments');
+        Route::get('/schedules', [\App\Http\Controllers\Finance\TuitionController::class, 'schedules'])->name('schedules');
+        Route::post('/schedules', [\App\Http\Controllers\Finance\TuitionController::class, 'save'])->name('schedules.store');
+        Route::put('/schedules/{schedule}', [\App\Http\Controllers\Finance\TuitionController::class, 'save'])->name('schedules.update');
+        Route::delete('/schedules/{schedule}', [\App\Http\Controllers\Finance\TuitionController::class, 'destroy'])->name('schedules.destroy');
+        Route::post('/schedules/{schedule}/publish', [\App\Http\Controllers\Finance\TuitionController::class, 'publish'])->name('schedules.publish');
+        Route::post('/sessions/{session}/enable', [\App\Http\Controllers\Finance\TuitionController::class, 'enable'])->name('sessions.enable');
+        Route::post('/sessions/{session}/generate', [\App\Http\Controllers\Finance\TuitionController::class, 'generate'])->name('sessions.generate');
+        Route::get('/invoices', [\App\Http\Controllers\Finance\TuitionController::class, 'invoices'])->name('invoices');
+        Route::get('/invoices/{invoice}', [\App\Http\Controllers\Finance\TuitionController::class, 'show'])->name('invoices.show');
+        Route::post('/invoices/{invoice}/adjust', [\App\Http\Controllers\Finance\TuitionController::class, 'adjust'])->name('invoices.adjust');
+        Route::post('/invoices/{invoice}/exempt', [\App\Http\Controllers\Finance\TuitionController::class, 'exempt'])->name('invoices.exempt');
+        Route::post('/clearances/{clearance}/revoke', [\App\Http\Controllers\Finance\TuitionController::class, 'revoke'])->name('clearances.revoke');
+    });
 
     Route::prefix('academic')->name('academic.')->group(function () {
         Route::get('/', [AcademicPortalController::class, 'index'])->name('index');
@@ -166,6 +208,12 @@ Route::middleware([
     // ADMIN ROUTES
     // -------------------------
     Route::prefix('admin')->name('admin.')->middleware('usertype:admin')->group(function () {
+        Route::get('/registration-settings', [\App\Http\Controllers\Admin\RegistrationSettingsController::class, 'edit'])->name('registration-settings.edit');
+        Route::put('/registration-settings', [\App\Http\Controllers\Admin\RegistrationSettingsController::class, 'update'])->name('registration-settings.update');
+        Route::get('/promotion-policy', [\App\Http\Controllers\Admin\PromotionPolicyController::class, 'edit'])->name('promotion-policy.edit');
+        Route::put('/promotion-policy', [\App\Http\Controllers\Admin\PromotionPolicyController::class, 'update'])->name('promotion-policy.update');
+        Route::get('/system-health', [\App\Http\Controllers\Admin\SystemHealthController::class, 'index'])->name('system-health');
+        Route::get('/payments', [\App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('payments.index');
         Route::prefix('backups')->name('backups.')->controller(\App\Http\Controllers\Admin\BackupController::class)->group(function () {
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->middleware('throttle:3,1')->name('store');
@@ -261,6 +309,7 @@ Route::middleware([
         ]);
 
         Route::prefix('academic-sessions')->name('academic-sessions.')->group(function () {
+            Route::get('/{academicSession}/review', [AcademicSessionController::class, 'review'])->name('review');
             Route::post('/', [AcademicSessionController::class, 'store'])->name('store');
             Route::put('/{academicSession}', [AcademicSessionController::class, 'update'])->name('update');
             Route::post('/{academicSession}/activate', [AcademicSessionController::class, 'activate'])->name('activate');

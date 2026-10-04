@@ -149,7 +149,8 @@
                     </div>
                 </div>
             </div>
+            @include('tuition.dashboard-card')
             @include('dashboard.widgets')
-        </div>
+        </div></div>
         <!-- content-wrapper ends -->
 @endsection

@@ -1,0 +1,18 @@
+@extends('finance.layout')
+@section('heading', 'Tuition invoices & balances')
+@section('finance-content')
+<div class="row">@foreach(['expected'=>'Expected tuition', 'paid'=>'Net payments received', 'balance'=>'Outstanding balance', 'overpayment'=>'Credit balances'] as $key=>$label)<div class="col-md-6 col-xl-3 mb-3"><div class="card"><div class="card-body"><p>{{ $label }}</p><h2 class="h4">₦{{ number_format($stats[$key] / 100, 2) }}</h2></div></div></div>@endforeach</div>
+<p class="text-muted">Totals reflect the filters below and approved adjustments. Net payments exclude recorded refunds.</p>
+<form method="GET" class="card card-body mb-4"><div class="row g-3">
+    <div class="col-md-3"><label for="invoice-session">Session</label><select id="invoice-session" name="session_id" class="form-control"><option value="">All sessions</option>@foreach($sessions as $session)<option value="{{ $session->id }}" @selected(($filters['session_id'] ?? '') == $session->id)>{{ $session->name }}</option>@endforeach</select></div>
+    <div class="col-md-3"><label for="invoice-department">Department</label><select id="invoice-department" name="department_id" class="form-control"><option value="">All departments</option>@foreach($departments as $department)<option value="{{ $department->id }}" @selected(($filters['department_id'] ?? '') == $department->id)>{{ $department->name }}</option>@endforeach</select></div>
+    <div class="col-md-3"><label for="invoice-status">Status</label><select id="invoice-status" name="status" class="form-control"><option value="">All statuses</option>@foreach(['paid','partially_paid','unpaid','overdue','credit','withdrawn','cancelled'] as $status)<option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ $status === 'withdrawn' ? 'Withdrawn — needs review' : ucfirst(str_replace('_',' ', $status)) }}</option>@endforeach</select></div>
+    <div class="col-md-3"><label for="invoice-search">Name, email, matric or invoice</label><input id="invoice-search" name="search" maxlength="120" value="{{ $filters['search'] ?? '' }}" class="form-control"></div>
+</div><div class="mt-3"><button class="btn btn-primary">Filter</button> <a href="{{ route('finance.invoices') }}" class="btn btn-light">Reset</a></div></form>
+<div class="card"><div class="card-body"><div class="table-responsive"><table class="table"><thead><tr><th>Student / invoice</th><th>Session / enrollment</th><th>Tuition</th><th>Paid</th><th>Balance</th><th>Status</th><th>Details</th></tr></thead><tbody>
+@forelse($invoices as $invoice)@php($totals = $invoice->totals())
+@if($invoice->needsWithdrawalReview())<tr><td colspan="7" class="text-warning">{{ $invoice->number }}: withdrawn schedule — admin review required.</td></tr>@endif
+<tr><td>{{ $invoice->student_name }}<br><small>{{ $invoice->user->matric_number }} · {{ $invoice->number }}</small></td><td>{{ $invoice->session_name }} / {{ $invoice->period }}<br><small>{{ $invoice->department_name }} · {{ $invoice->level }}</small></td><td>₦{{ number_format($totals['due']/100,2) }}</td><td>₦{{ number_format($totals['paid']/100,2) }}</td><td>₦{{ number_format($totals['balance']/100,2) }}</td><td>{{ ucfirst(str_replace('_',' ', $totals['status'])) }}@if($invoice->overdue())<br><span class="text-danger">Overdue</span>@endif</td><td><a href="{{ route('finance.invoices.show', $invoice) }}">View invoice</a></td></tr>
+@empty<tr><td colspan="7">No matching tuition invoices.</td></tr>@endforelse
+</tbody></table></div>{{ $invoices->links() }}</div></div></div>
+@endsection

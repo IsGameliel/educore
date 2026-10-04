@@ -3,9 +3,12 @@
 @section('academic-content')
 <form method="POST" action="{{ route('academic.transcripts.request') }}" class="card card-body mb-4">@csrf
 <h3>Request an official transcript</h3>@if($manager)<label>Student ID<input type="number" name="user_id" min="1" class="form-control" required></label>@endif
-<label>Purpose / recipient<input name="purpose" class="form-control" required minlength="5" maxlength="1000"></label><button class="btn btn-primary mt-2">Submit request</button></form>
+<p class="alert alert-info">Official transcript fee: <strong>&#8358;30,000</strong>. Requests are submitted for review after payment is confirmed.</p>
+@if($manager)<p>The student will pay from their Payments page before this request appears for review.</p>@endif
+<label>Purpose / recipient<input name="purpose" class="form-control" required minlength="5" maxlength="1000" value="{{ old('purpose') }}"></label><button class="btn btn-primary mt-2">{{ $manager ? 'Save request for student payment' : 'Continue to payment — ₦30,000' }}</button></form>
 <h3>Requests</h3>
 @forelse($requests as $item)<div class="card mb-3"><div class="card-body"><p>Request #{{ $item->id }} · Student #{{ $item->user_id }} · {{ $item->status }} · {{ $item->created_at }}</p><p>{{ $item->purpose }}</p><p>{{ $item->decision_reason }}</p>
+@if($item->status === 'awaiting_payment' && $item->payment)<p class="text-muted">Saved but not yet submitted for review.</p><a href="{{ route('payments.show', $item->payment) }}" class="btn btn-primary mb-3">Continue payment — &#8358;30,000</a>@endif
 @if($manager && $item->status === 'pending')<form method="POST" action="{{ route('academic.transcripts.decide',$item) }}">@csrf<label>Decision<select name="decision" class="form-control"><option value="issue">Issue official transcript</option><option value="reject">Reject request</option></select></label><label class="d-block">Reason<input name="reason" class="form-control" required minlength="5" maxlength="2000"></label><button class="btn btn-primary mt-2">Record decision</button></form>@endif</div></div>@empty<p>No requests yet.</p>@endforelse
 {{ $requests->links() }}
 <h3>Issued documents</h3><div class="table-responsive"><table class="table"><thead><tr><th>Student</th><th>Version</th><th>Type</th><th>Status</th><th>Document</th><th>Actions</th></tr></thead><tbody>

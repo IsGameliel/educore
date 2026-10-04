@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AdmissionApplication;
 use App\Models\Department;
+use App\Models\User;
+use App\Services\PaystackPayments;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +20,7 @@ class AdmissionController extends Controller
         if (! $user->isAdmissionApplicant()) {
             return redirect()->route('dashboard');
         }
-        $application = AdmissionApplication::with('department')
+        $application = AdmissionApplication::with(['department', 'payment'])
             ->where('user_id', $user->id)
             ->latest()
             ->first();
@@ -29,7 +31,7 @@ class AdmissionController extends Controller
         return view('admissions.create', compact('application', 'departments', 'user'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, PaystackPayments $gateway)
     {
         $user = $request->user();
 
@@ -87,8 +89,13 @@ class AdmissionController extends Controller
 
         unset($validated['olevel_subjects'], $validated['olevel_grades'], $validated['jamb_result'], $validated['diploma_result'], $validated['transcript']);
 
-        DB::transaction(function () use ($request, $user, $validated, $olevelResults) {
+        $payment = DB::transaction(function () use ($request, $user, $validated, $olevelResults, $gateway) {
+            $user = User::lockForUpdate()->findOrFail($user->id);
+            abort_unless($user->isAdmissionApplicant(), 403);
             $existingApplication = AdmissionApplication::where('user_id', $user->id)->first();
+            if ($existingApplication?->status === 'awaiting_payment') {
+                return $gateway->create($existingApplication, $user, 'application');
+            }
             $documents = $this->storeDocuments($request, $existingApplication);
 
             $application = AdmissionApplication::updateOrCreate(
@@ -96,23 +103,15 @@ class AdmissionController extends Controller
                 $validated + [
                     'olevel_results' => $olevelResults,
                     'application_number' => $this->applicationNumber($user->id),
-                    'status' => 'completed',
-                    'completed_at' => now(),
+                    'status' => 'awaiting_payment',
+                    'completed_at' => null,
                 ] + $documents
             );
 
-            $user->forceFill([
-                'name' => trim($application->first_name . ' ' . $application->middle_name . ' ' . $application->surname),
-                'usertype' => 'student',
-                'department_id' => $application->department_id,
-                'level' => $application->level,
-                'entry_year' => $application->entry_year,
-            ])->save();
-        });
+            return $gateway->create($application, $user, 'application');
+        }, 3);
 
-        return redirect()
-            ->route('dashboard')
-            ->with('success', 'Admission completed. Your account has been converted to a student account.');
+        return app(PaymentController::class)->start($payment, $gateway);
     }
 
     private function applicationNumber(int $userId): string

@@ -52,8 +52,10 @@ class CourseRegistrationController extends Controller
             $semester => \App\Services\Academic\StudentCreditLimit::for($user, $currentSession, $semester),
         ])->all();
         $departments = Department::all();
+        $assistance = \App\Services\Academic\RegistrationAssistance::forStudent($user);
+        $registrationSettings = \App\Models\RegistrationSetting::current();
 
-        return view('student.coursereg.create', compact('courses', 'departments', 'defaultSemester', 'currentSession', 'carryoverCourses', 'creditLimits'));
+        return view('student.coursereg.create', compact('courses', 'departments', 'defaultSemester', 'currentSession', 'carryoverCourses', 'creditLimits', 'assistance', 'registrationSettings'));
     }
 
     public function getCoursesByLevel(Request $request)
@@ -83,12 +85,13 @@ class CourseRegistrationController extends Controller
     public function registerForCourses(Request $request)
     {
         return \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+            $settings = \App\Models\RegistrationSetting::whereKey(1)->lockForUpdate()->firstOrFail();
             \App\Models\User::whereKey(Auth::id())->lockForUpdate()->firstOrFail();
-            return $this->registerSelectedCourses($request);
+            return $this->registerSelectedCourses($request, $settings);
         });
     }
 
-    private function registerSelectedCourses(Request $request)
+    private function registerSelectedCourses(Request $request, \App\Models\RegistrationSetting $settings)
     {
         $request->validate([
             'course_ids' => 'nullable|array', 'course_ids.*' => 'integer|distinct',
@@ -100,6 +103,7 @@ class CourseRegistrationController extends Controller
         $semester = $this->normalizeSemester($request->input('semester'));
         $level = $user->level;
         $session = $this->getCurrentAcademicSession();
+        \App\Services\Academic\RegistrationAccess::assertAllowed($user, $session, $semester, $settings);
         $courseIds = collect($request->input('course_ids', []))
             ->filter(fn ($courseId) => filled($courseId))
             ->values()
@@ -180,6 +184,11 @@ class CourseRegistrationController extends Controller
                 400
             );
         }
+
+        $existingIds = CourseRegistration::where('user_id',$userId)->where('session',$session)->where('semester',$semester)
+            ->whereIn('status',['registered','approved','completed','pending'])->pluck('course_id')->all();
+        $conflicts = \App\Services\Academic\TimetableConflicts::forCourses(array_unique(array_merge($existingIds,$courseIds)));
+        if ($conflicts) { return $this->courseRegistrationError($request, implode(' ', $conflicts).' Contact the timetable administrator.', 422); }
 
         // Step 4: Proceed with the bulk course registration
         foreach ($courses as $course) {

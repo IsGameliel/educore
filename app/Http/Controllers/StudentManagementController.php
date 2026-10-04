@@ -84,9 +84,10 @@ class StudentManagementController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', 'min:8'], // Ensures password matches password_confirmation
-            'level' => ['required', 'in:100,200,300,400,500'], // Ensures valid levels
+            'level' => ['required', 'in:100,200,300,400,500,600'], // Ensures valid levels
             'department_id' => ['required', 'exists:departments,id'], // Validates department ID exists in DB
             'matric_number' => ['nullable', 'string', 'max:255', 'unique:users,matric_number'],
+            'entry_year' => ['required', 'integer', 'between:1900,2100'],
         ]);
 
         $plainPassword = $request->password;
@@ -104,6 +105,7 @@ class StudentManagementController extends Controller
                 'matric_number' => $request->matric_number,
                 'level' => $request->level, // Save level
                 'department_id' => $request->department_id, // Save department
+                'entry_year' => $request->input('entry_year'),
             ]);
 
             // Create default team for Jetstream (if necessary)
@@ -180,9 +182,10 @@ class StudentManagementController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $id], // Ensure email is unique except for the current student
             'password' => ['nullable', 'confirmed', 'min:8'], // Password is optional, but must be confirmed if provided
-            'level' => ['required', 'in:100,200,300,400,500'],
+            'level' => ['required', 'in:100,200,300,400,500,600'],
             'department_id' => ['required', 'exists:departments,id'],
             'matric_number' => ['nullable', 'string', 'max:255', Rule::unique('users', 'matric_number')->ignore($id)],
+            'entry_year' => ['required', 'integer', 'between:1900,2100'],
         ]);
 
         // Retrieve the student by ID
@@ -198,6 +201,9 @@ class StudentManagementController extends Controller
             'level' => $request->level,
             'department_id' => $request->department_id,
         ];
+        if ($request->has('entry_year')) {
+            $updateData['entry_year'] = $request->input('entry_year');
+        }
 
         // If a new password is provided, add it
         if ($request->filled('password')) {

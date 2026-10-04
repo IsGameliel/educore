@@ -3,6 +3,11 @@
 <div class="container-fluid" style="margin-top:90px;padding:24px">
     <h2>@yield('heading', 'Academic records')</h2>
     <nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Academic records">
+        <a class="btn btn-outline-primary" href="{{ route('academic.assistance') }}">Academic assistance</a>
+        @if(auth()->user()->dashboardRole() === 'student')
+            <a class="btn btn-outline-primary" href="{{ route('student.services') }}">Student services</a>
+            <a class="btn btn-outline-primary" href="{{ route('payments.index') }}">My payments</a>
+        @endif
         <a class="btn btn-outline-primary" href="{{ route('academic.index') }}">Results</a>
         @if(in_array(auth()->user()->dashboardRole(), ['admin', 'exam_officer', 'student']))
             <a class="btn btn-outline-primary" href="{{ route('academic.appeals') }}">Appeals</a>

@@ -1,146 +1,162 @@
 @php
     $routeName = request()->route()?->getName() ?? '';
-    $studentRegisteredCourseUrl = route('student.courses.registered', ['semester' => 'First']) . '?session=' . urlencode(\App\Models\AcademicSession::currentName() ?? (now()->month >= 8 ? now()->year . '/' . (now()->year + 1) : (now()->year - 1) . '/' . now()->year));
+    $link = static fn ($label, $route, $patterns, $icon = null) => [
+        'label' => $label,
+        'url' => route($route),
+        'active' => collect($patterns)->contains(fn ($pattern) => \Illuminate\Support\Str::is($pattern, $routeName)),
+        'icon' => $icon,
+    ];
+    $sessionName = \App\Models\AcademicSession::currentName()
+        ?? (now()->month >= 8 ? now()->year.'/'.(now()->year + 1) : (now()->year - 1).'/'.now()->year);
+    $sections = [
+        'Academics' => [
+            $link('Student Services', 'student.services', ['student.services'], 'mdi-account-school'),
+            $link('Academic Assistance', 'academic.assistance', ['academic.assistance'], 'mdi-clipboard-check'),
+            ['label' => 'Courses', 'icon' => 'mdi-book-open-page-variant', 'id' => 'student-courses-menu', 'children' => [
+                $link('Course Registration', 'student.courses.registration', ['student.courses.registration', 'student.courses.register', 'student.courses.byLevel']),
+                ['label' => 'Registered Courses',
+                 'url' => route('student.courses.registered', ['semester' => 'First', 'session' => $sessionName]),
+                 'active' => request()->routeIs('student.courses.registered', 'student.courses.withdraw', 'student.courses.queue', 'student.courses.download.*')],
+                $link('Course Materials', 'student.course-materials', ['student.course-materials']),
+            ]],
+            $link('Class Timetable', 'student.schedule', ['student.schedule'], 'mdi-calendar-clock'),
+            $link('Tests', 'student.tests.index', ['student.tests.*'], 'mdi-pencil-box-outline'),
+        ],
+        'Results & Requests' => [
+            ['label' => 'Results', 'icon' => 'mdi-clipboard-text', 'id' => 'student-results-menu', 'children' => [
+                $link('View Results', 'student.results.index', ['student.results.*']),
+                $link('Academic Records', 'academic.index', ['academic.index', 'academic.show']),
+            ]],
+            $link('Result Appeals', 'academic.appeals', ['academic.appeals*'], 'mdi-comment-alert-outline'),
+            $link('Transcript Requests', 'academic.transcripts', ['academic.transcripts*', 'documents.transcripts.*'], 'mdi-file-document'),
+        ],
+        'Fees & Payments' => [
+            $link('Tuition & Balance', 'tuition.index', ['tuition.*'], 'mdi-school'),
+            $link('Payment History', 'payments.index', ['payments.index', 'payments.show', 'payments.checkout', 'payments.refresh'], 'mdi-wallet'),
+            $link('Receipts', 'payments.receipts', ['payments.receipts', 'payments.receipt'], 'mdi-receipt'),
+        ],
+        'Account' => [
+            $link('My Profile', 'profile.show', ['profile.*', 'student.profile.*'], 'mdi-account-circle'),
+        ],
+    ];
 @endphp
+<style>
+    #sidebar .nav .student-section-heading {
+        margin: 1.5rem 2.25rem 0.75rem;
+        padding: 0;
+        list-style: none;
+    }
 
-<nav class="sidebar sidebar-offcanvas" id="sidebar">
+    #sidebar .nav .student-section-heading + .nav-item {
+        margin-top: 0.15rem;
+    }
+
+    #sidebar .nav .student-section-heading__label {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        color: #7b8190;
+        font-family: "ubuntu-medium", sans-serif;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        line-height: 1;
+        text-transform: uppercase;
+    }
+
+    #sidebar .nav .student-section-heading__label::before {
+        content: "";
+        flex: 0 0 1.4rem;
+        height: 2px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #b66dff, #d8b4fe);
+    }
+
+    #sidebar .nav .student-section-heading__label::after {
+        content: "";
+        flex: 1 1 auto;
+        height: 1px;
+        background: #ececf4;
+    }
+
+    .sidebar-icon-only #sidebar .nav .student-section-heading {
+        display: none;
+    }
+</style>
+
+<nav class="sidebar sidebar-offcanvas" id="sidebar" aria-label="Student navigation" data-route-navigation="true">
     <ul class="nav">
-        @if(in_array(auth()->user()->dashboardRole(), ['admin','exam_officer','lecturer','student']))
-        <li class="nav-item"><a class="nav-link" href="{{ route('academic.index') }}"><span class="menu-title">Academic Records</span><i class="mdi mdi-school menu-icon"></i></a></li>
-        @endif
-
         <li class="nav-item nav-profile">
-            <a href="#" class="nav-link">
+            <a href="{{ route('profile.show') }}" class="nav-link">
                 <div class="nav-profile-image">
                     <img src="{{ Auth::user()->profile_photo_url }}" alt="profile" />
                     <span class="login-status online"></span>
-                    <!--change to offline or busy as needed-->
                 </div>
                 <div class="nav-profile-text d-flex flex-column">
                     <span class="font-weight-bold mb-2">{{ Auth::user()->name }}</span>
-                    <span class="text-secondary text-small">{{ Auth::user()->usertype }}</span>
+                    <span class="text-secondary text-small text-capitalize">{{ str_replace('_', ' ', Auth::user()->usertype) }}</span>
                 </div>
                 <i class="mdi mdi-bookmark-check text-success nav-profile-badge"></i>
             </a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link {{ request()->is('home') ? 'active' : '' }}" href="{{ url('home') }}">
+
+
+        <li class="nav-item {{ $routeName === 'dashboard' ? 'active' : '' }}">
+            <a class="nav-link {{ $routeName === 'dashboard' ? 'active' : '' }}" href="{{ route('dashboard') }}" @if($routeName === 'dashboard') aria-current="page" @endif>
                 <span class="menu-title">Dashboard</span>
                 <i class="mdi mdi-home menu-icon"></i>
             </a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link {{ $routeName === 'profile.show' ? 'active' : '' }}" href="{{ route('profile.show') }}">
-                <span class="menu-title">Profile</span>
-                <i class="mdi mdi-account-circle menu-icon"></i>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="{{ request()->is('student/courses/registration') || request()->is('student/courses/*') || $routeName === 'student.schedule' || $routeName === 'student.course-materials' ? 'true' : 'false' }}" aria-controls="ui-basic">
-                <span class="menu-title">Academics</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-school menu-icon"></i>
-            </a>
-            <div class="collapse {{ request()->is('student/courses/registration') || request()->is('student/courses/*') || $routeName === 'student.schedule' || $routeName === 'student.course-materials' ? 'show' : '' }}" id="ui-basic">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->is('student/courses/registration') ? 'active' : '' }}" href="{{ url('student/courses/registration') }}">Course Registeration</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->is('student/courses/*') && !request()->is('student/courses/registration') ? 'active' : '' }}" href="{{ $studentRegisteredCourseUrl }}">View Registered Course</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ $routeName === 'student.schedule' ? 'active' : '' }}" href="{{ route('student.schedule')}}">Class Timetable</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ $routeName === 'student.course-materials' ? 'active' : '' }}" href="{{ route('student.course-materials')}}">Course Material</a>
-                    </li>
-                </ul>
-            </div>
-        </li>
 
-        <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="collapse" href="#exam" aria-expanded="{{ str_starts_with($routeName, 'student.tests.') || str_starts_with($routeName, 'student.results.') ? 'true' : 'false' }}" aria-controls="auth">
-                <span class="menu-title">Exams & Results</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-pen menu-icon"></i>
+        @foreach($sections as $heading => $items)
+            <li class="student-section-heading">
+                <span class="student-section-heading__label">{{ $heading }}</span>
+            </li>
+            @foreach($items as $item)
+                @php
+                    $hasChildren = isset($item['children']);
+                    $isActive = $hasChildren ? collect($item['children'])->contains('active', true) : $item['active'];
+                @endphp
+                <li class="nav-item {{ $isActive ? 'active' : '' }}">
+                    @if($hasChildren)
+                        <a class="nav-link" data-bs-toggle="collapse" href="#{{ $item['id'] }}"
+                           aria-expanded="{{ $isActive ? 'true' : 'false' }}" aria-controls="{{ $item['id'] }}">
+                            <span class="menu-title">{{ $item['label'] }}</span>
+                            <i class="menu-arrow"></i>
+                            <i class="mdi {{ $item['icon'] }} menu-icon"></i>
+                        </a>
+                        <div class="collapse {{ $isActive ? 'show' : '' }}" id="{{ $item['id'] }}">
+                            <ul class="nav flex-column sub-menu">
+                                @foreach($item['children'] as $child)
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ $child['active'] ? 'active' : '' }}" href="{{ $child['url'] }}"
+                                           @if($child['active']) aria-current="page" @endif>{{ $child['label'] }}</a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @else
+                        <a class="nav-link {{ $isActive ? 'active' : '' }}" href="{{ $item['url'] }}" @if($isActive) aria-current="page" @endif>
+                            <span class="menu-title">{{ $item['label'] }}</span>
+                            <i class="mdi {{ $item['icon'] }} menu-icon"></i>
+                        </a>
+                    @endif
+                </li>
+            @endforeach
+        @endforeach
+
+        <li class="nav-item mt-3">
+            <a
+                class="nav-link"
+                href="{{ route('logout') }}"
+                onclick="event.preventDefault(); document.getElementById('student-sidebar-logout-form').submit();"
+            >
+                <span class="menu-title">Logout</span>
+                <i class="mdi mdi-logout menu-icon"></i>
             </a>
-            <div class="collapse {{ str_starts_with($routeName, 'student.tests.') || str_starts_with($routeName, 'student.results.') ? 'show' : '' }}" id="exam">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'student.tests.') ? 'active' : '' }}" href="{{ route('student.tests.index')}}"> Take test </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Exam Schedule </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ str_starts_with($routeName, 'student.results.') ? 'active' : '' }}" href="{{ route('student.results.index') }}"> View Results </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Download Result </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="collapse" href="#fee" aria-expanded="false" aria-controls="auth">
-                <span class="menu-title">Fees & Payments</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-wallet menu-icon"></i>
-            </a>
-            <div class="collapse" id="fee">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Fee Structure </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Payment History </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Make a Payment </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Generate Fee Receipts </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="collapse" href="#lib" aria-expanded="false" aria-controls="auth">
-                <span class="menu-title">Library</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-library menu-icon"></i>
-            </a>
-            <div class="collapse" id="lib">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Search for Books </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Borrowed Books </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Due Dates & Fines</a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="collapse" href="#event" aria-expanded="false" aria-controls="auth">
-                <span class="menu-title">Events & Activities</span>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-calendar-search menu-icon"></i>
-            </a>
-            <div class="collapse" id="event">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Upcoming Events </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"> Club/Association Memberships </a>
-                    </li>
-                </ul>
-            </div>
+            <form id="student-sidebar-logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                @csrf
+            </form>
         </li>
     </ul>
 </nav>

@@ -2,6 +2,10 @@
 
 return [
 
+    'paystack' => [
+        'secret_key' => env('PAYSTACK_SECRET_KEY'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

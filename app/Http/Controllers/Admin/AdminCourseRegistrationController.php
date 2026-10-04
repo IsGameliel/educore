@@ -193,6 +193,12 @@ class AdminCourseRegistrationController extends Controller
 
         DB::transaction(function () use ($student, $semester, $session, $courseIds, $data, $actor) {
             User::whereKey($student->id)->lockForUpdate()->firstOrFail();
+            $activeIds = array_values(array_filter($courseIds, fn($id) => !in_array($data['statuses'][$id] ?? 'registered',['withdrawn','rejected'],true)));
+            $conflicts = \App\Services\Academic\TimetableConflicts::forCourses($activeIds);
+            if ($conflicts) { throw \Illuminate\Validation\ValidationException::withMessages(['course_ids'=>implode(' ', $conflicts)]); }
+            if (! empty($courseIds)) {
+                app(\App\Services\TuitionBilling::class)->assertCleared($student, $session, $semester);
+            }
             $existingRegistrations = CourseRegistration::with(['course', 'results'])
                 ->where('user_id', $student->id)
                 ->where('semester', $semester)

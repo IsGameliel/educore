@@ -47,9 +47,15 @@ it('lists nested backups and allows administrators to preview and download them'
     $this->get(route('admin.backups.download', str_repeat('a', 64)))->assertNotFound();
 });
 
-it('never lists partial files or symlinks to files outside the backup directory', function () {
+it('never lists partial files', function () {
     File::put($this->backupDirectory.'/unfinished.sql.partial', 'unfinished');
-    symlink(base_path('phpunit.xml'), $this->backupDirectory.'/outside.sql');
+    expect(app(DatabaseBackups::class)->listing())->toHaveCount(1);
+});
+
+it('never lists symlinks to files outside the backup directory', function () {
+    if (! @symlink(base_path('phpunit.xml'), $this->backupDirectory.'/outside.sql')) {
+        $this->markTestSkipped('This environment does not permit creating symlinks.');
+    }
     expect(app(DatabaseBackups::class)->listing())->toHaveCount(1);
 });
 
@@ -184,6 +190,11 @@ it('publishes a completed dump with a unique filename and removes incomplete dum
     {
         public bool $incomplete = false;
 
+        protected function dumpVersion(): string
+        {
+            return 'mysqldump Ver 8.0.40 for Win64';
+        }
+
         protected function connection(): array
         {
             return ['driver' => 'mysql', 'database' => ':memory:', 'username' => 'test', 'password' => 'private-password'];
@@ -192,7 +203,7 @@ it('publishes a completed dump with a unique filename and removes incomplete dum
         protected function run(Process $process): void
         {
             expect($process->getCommandLine())->toContain('--single-transaction')->not->toContain('private-password');
-            preg_match("/'--result-file=([^']+)'/", $process->getCommandLine(), $matches);
+            preg_match('/[\'\"]--result-file=([^\'\"]+)[\'\"]/', $process->getCommandLine(), $matches);
             File::put($matches[1], "-- Host: localhost    Database: :memory:\n".($this->incomplete ? '' : "-- Dump completed on 2026-09-21\n"));
         }
     };
@@ -242,6 +253,35 @@ it('strips dump replication state without removing application schema or records
     }
 });
 
+it('selects replication flags supported by the dump client', function () {
+    $manager = new class extends DatabaseBackups {
+        public function options(string $version): array { return $this->replicationOptions($version); }
+    };
+    expect($manager->options('mysqldump Ver 10.19 Distrib 10.4.32-MariaDB'))->toBe([])
+        ->and($manager->options('mysqldump Ver 8.0.40 for Win64'))->toBe(['--set-gtid-purged=OFF']);
+});
+
+it('explicitly preserves Windows system environment for web subprocesses', function () {
+    if (PHP_OS_FAMILY !== 'Windows') {
+        $this->markTestSkipped('Windows subprocess environment');
+    }
+    $manager = new class extends RestoreSequenceBackups {
+        public function client(): Process { return $this->process(PHP_BINARY, ['--version']); }
+    };
+    $server = $_SERVER;
+    $environment = $_ENV;
+    try {
+        $_SERVER = ['PATH' => getenv('PATH')];
+        $_ENV = [];
+        $process = $manager->client();
+        expect($process->getEnv()['SystemRoot'])->toBe(getenv('SystemRoot', true))
+            ->and($process->getCommandLine())->not->toContain('secret-not-in-command');
+    } finally {
+        $_SERVER = $server;
+        $_ENV = $environment;
+    }
+});
+
 it('does not enter maintenance or take down live tables when preflight fails', function () {
     $manager = new class extends RestoreSequenceBackups
     {
@@ -253,4 +293,31 @@ it('does not enter maintenance or take down live tables when preflight fails', f
     Artisan::shouldReceive('call')->never();
     expect(fn () => $manager->restore($this->backup['id'], hash('sha256', $this->dump), 1))->toThrow(RuntimeException::class, 'before changing the portal database');
     expect($manager->steps)->toBe([]);
+});
+
+it('uses verified dumps for scheduled backups and prunes only completed matching files', function () {
+    $manager = new class extends DatabaseBackups {
+        public bool $fail = false;
+        protected function dumpVersion(): string { return 'mysqldump MariaDB'; }
+        protected function run(Process $process): void {
+            expect($process->getCommandLine())->not->toContain('--set-gtid-purged');
+            if ($this->fail) { throw new RuntimeException('Simulated dump failure'); }
+            preg_match('/[\'\"]--result-file=([^\'\"]+)[\'\"]/', $process->getCommandLine(), $matches);
+            File::put($matches[1], "-- Host: localhost    Database: fixture\n-- Dump completed on 2026-10-02\n");
+        }
+    };
+    $directory = $this->backupDirectory.'/scheduled';
+    File::ensureDirectoryExists($directory);
+    foreach (['fixture_old.sql', 'fixture_partial.sql', 'other_old.sql'] as $name) {
+        File::put($directory.'/'.$name, "-- Host: localhost    Database: fixture\n".($name === 'fixture_partial.sql' ? '' : "-- Dump completed on 2020-01-01\n"));
+        touch($directory.'/'.$name, now()->subDays(130)->timestamp);
+    }
+    $connection = ['driver'=>'mysql','database'=>'fixture','username'=>'test','password'=>'private'];
+    $manager->fail = true;
+    expect(fn () => $manager->scheduled($connection, $directory, 120))->toThrow(RuntimeException::class);
+    expect(is_file($directory.'/fixture_old.sql'))->toBeTrue();
+    $manager->fail = false;
+    $result = $manager->scheduled($connection, $directory, 120);
+    expect($result['deleted'])->toBe(1)->and(is_file($result['path']))->toBeTrue()
+        ->and(is_file($directory.'/fixture_partial.sql'))->toBeTrue()->and(is_file($directory.'/other_old.sql'))->toBeTrue();
 });

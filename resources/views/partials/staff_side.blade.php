@@ -49,7 +49,14 @@
             </a>
         </li>
 
+        @if(in_array(auth()->user()->dashboardRole(), ['bursar', 'accountant'], true))
+            <li class="staff-section-heading">Finance</li>
+            @foreach([['Semester Fee Templates', 'finance.templates', 'finance.templates*'], ['Tuition Fee Schedules', 'finance.schedules', 'finance.schedules*'], ['Tuition Invoices', 'finance.invoices', 'finance.invoices*'], ['Payments', 'finance.payments', 'finance.payments'], ['Payment Reminders', 'finance.reminders', 'finance.reminders']] as [$label, $route, $pattern])
+                <li class="nav-item {{ request()->routeIs($pattern) ? 'active' : '' }}"><a class="nav-link" href="{{ route($route) }}"><span class="menu-title">{{ $label }}</span><i class="mdi mdi-wallet menu-icon"></i></a></li>
+            @endforeach
+        @endif
         @if(auth()->user()->dashboardRole() === 'exam_officer')
+            <li class="nav-item"><a class="nav-link" href="{{ route('academic.assistance') }}"><span class="menu-title">Academic Assistance</span><i class="mdi mdi-clipboard-check menu-icon"></i></a></li>
             @foreach($examOfficerSections as $heading => $links)
                 <li class="staff-section-heading"><span>{{ $heading }}</span></li>
                 @foreach($links as [$label, $route, $patterns, $icon])

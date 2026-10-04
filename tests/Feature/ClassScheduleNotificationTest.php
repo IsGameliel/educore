@@ -2,6 +2,7 @@
 
 use App\Mail\ClassScheduledNotification;
 use App\Models\ActivityLog;
+use App\Models\AcademicSession;
 use App\Models\ClassSchedule;
 use App\Models\Courses;
 use App\Models\Department;
@@ -16,9 +17,11 @@ beforeEach(function () {
     $this->department = Department::create(['name' => 'Computing', 'faculty_id' => $faculty->id]);
     $this->admin = User::factory()->create(['usertype' => 'admin', 'department_id' => $this->department->id]);
     $this->lecturer = User::factory()->create(['usertype' => 'lecturer', 'department_id' => $this->department->id]);
+    $session = AcademicSession::create(['name' => '2026/2027', 'start_year' => 2026, 'end_year' => 2027, 'is_active' => true]);
     $this->course = Courses::create([
         'code' => 'CSC101', 'title' => 'Introduction to Computing', 'credit_unit' => 3,
         'semester' => 'First', 'level' => '100', 'department_id' => $this->department->id,
+        'academic_session_id' => $session->id,
     ]);
     $this->payload = [
         'department_id' => $this->department->id, 'level' => '100', 'semester' => 'First',

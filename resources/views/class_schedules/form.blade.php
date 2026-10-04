@@ -1,3 +1,5 @@
+@if($errors->any())<div class="alert alert-danger" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+<p class="text-muted">The course determines the academic session. Overlapping room, lecturer and department/level bookings are blocked within that session and semester.</p>
 <div class="form-group">
     <label for="department">Department</label>
     <select name="department_id" id="department" class="form-control" required>
@@ -48,7 +50,7 @@
             @endphp
             @if($currentCourse)
                 <option value="{{ $currentCourse->id }}" selected>
-                    {{ $currentCourse->code }} - {{ $currentCourse->title }}
+                    {{ $currentCourse->code }} - {{ $currentCourse->title }} ({{ $currentCourse->academicSession?->name ?? 'No session' }})
                 </option>
             @endif
         @endif
@@ -143,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 resetCourses(courses.length ? 'Select Course' : 'No courses found');
 
                 courses.forEach(function(course) {
-                    const option = new Option(`${course.code} - ${course.title}`, course.id, false, String(course.id) === selectedCourseId);
+                    const option = new Option(`${course.code} - ${course.title} (${course.academic_session?.name || 'No session'})`, course.id, false, String(course.id) === selectedCourseId);
                     subject.appendChild(option);
                 });
             })

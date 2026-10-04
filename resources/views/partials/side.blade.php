@@ -14,10 +14,18 @@
                 $link('Course Registrations', 'admin.course-registrations.index', ['admin.course-registrations.*']),
             ]],
             $link('Manage Staff', 'admin.staffs.index', ['admin.staffs.*'], 'mdi-account-key'),
+            ['label' => 'Finance', 'icon' => 'mdi-cash-multiple', 'id' => 'finance-menu', 'children' => [
+                $link('Semester Fee Templates', 'finance.templates', ['finance.templates*']),
+                $link('Tuition Fee Schedules', 'finance.schedules', ['finance.schedules*', 'finance.sessions.*']),
+                $link('Tuition Invoices', 'finance.invoices', ['finance.invoices*', 'finance.clearances.*']),
+                $link('Payments', 'admin.payments.index', ['admin.payments.*', 'finance.payments*']),
+                $link('Payment Reminders', 'finance.reminders', ['finance.reminders*']),
+            ]],
         ],
         'Academics' => [
+            $link('Academic Assistance', 'academic.assistance', ['academic.assistance'], 'mdi-clipboard-check'),
             ['label' => 'Academic Setup', 'icon' => 'mdi-library-shelves', 'id' => 'academic-menu', 'children' => [
-                ['label' => 'Academic Sessions', 'url' => route('dashboard').'#academic-sessions-panel', 'active' => false],
+                ['label' => 'Academic Sessions', 'url' => route('dashboard').'#academic-sessions-panel', 'active' => str_starts_with($routeName, 'admin.academic-sessions.')],
                 $link('Faculties', 'admin.faculties.index', ['admin.faculties.*']),
                 array_merge($link('Departments', 'admin.departments.index', ['admin.departments.*']), [
                     'active' => str_starts_with($routeName, 'admin.departments.') && !str_starts_with($routeName, 'admin.departments.passmarks'),
@@ -25,6 +33,8 @@
                 $link('Courses', 'admin.courses.index', ['admin.courses.*']),
                 $link('Pass Marks', 'admin.departments.passmarks', ['admin.departments.passmarks*']),
                 $link('Grading Policies', 'academic.policies', ['academic.policies*']),
+                $link('Promotion Policy', 'admin.promotion-policy.edit', ['admin.promotion-policy.*']),
+                $link('Registration Settings', 'admin.registration-settings.edit', ['admin.registration-settings.*']),
             ]],
             ['label' => 'Teaching & Tests', 'icon' => 'mdi-human-male-board', 'id' => 'delivery-menu', 'children' => [
                 $link('Class Schedules', 'admin.class-schedules.index', ['admin.class-schedules.*']),
@@ -40,11 +50,14 @@
                 $link('Upload Results', 'academic.upload', ['academic.upload', 'academic.results.storeUpload', 'academic.results.template.*', 'admin.results.upload', 'admin.results.storeUpload']),
                 $link('Student Results', 'admin.results.index', ['admin.results.index', 'admin.results.show', 'admin.results.edit', 'admin.results.update']),
             ]],
-            $link('Result Appeals', 'academic.appeals', ['academic.appeals*'], 'mdi-comment-alert-outline'),
-            $link('Transcripts', 'academic.transcripts', ['academic.transcripts*'], 'mdi-file-document'),
-            $link('Academic Reports', 'academic.reports', ['academic.reports*'], 'mdi-chart-bar'),
+            ['label' => 'Requests & Reports', 'icon' => 'mdi-file-document', 'id' => 'records-menu', 'children' => [
+                $link('Result Appeals', 'academic.appeals', ['academic.appeals*']),
+                $link('Transcripts', 'academic.transcripts', ['academic.transcripts*']),
+                $link('Academic Reports', 'academic.reports', ['academic.reports*']),
+            ]],
         ],
         'System & Account' => [
+            $link('System Health', 'admin.system-health', ['admin.system-health'], 'mdi-heart-pulse'),
             $link('Backup & Restore', 'admin.backups.index', ['admin.backups.*'], 'mdi-database'),
             $link('My Profile', 'profile.show', ['profile.*'], 'mdi-account-circle'),
         ],

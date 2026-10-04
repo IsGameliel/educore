@@ -5,6 +5,18 @@
     $remainingTodos = $dashboardTodos->count() - $completedTodos;
 @endphp
 
+@if(in_array(auth()->user()->dashboardRole(), ['admin','exam_officer','lecturer','student'],true))
+<div class="alert alert-info">
+@if(auth()->user()->dashboardRole() === 'student')
+    <a href="{{ route('student.services') }}">Student Services: onboarding, appeal tracking, transcript updates and graduation preparation</a>.<br>
+    Review your registration checklist and attendance summaries in <a href="{{ route('academic.assistance') }}">Academic Assistance</a>.
+@else
+    @php($reviewReminderCount = \App\Services\Academic\ResultAccess::scope(\App\Models\Result::query(),auth()->user())->whereIn('workflow_status',auth()->user()->dashboardRole() === 'lecturer' ? ['draft'] : ['submitted','reviewed','approved'])->where('updated_at','<=',now()->subDays(3))->count())
+    {{ $reviewReminderCount }} result(s) have waited at least three days for the next action. <a href="{{ route('academic.assistance') }}">Review academic reminders and attendance summaries</a>.
+@endif
+</div>
+@endif
+
 <div class="row">
     <div class="col-md-7 grid-margin stretch-card">
         <div class="card">
