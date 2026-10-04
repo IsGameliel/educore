@@ -53,13 +53,13 @@ it('lets admins choose the active academic session used for student course regis
     ]);
 
     $this->actingAs($admin)
-        ->post(route('admin.academic-sessions.activate', $secondSession))
+        ->post(route('admin.academic-sessions.activate', $secondSession), ['confirmed'=>1, 'preview_token'=>app(\App\Services\Academic\SessionProgression::class)->preview($secondSession)['token']])
         ->assertRedirect(route('dashboard'))
         ->assertSessionHas('success', 'Active academic session set to 2025/2026.');
 
     expect($firstSession->fresh()?->is_active)->toBeFalse()
         ->and($secondSession->fresh()?->is_active)->toBeTrue()
-        ->and($student->fresh()?->level)->toBe('200');
+        ->and($student->fresh()?->level)->toBe('100');
 
     $this->actingAs($student)
         ->post(route('student.courses.register'), [
@@ -72,7 +72,7 @@ it('lets admins choose the active academic session used for student course regis
     expect(CourseRegistration::where('user_id', $student->id)->first()?->session)->toBe('2025/2026');
 });
 
-it('promotes students when the active academic session is updated to a later year and caps at 500 level', function () {
+it('does not change student levels when an unused active session is renamed', function () {
     $activeSession = AcademicSession::create([
         'name' => '2024/2025',
         'start_year' => 2024,
@@ -102,6 +102,6 @@ it('promotes students when the active academic session is updated to a later yea
         ->assertSessionHas('success', 'Academic session updated successfully.');
 
     expect($activeSession->fresh()?->name)->toBe('2025/2026')
-        ->and($studentAt100->fresh()?->level)->toBe('200')
+        ->and($studentAt100->fresh()?->level)->toBe('100')
         ->and($studentAt500->fresh()?->level)->toBe('500');
 });

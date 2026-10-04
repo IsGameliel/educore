@@ -60,10 +60,10 @@ class ClassScheduleController extends Controller
     public function create()
     {
         $departments = Department::all();
-        $levels = ['100', '200', '300', '400', '500'];
+        $levels = ['100', '200', '300', '400', '500', '600'];
         $semesters = ['First', 'Second'];
-        $courses = Courses::all();
-        $lecturers = User::where('userType', 'lecturer')->get();
+        $courses = Courses::with('academicSession')->get();
+        $lecturers = User::where('usertype', 'lecturer')->get();
 
         return view('class_schedules.create', compact('departments', 'levels', 'courses', 'lecturers', 'semesters'));
     }
@@ -83,11 +83,11 @@ class ClassScheduleController extends Controller
         // Validate the request data
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'level' => 'required|in:100,200,300,400,500',
+            'level' => 'required|in:100,200,300,400,500,600',
             'semester' => 'required|in:First,Second',
             'subject' => 'required|exists:courses,id',
             'lecturer_id' => 'required|exists:users,id',
-            'day' => 'required|string|max:255',
+            'day' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'room' => 'required|string|max:255',
@@ -101,10 +101,10 @@ class ClassScheduleController extends Controller
         $courseTitle = $course->title;
 
         // Create the schedule
-        $schedule = ClassSchedule::create($validated);
+        $schedule = app(\App\Services\Academic\TimetableConflicts::class)->save($validated);
 
         // Fetch students in the same department and level
-        $students = User::where('department_id', $validated['department_id'])->get();
+        $students = User::where('usertype','student')->where('department_id', $validated['department_id'])->where('level',$validated['level'])->get();
 
         // Notify each student
         foreach ($students as $student) {
@@ -138,10 +138,10 @@ class ClassScheduleController extends Controller
     {
         $schedule = ClassSchedule::findOrFail($id);
         $departments = Department::all();
-        $levels = ['100', '200', '300', '400', '500'];
+        $levels = ['100', '200', '300', '400', '500', '600'];
         $semesters = ['First', 'Second'];
-        $courses = Courses::all();
-        $lecturers = User::where('userType', 'lecturer')->get();
+        $courses = Courses::with('academicSession')->get();
+        $lecturers = User::where('usertype', 'lecturer')->get();
 
         return view('class_schedules.edit', compact('schedule', 'departments', 'levels', 'semesters', 'courses', 'lecturers'));
     }
@@ -161,18 +161,18 @@ class ClassScheduleController extends Controller
 
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'level' => 'required|in:100,200,300,400,500',
+            'level' => 'required|in:100,200,300,400,500,600',
             'semester' => 'required|in:First,Second',
             'subject' => 'required|exists:courses,id',
             'lecturer_id' => 'required|exists:users,id',
-            'day' => 'required|string|max:255',
+            'day' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'room' => 'required|string|max:255',
         ]);
 
         $schedule = ClassSchedule::findOrFail($id);
-        $schedule->update($validated);
+        app(\App\Services\Academic\TimetableConflicts::class)->save($validated, $schedule);
 
         return redirect()->route('admin.class-schedules.index')->with('success', 'Schedule updated successfully.');
     }
@@ -200,11 +200,11 @@ class ClassScheduleController extends Controller
         $level = $request->get('level');
         $semester = $this->normalizeSemester($request->get('semester'));
 
-        $courses = Courses::query()
+        $courses = Courses::with('academicSession:id,name')->whereHas('academicSession')
             ->when($departmentId, fn($query) => $query->where('department_id', $departmentId))
             ->when($level, fn($query) => $query->where('level', $level))
             ->when($semester, fn($query) => $query->where('semester', $semester))
-            ->select('id', 'title', 'code', 'department_id', 'level', 'semester')
+            ->select('id', 'title', 'code', 'department_id', 'level', 'semester', 'academic_session_id')
             ->orderBy('code')
             ->get();
 

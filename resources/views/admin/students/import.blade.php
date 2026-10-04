@@ -41,7 +41,8 @@
                     <div class="mb-4">
                         <h5>Expected file columns</h5>
                         <p class="mb-2">Upload an Excel or CSV file with these heading names on the first row:</p>
-                        <code>name, email, matric_number, level, department_id</code>
+                        <code>name, email, matric_number, level, department_id, entry_year</code>
+                        <p class="mt-2">Entry year is required (for example, 2022). Rows with missing or invalid enrollment details are rejected and listed below for correction.</p>
                         <p class="mt-3 mb-0 text-muted">Example level values: 100, 200, 300, 400, 500, 600.</p>
                     </div>
 

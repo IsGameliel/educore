@@ -14,6 +14,7 @@ class AcademicSession extends Model
     ];
 
     protected $casts = [
+        'tuition_enabled' => 'boolean',
         'is_active' => 'boolean',
     ];
 

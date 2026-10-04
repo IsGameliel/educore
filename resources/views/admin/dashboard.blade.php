@@ -9,7 +9,9 @@
                   <i class="mdi mdi-home"></i>
                 </span> Dashboard
                     </h3>
+                    <a href="{{ route('admin.payments.index') }}" class="btn btn-primary"><i class="mdi mdi-credit-card me-1"></i> Payments</a>
                     <a href="{{ route('admin.backups.index') }}" class="btn btn-outline-primary"><i class="mdi mdi-database me-1"></i> Backup &amp; Restore</a>
+                    <a href="{{ route('admin.registration-settings.edit') }}" class="btn btn-outline-primary">Registration Settings</a>
                     <nav aria-label="breadcrumb">
                         <ul class="breadcrumb">
                             <li class="breadcrumb-item active" aria-current="page">
@@ -19,6 +21,7 @@
                     </nav>
                 </div>
                 <div class="row">
+                    <div class="col-12 mb-3"><a href="{{ route('admin.system-health') }}" class="btn btn-outline-primary">System health &amp; enrollment checks</a></div>
                     <div class="col-md-4 stretch-card grid-margin">
                         <div class="card bg-gradient-danger card-img-holder text-white">
                             <div class="card-body">
@@ -197,10 +200,7 @@
                                                                 @if($academicSession->is_active)
                                                                     <button type="button" class="btn btn-sm btn-success" disabled>Current Session</button>
                                                                 @else
-                                                                    <form method="POST" action="{{ route('admin.academic-sessions.activate', $academicSession) }}">
-                                                                        @csrf
-                                                                        <button type="submit" class="btn btn-outline-primary btn-sm">Make Active</button>
-                                                                    </form>
+                                                                    <a href="{{ route('admin.academic-sessions.review', $academicSession) }}" class="btn btn-outline-primary btn-sm">Review activation</a>
                                                                 @endif
                                                             </td>
                                                         </tr>

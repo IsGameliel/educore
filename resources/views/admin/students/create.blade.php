@@ -53,6 +53,13 @@
                         </div>
 
                         <!-- Level -->
+                        <div class="col-md-6"><div class="form-group">
+                            <label for="entry_year">Entry year</label>
+                            <input id="entry_year" name="entry_year" type="number" min="1900" max="2100" value="{{ old('entry_year') }}" class="form-control" required>
+                            <small>Used to determine new or returning tuition fees for each academic session.</small>
+                            @error('entry_year')<span class="text-danger">{{ $message }}</span>@enderror
+                        </div></div>
+                        <!-- Level -->
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="level">Level</label>
@@ -63,6 +70,7 @@
                                     <option value="300" {{ old('level') == '300' ? 'selected' : '' }}>300 Level</option>
                                     <option value="400" {{ old('level') == '400' ? 'selected' : '' }}>400 Level</option>
                                     <option value="500" {{ old('level') == '500' ? 'selected' : '' }}>500 Level</option>
+                                    <option value="600" {{ old('level') == '600' ? 'selected' : '' }}>600 Level</option>
                                 </select>
                                 @error('level')
                                     <span class="text-danger">{{ $message }}</span>

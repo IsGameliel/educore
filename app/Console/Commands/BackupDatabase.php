@@ -2,159 +2,40 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Backups\DatabaseBackups;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\Process\Process;
-use Throwable;
 
 class BackupDatabase extends Command
 {
     protected $signature = 'backup:database
-        {--connection= : The database connection name to back up}
-        {--path= : The directory where backup files should be stored}
-        {--cleanup-only : Only delete expired backups without creating a new one}';
+        {--connection= : Database connection to back up}
+        {--path= : Backup directory}
+        {--cleanup-only : Only remove expired complete backups}';
+    protected $description = 'Create a verified database backup using the dashboard backup service';
 
-    protected $description = 'Create a MySQL database backup and delete backups older than the configured retention period';
-
-    public function handle(): int
+    public function handle(DatabaseBackups $backups): int
     {
-        $connectionName = $this->option('connection') ?: config('database.default');
-        $connection = config("database.connections.{$connectionName}");
-
-        if (! is_array($connection)) {
-            $this->error("Database connection [{$connectionName}] is not configured.");
-
+        $monitor = ! $this->option('cleanup-only');
+        if ($monitor) { \App\Services\OperationsHealth::record('backup', 'running'); }
+        $connection = config('database.connections.'.($this->option('connection') ?: config('database.default')));
+        if (! is_array($connection) || ($connection['driver'] ?? '') !== 'mysql' || empty($connection['database'])) {
+            $this->error('A configured MySQL connection is required.');
+            if ($monitor) { \App\Services\OperationsHealth::record('backup', 'failed', 'A configured MySQL connection is required.'); }
             return self::FAILURE;
         }
-
-        if (($connection['driver'] ?? null) !== 'mysql') {
-            $this->error('The backup command currently supports MySQL connections only.');
-
-            return self::FAILURE;
-        }
-
-        $backupDirectory = $this->option('path') ?: storage_path('app/backups/database');
-        $retentionDays = max((int) env('DB_BACKUP_RETENTION_DAYS', 120), 1);
-
-        File::ensureDirectoryExists($backupDirectory);
-
-        if ($this->option('cleanup-only')) {
-            $deletedBackups = $this->pruneExpiredBackups($backupDirectory, $retentionDays);
-
-            $this->info("Backup cleanup complete. Removed {$deletedBackups} expired backup(s).");
-
-            return self::SUCCESS;
-        }
-
-        $databaseName = (string) ($connection['database'] ?? '');
-
-        if ($databaseName === '') {
-            $this->error("Database name is missing for connection [{$connectionName}].");
-
-            return self::FAILURE;
-        }
-
-        $timestamp = now()->format('Y-m-d_His');
-        $backupFile = "{$databaseName}_{$timestamp}.sql";
-        $backupPath = $backupDirectory.DIRECTORY_SEPARATOR.$backupFile;
-
         try {
-            $this->createBackup($connection, $backupPath);
-            $deletedBackups = $this->pruneExpiredBackups($backupDirectory, $retentionDays);
-        } catch (Throwable $exception) {
-            if (File::exists($backupPath)) {
-                File::delete($backupPath);
-            }
-
-            Log::error('Database backup failed.', [
-                'connection' => $connectionName,
-                'path' => $backupPath,
-                'exception' => $exception,
-            ]);
-
-            $this->error('Database backup failed: '.$exception->getMessage());
-
+            $result = $backups->scheduled($connection, $this->option('path') ?: config('backups.directory').'/database',
+                (int) config('backups.retention_days', 120), (bool) $this->option('cleanup-only'));
+            if ($result['path']) { $this->info('Database backup created: '.$result['path']); }
+            $this->info('Expired backups removed: '.$result['deleted']);
+            if ($monitor) { \App\Services\OperationsHealth::record('backup', 'success', 'Verified backup completed.'); }
+            return self::SUCCESS;
+        } catch (\Throwable $exception) {
+            Log::error('Scheduled database backup failed.', ['type' => $exception::class]);
+            $this->error('Backup failed. Check database health, configured client tools and storage permissions.');
+            if ($monitor) { \App\Services\OperationsHealth::record('backup', 'failed', 'Backup failed. Check database health, client tools and storage permissions.'); }
             return self::FAILURE;
         }
-
-        $this->info("Database backup created: {$backupPath}");
-        $this->line("Expired backups removed: {$deletedBackups}");
-        $this->line("Retention window: {$retentionDays} days");
-
-        return self::SUCCESS;
-    }
-
-    /**
-     * @param  array<string, mixed>  $connection
-     */
-    protected function createBackup(array $connection, string $backupPath): void
-    {
-        $binary = env('DB_BACKUP_BINARY', 'mysqldump');
-        $databaseName = (string) ($connection['database'] ?? '');
-        $username = (string) ($connection['username'] ?? '');
-        $host = (string) ($connection['host'] ?? '127.0.0.1');
-        $port = (string) ($connection['port'] ?? '3306');
-
-        $arguments = [
-            $binary,
-            '--single-transaction',
-            '--quick',
-            '--set-gtid-purged=OFF',
-            '--routines',
-            '--triggers',
-            '--default-character-set=utf8mb4',
-            '--host='.$host,
-            '--port='.$port,
-            '--user='.$username,
-            '--result-file='.$backupPath,
-            $databaseName,
-        ];
-
-        $socket = (string) ($connection['unix_socket'] ?? '');
-
-        if ($socket !== '') {
-            $arguments[] = '--socket='.$socket;
-        }
-
-        $environment = [];
-        $password = $connection['password'] ?? null;
-
-        if ($password !== null && $password !== '') {
-            $environment['MYSQL_PWD'] = (string) $password;
-        }
-
-        $process = new Process($arguments, base_path(), $environment);
-        $process->setTimeout(null);
-        $process->run();
-
-        if (! $process->isSuccessful()) {
-            throw new \RuntimeException(trim($process->getErrorOutput()) ?: 'mysqldump did not complete successfully.');
-        }
-
-        if (! File::exists($backupPath) || File::size($backupPath) === 0) {
-            throw new \RuntimeException('Backup file was not created or is empty.');
-        }
-    }
-
-    protected function pruneExpiredBackups(string $backupDirectory, int $retentionDays): int
-    {
-        $deletedBackups = 0;
-        $cutoffTimestamp = now()->subDays($retentionDays)->getTimestamp();
-
-        foreach (File::files($backupDirectory) as $file) {
-            if ($file->getExtension() !== 'sql') {
-                continue;
-            }
-
-            if ($file->getMTime() >= $cutoffTimestamp) {
-                continue;
-            }
-
-            File::delete($file->getPathname());
-            $deletedBackups++;
-        }
-
-        return $deletedBackups;
     }
 }

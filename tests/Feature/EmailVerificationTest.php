@@ -13,7 +13,7 @@ use Symfony\Component\Mailer\Exception\TransportException;
 
 beforeEach(function () {
     Notification::fake();
-    $this->user = User::factory()->unverified()->create();
+    $this->user = User::factory()->unverified()->create(['usertype' => 'applicant']);
 });
 
 function sentEmailCode(User $user): string

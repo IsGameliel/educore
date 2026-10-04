@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class AdmissionApplication extends Model
 {
+    public function payment()
+    {
+        return $this->morphOne(Payment::class, 'payable');
+    }
+
     protected $fillable = [
         'user_id',
         'application_number',

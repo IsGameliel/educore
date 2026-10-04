@@ -14,6 +14,8 @@ The page lists SQL backups from `storage/app/backups`, including subfolders such
 
 New files have unique names and are only listed after the dump completes. Failed/partial dashboard backups are removed. Creating a dashboard backup does not prune previous files. The existing `backup:database` command and its scheduled retention policy remain available; its default retention is 120 days in its configured command directory.
 
+The scheduled command now shares the dashboard's verified dump implementation, MariaDB compatibility and operation lock. Its last start, success and failure appear under **System Health**. See [Reliability operations](reliability.md) for scheduler and worker setup.
+
 SQL backups include database account records and password hashes. They do **not** back up uploaded documents, photos, course materials, transcript PDFs, application files or `.env`. Back up private storage separately and keep downloads private.
 
 ## Restoring a listed backup
@@ -58,5 +60,7 @@ DB_BACKUP_TIMEOUT=900
 ```
 
 Database passwords are supplied to subprocesses through the environment, not command-line arguments. A filesystem lock serializes operations started through this dashboard. Coordinate separate CLI/scheduled operations before restoring; the dashboard lock does not stop external database writers or the existing scheduled command.
+
+On Windows, the subprocess explicitly retains the operating system's SystemRoot and related runtime variables. Missing SystemRoot in a web subprocess can cause `ERROR 2004 (HY000): Can't create TCP/IP socket (10106)` even when PHP's database connection works. Backup creation detects MariaDB clients and omits the MySQL-only `--set-gtid-purged` option. Backup identifiers use normalized relative paths on both Windows and Linux.
 
 Access, input validation, safe file lookup, dump completion, concurrency, replication-state filtering, missing-session-table handling, and restore sequencing are covered by isolated SQLite tests. MySQL preflight should also be verified on the deployment server. Do not run destructive restore tests against the portal database.

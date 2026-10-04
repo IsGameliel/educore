@@ -39,7 +39,7 @@ class HomeController extends Controller
 
             // Fetch class schedules
             $schedules = ClassSchedule::with('lecturer')
-                ->where('department_id', $user->department->id)
+                ->forStudent($user)
                 ->get()
                 ->map(function ($schedule) {
                     $course = Courses::find($schedule->subject); // Assuming subject is a course ID
@@ -48,8 +48,19 @@ class HomeController extends Controller
                 });
 
             $recentUpdates = StudentUpdateFeed::forUser($user);
+            $tuitionSession = AcademicSession::current();
+            $tuitionInvoices = collect();
+            $tuitionClearances = [];
+            if ($tuitionSession) {
+                $billing = app(\App\Services\TuitionBilling::class);
+                $billing->ensureInvoices($user, $tuitionSession);
+                $tuitionInvoices = \App\Models\TuitionInvoice::active()->with(['payments', 'adjustments'])->where('user_id', $user->id)->where('academic_session_id', $tuitionSession->id)->get();
+                foreach (['First', 'Second'] as $semester) {
+                    $tuitionClearances[$semester] = \App\Services\Academic\RegistrationAccess::status($user, $tuitionSession->name, $semester);
+                }
+            }
 
-            return view('student.dashboard', compact('courseMaterialsCount', 'courseCount', 'schedules', 'recentUpdates') + $this->getDashboardWidgets($user));
+            return view('student.dashboard', compact('courseMaterialsCount', 'courseCount', 'schedules', 'recentUpdates', 'tuitionSession', 'tuitionInvoices', 'tuitionClearances') + $this->getDashboardWidgets($user));
         }
 
         elseif ($user->dashboardRole() === 'admin') {

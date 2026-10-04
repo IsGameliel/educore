@@ -58,6 +58,7 @@
                                         for="course_{{ $course->id }}"
                                         data-search="{{ strtolower($course->code . ' ' . $course->title . ' ' . $course->semester . ' ' . $course->level . ' ' . ($course->department->name ?? '') . ' ' . ($course->academicSession->name ?? '')) }}"
                                         data-session="{{ $course->academicSession?->name }}"
+                                        data-semester="{{ $course->semester }}"
                                     >
                                         <input
                                             type="checkbox"
@@ -172,6 +173,7 @@
             const downloadLink = document.getElementById('download-template-link');
             const searchInput = document.getElementById('course-search');
             const sessionSelect = document.getElementById('session');
+            const semesterSelect = document.getElementById('semester');
 
             if (!courseInputs.length || !downloadLink) {
                 return;
@@ -201,13 +203,15 @@
             function filterCourses() {
                 const term = searchInput ? searchInput.value.trim().toLowerCase() : '';
                 const session = sessionSelect ? sessionSelect.value : '';
+                const semester = semesterSelect ? semesterSelect.value : '';
 
                 courseItems.forEach(function (item) {
                     const matchesSearch = term === '' || (item.dataset.search || '').includes(term);
                     const matchesSession = session === '' || item.dataset.session === session;
-                    item.classList.toggle('d-none', !matchesSearch || !matchesSession);
+                    const matchesSemester = semester === '' || item.dataset.semester === semester;
+                    item.classList.toggle('d-none', !matchesSearch || !matchesSession || !matchesSemester);
 
-                    if (!matchesSession) {
+                    if (!matchesSession || !matchesSemester) {
                         const input = item.querySelector('input[type="checkbox"]');
                         if (input) {
                             input.checked = false;
@@ -228,6 +232,10 @@
 
             if (sessionSelect) {
                 sessionSelect.addEventListener('change', filterCourses);
+            }
+
+            if (semesterSelect) {
+                semesterSelect.addEventListener('change', filterCourses);
             }
 
             downloadLink.addEventListener('click', function (event) {

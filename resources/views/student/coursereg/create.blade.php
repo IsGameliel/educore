@@ -4,6 +4,14 @@
 
     <div class="main-panel">
         <div class="content-wrapper">
+            @include('academic.registration-assistance')
+            @if(! $registrationSettings->registration_open)
+                <div class="alert alert-warning">Course registration is currently closed. Please wait for the administrator to reopen it.</div>
+            @elseif($registrationSettings->require_fee_clearance)
+                <div class="alert alert-info">Course registration is open. Required semester fees must be cleared before registration. <a href="{{ route('tuition.index') }}">View tuition balance and clearance</a>.</div>
+            @else
+                <div class="alert alert-info">Course registration is open. Fee clearance is currently not required.</div>
+            @endif
             <div class="page-header">
                 <h3 class="page-title">
                     <span class="page-title-icon bg-gradient-primary text-white me-2">
@@ -140,7 +148,7 @@
 
                         <!-- Submit Button -->
                         <div class="form-group">
-                            <button type="submit" class="btn btn-gradient-primary">Register for Selected Courses</button>
+                            <button type="submit" class="btn btn-gradient-primary" @disabled(! $registrationSettings->registration_open)>Register for Selected Courses</button>
                         </div>
                     </form>
                 </div>

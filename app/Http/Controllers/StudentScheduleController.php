@@ -26,7 +26,7 @@ class StudentScheduleController extends Controller
 
         // Fetch the class schedules for the student's department
         $schedules = ClassSchedule::with('lecturer')
-            ->where('department_id', $student->department->id) // Match the student's department
+            ->forStudent($student)
             ->get()
             ->map(function ($schedule) {
                 $course = Courses::find($schedule->subject); // Assuming subject is a course ID

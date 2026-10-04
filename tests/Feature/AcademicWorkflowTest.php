@@ -150,10 +150,20 @@ it('protects private transcripts and revokes them after correction', function ()
 });
 
 it('allows missing result appeals but protects another student evidence', function () {
+    config(['services.paystack.secret_key' => 'sk_test_example']);
+    \Illuminate\Support\Facades\Http::fake(['api.paystack.co/transaction/initialize' => fn ($request) => \Illuminate\Support\Facades\Http::response([
+        'status' => true, 'data' => ['reference' => $request['reference'], 'authorization_url' => 'https://checkout.paystack.com/test-checkout'],
+    ])]);
     Storage::fake('local');
     $f = academicFixture();
     $this->actingAs($f['student'])->post(route('academic.appeals.store'), ['session' => $f['session']->name, 'semester' => 'First', 'course_code' => 'MISSING101', 'message' => 'My examination mark is missing from the portal.'])->assertSessionHasNoErrors();
     $appeal = ResultAppeal::firstOrFail();
+    $payment = $appeal->payment;
+    \Illuminate\Support\Facades\Http::fake(['api.paystack.co/transaction/verify/*' => \Illuminate\Support\Facades\Http::response([
+        'status' => true, 'data' => ['id' => 123456, 'reference' => $payment->reference, 'status' => 'success',
+            'amount' => 1500000, 'currency' => 'NGN', 'domain' => 'test', 'customer' => ['email' => $payment->email]],
+    ])]);
+    $this->get(route('payments.callback', ['reference' => $payment->reference]))->assertRedirect(route('academic.appeals'));
     $other = User::factory()->create(['usertype' => 'student']);
     $this->actingAs($other)->get(route('academic.appeals.evidence', $appeal))->assertForbidden();
     $this->actingAs($f['officer'])->post(route('academic.appeals.resolve', $appeal), ['status' => 'in_review', 'response' => 'We are checking the examination register.'])->assertSessionHasNoErrors();

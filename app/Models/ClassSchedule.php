@@ -56,4 +56,14 @@ class ClassSchedule extends Model
     {
         return $this->hasMany(AttendanceSession::class);
     }
+
+    public function scopeForStudent($query, User $student)
+    {
+        $session = AcademicSession::current();
+        if (!$session) { return $query->whereRaw('1 = 0'); }
+        $registered = CourseRegistration::where('user_id',$student->id)->where('session',$session->name)
+            ->whereIn('status',['registered','approved','completed'])->select('course_id');
+        return $query->whereHas('course',fn($q)=>$q->where('academic_session_id',$session->id))
+            ->where(fn($q)=>$q->where(fn($q)=>$q->where('department_id',$student->department_id)->where('level',$student->level))->orWhereIn('subject',$registered));
+    }
 }

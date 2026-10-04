@@ -15,5 +15,5 @@
 </div><p class="mt-2">Graduation eligibility is shown only when credits, minimum CGPA, and required courses are configured. Policies use a 0–5 grade-point scale.</p><button class="btn btn-primary">Create new policy version</button>
 </form>
 <div class="table-responsive"><table class="table"><thead><tr><th>Department</th><th>Session</th><th>Version</th><th>CA / Exam</th><th>Pass mark</th><th>Repeat rule</th><th>Created by</th></tr></thead><tbody>@foreach($policies as $policy)<tr><td>{{ $departments->firstWhere('id',$policy->department_id)?->name }}</td><td>{{ $policy->session }}</td><td>{{ $policy->version }}</td><td>{{ $policy->ca_max }} / {{ $policy->exam_max }}</td><td>{{ $policy->pass_mark }}</td><td>{{ $policy->repeat_rule }}</td><td>#{{ $policy->created_by }}</td></tr>@endforeach</tbody></table></div>{{ $policies->links() }}
-</div>
+</div></div>
 @endsection

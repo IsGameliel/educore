@@ -151,8 +151,8 @@
             </div>
             <div class="col-span-6 sm:col-span-4">
                 <x-label for="entry_year" value="{{ __('Entry Year') }}" />
-                <x-input id="entry_year" type="number" class="mt-1 block w-full" wire:model="state.entry_year" value="{{ $state['entry_year'] ?? $this->user->entry_year }}" required autocomplete="entry_year" />
-                <x-input-error for="state.entry_year" class="mt-2" />
+                <x-input id="entry_year" type="text" class="mt-1 block w-full" value="{{ $this->user->entry_year ?? 'Not assigned' }}" readonly aria-describedby="entry-year-help" />
+                <p id="entry-year-help" class="mt-2 text-sm text-gray-600">Contact administration to correct your entry year.</p>
             </div>
 
         @endif

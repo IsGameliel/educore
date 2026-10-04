@@ -9,7 +9,8 @@
         <p><strong>Program:</strong> {{ $user->department->name ?? 'N/A' }}</p>
 
         {{-- Results Table --}}
-        <table class="table table-bordered table-striped mt-3">
+        <div class="table-responsive student-result-scroll mt-3" role="region" aria-label="Course results" tabindex="0">
+        <table class="table table-bordered table-striped mb-0">
             <thead class="table-dark">
                 <tr>
                     <th>Course Code</th>
@@ -33,6 +34,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
 
         {{-- GPA & CGPA Summary --}}
         <table class="table table-bordered w-50 mt-4">
@@ -78,3 +80,17 @@
     </div>
                     </div>
 @endsection
+
+@push('styles')
+    <style>
+        .student-result-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .student-result-scroll table {
+            min-width: 900px;
+        }
+    </style>
+@endpush

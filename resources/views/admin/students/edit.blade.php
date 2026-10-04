@@ -55,6 +55,12 @@
                     </div>
 
                     <div class="mb-3">
+                        <label for="entry_year" class="form-label">Entry year</label>
+                        <input id="entry_year" name="entry_year" type="number" min="1900" max="2100" value="{{ old('entry_year', $student->entry_year) }}" class="form-control" required>
+                        <small>Required for new/returning tuition classification. Existing invoices retain their original enrollment details.</small>
+                        @error('entry_year')<span class="text-danger">{{ $message }}</span>@enderror
+                    </div>
+                    <div class="mb-3">
                         <label for="level" class="form-label">Level</label>
                         <select name="level" id="level" class="form-control" required>
                             <option value="100" {{ old('level', $student->level) == '100' ? 'selected' : '' }}>100</option>
@@ -62,6 +68,7 @@
                             <option value="300" {{ old('level', $student->level) == '300' ? 'selected' : '' }}>300</option>
                             <option value="400" {{ old('level', $student->level) == '400' ? 'selected' : '' }}>400</option>
                             <option value="500" {{ old('level', $student->level) == '500' ? 'selected' : '' }}>500</option>
+                            <option value="600" {{ old('level', $student->level) == '600' ? 'selected' : '' }}>600</option>
                         </select>
                         @error('level')
                             <span class="text-danger">{{ $message }}</span>
