@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Reset Password | Educore Management Systems</title>
+    <title>Reset Password | Euvion Management Systems</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Inter:wght@100..900&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
@@ -88,7 +88,7 @@
     <nav class="fixed top-0 z-50 w-full bg-slate-50/80 shadow-sm backdrop-blur-md transition-all duration-300 ease-in-out dark:bg-slate-950/80 dark:shadow-none">
         <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
             <a class="flex items-center gap-2 text-2xl font-bold tracking-tighter text-[#002b59] font-headline dark:text-blue-100" href="{{ url('/') }}">
-                <span class="material-symbols-outlined text-primary">auto_stories</span> Educore
+                <span class="material-symbols-outlined text-primary">auto_stories</span> Euvion
             </a>
             <div class="hidden items-center gap-8 font-['Manrope'] text-sm font-semibold tracking-tight md:flex">
                 <a class="rounded-lg px-3 py-2 text-slate-600 transition-colors hover:bg-slate-100/50 hover:text-blue-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-blue-100" href="{{ url('/pricing') }}">Pricing</a>
@@ -131,7 +131,7 @@
 
                     <div class="space-y-2">
                         <label class="block font-label text-sm font-semibold text-on-surface-variant" for="email">Email address</label>
-                        <input class="w-full rounded-lg border-none border-b-2 border-transparent bg-surface-container-highest px-4 py-3.5 text-on-surface placeholder:text-outline transition-all focus:border-primary focus:ring-0 focus:ring-offset-0" id="email" name="email" placeholder="registrar@educore.edu" type="email" value="{{ old('email') }}" required autofocus autocomplete="username" />
+                        <input class="w-full rounded-lg border-none border-b-2 border-transparent bg-surface-container-highest px-4 py-3.5 text-on-surface placeholder:text-outline transition-all focus:border-primary focus:ring-0 focus:ring-offset-0" id="email" name="email" placeholder="registrar@euvion.edu" type="email" value="{{ old('email') }}" required autofocus autocomplete="username" />
                     </div>
 
                     <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-primary to-primary-container py-4 font-headline font-bold text-on-primary shadow-lg shadow-primary/10 transition-all hover:-translate-y-0.5 active:translate-y-0" type="submit">
@@ -157,14 +157,14 @@
 
     <footer class="w-full border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950">
         <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-8 py-12 md:flex-row">
-            <div class="font-['Manrope'] font-black text-blue-900 dark:text-blue-100">EduCore</div>
+            <div class="font-['Manrope'] font-black text-blue-900 dark:text-blue-100">Euvion</div>
             <div class="flex gap-6 font-['Inter'] text-xs font-medium">
                 <a class="text-slate-500 transition-colors hover:text-blue-800 dark:text-slate-400 dark:hover:text-blue-200" href="#">Privacy Policy</a>
                 <a class="text-slate-500 transition-colors hover:text-blue-800 dark:text-slate-400 dark:hover:text-blue-200" href="#">Terms of Service</a>
                 <a class="text-slate-500 transition-colors hover:text-blue-800 dark:text-slate-400 dark:hover:text-blue-200" href="#">Security</a>
                 <a class="text-slate-500 transition-colors hover:text-blue-800 dark:text-slate-400 dark:hover:text-blue-200" href="#">Accessibility</a>
             </div>
-            <p class="font-['Inter'] text-xs font-medium text-slate-500 dark:text-slate-400">&copy; 2024 Educore Management Systems. All rights reserved.</p>
+            <p class="font-['Inter'] text-xs font-medium text-slate-500 dark:text-slate-400">&copy; 2024 Euvion Management Systems. All rights reserved.</p>
         </div>
     </footer>
 </body>

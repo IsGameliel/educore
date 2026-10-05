@@ -102,7 +102,7 @@
     <header class="fixed top-0 z-50 w-full bg-[#faf8ff]/80 shadow-[0_10px_30px_rgba(25,27,34,0.06)] backdrop-blur-xl dark:bg-[#191b22]/80">
         <div class="mx-auto flex w-full max-w-[1440px] items-center justify-between px-6 py-4 lg:px-8">
             <a class="flex items-center gap-2 text-xl font-bold tracking-tighter text-[#002b59] dark:text-white" href="{{ url('/') }}">
-                <span class="material-symbols-outlined text-primary">auto_stories</span> Educore
+                <span class="material-symbols-outlined text-primary">auto_stories</span> Euvion
             </a>
             <nav class="hidden items-center gap-8 font-['Manrope'] text-sm font-semibold tracking-tight md:flex">
                 <a class="cursor-pointer text-[#191b22]/70 transition-colors transition-transform duration-200 hover:-translate-y-[2px] hover:text-[#1A4175] dark:text-[#f2f3fd]/70" href="{{ url('/pricing') }}">Pricing</a>
@@ -165,7 +165,7 @@
                             <div class="absolute bottom-0 p-8 text-white md:p-12">
                                 <span class="mb-4 inline-block rounded bg-secondary-container px-3 py-1 text-xs font-bold uppercase tracking-widest text-on-secondary-fixed-variant">Case Study</span>
                                 <h3 class="mb-4 text-3xl font-bold md:text-4xl">Stanford Global Scaled Remote Learning</h3>
-                                <p class="mb-6 max-w-xl text-lg text-on-primary-container">How one of the world's leading institutions transitioned 12,000+ students to a hybrid ecosystem within weeks using Educore's unified dashboard.</p>
+                                <p class="mb-6 max-w-xl text-lg text-on-primary-container">How one of the world's leading institutions transitioned 12,000+ students to a hybrid ecosystem within weeks using Euvion's unified dashboard.</p>
                                 <button class="rounded-xl bg-white px-8 py-3 font-bold text-primary transition-colors hover:bg-primary-fixed">Read Full Study</button>
                             </div>
                         </div>
@@ -203,7 +203,7 @@
                         <span class="material-symbols-outlined">settings_suggest</span>
                     </div>
                     <h3 class="mb-2 text-lg font-bold">Initial Setup</h3>
-                    <p class="mb-6 text-sm text-on-surface-variant">Step-by-step framework for deploying Educore across multiple campus nodes.</p>
+                    <p class="mb-6 text-sm text-on-surface-variant">Step-by-step framework for deploying Euvion across multiple campus nodes.</p>
                     <span class="text-xs font-bold uppercase tracking-widest text-primary">12 Chapters</span>
                 </div>
                 <div class="group cursor-pointer rounded-xl border border-outline-variant/20 bg-surface p-8 transition-all hover:border-primary/40 hover:bg-surface-container-lowest hover:shadow-lg">
@@ -299,8 +299,8 @@
     <footer class="mt-auto w-full bg-[#f2f3fd] py-12 dark:bg-[#12141a]">
         <div class="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-8 px-6 md:flex-row lg:px-12">
             <div class="flex flex-col gap-2">
-                <div class="font-['Manrope'] text-lg font-bold text-[#1A4175]">Educore</div>
-                <div class="font-['Inter'] text-sm tracking-normal text-[#191b22]/60 dark:text-[#f2f3fd]/60">&copy; 2024 Educore. Empowering Academic Authority.</div>
+                <div class="font-['Manrope'] text-lg font-bold text-[#1A4175]">Euvion</div>
+                <div class="font-['Inter'] text-sm tracking-normal text-[#191b22]/60 dark:text-[#f2f3fd]/60">&copy; 2024 Euvion. Empowering Academic Authority.</div>
             </div>
             <nav class="flex flex-wrap gap-8 font-['Inter'] text-sm tracking-normal">
                 <a class="text-[#191b22]/60 transition-colors hover:text-[#1A4175] dark:text-[#f2f3fd]/60 dark:hover:text-white" href="#">Privacy Policy</a>

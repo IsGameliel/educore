@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Educore</title>
+    <title>Euvion</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
@@ -94,7 +94,7 @@
     <header class="fixed left-0 top-0 z-50 w-full bg-[#faf8ff]/80 backdrop-blur-xl">
         <nav class="mx-auto flex w-full max-w-screen-2xl items-center justify-between px-6 py-4 lg:px-12">
             <a class="flex items-center gap-2 text-xl font-bold tracking-tighter text-[#002b59] dark:text-white" href="{{ url('/') }}">
-                <span class="material-symbols-outlined text-primary">auto_stories</span> Educore
+                <span class="material-symbols-outlined text-primary">auto_stories</span> Euvion
             </a>
             <div class="hidden items-center gap-8 md:flex">
                 <a class="font-['Manrope'] text-sm font-bold tracking-tight text-[#191b22]/60 transition-transform duration-200 hover:-translate-y-[2px] hover:text-[#1A4175]" href="{{ url('/pricing') }}">Pricing</a>
@@ -129,7 +129,7 @@
                     The digital soul of <span class="text-secondary">academic excellence.</span>
                 </h1>
                 <p class="mb-10 max-w-xl text-lg leading-relaxed text-on-surface-variant sm:text-xl">
-                    Educore provides an integrated ecosystem designed for high-performance institutions. We bridge the gap between administrative precision and educational fluidity.
+                    Euvion provides an integrated ecosystem designed for high-performance institutions. We bridge the gap between administrative precision and educational fluidity.
                 </p>
                 <div class="flex flex-wrap gap-4">
                     <a class="flex items-center gap-3 rounded-xl bg-primary px-8 py-4 text-lg font-bold text-on-primary transition-all hover:-translate-y-[2px]" href="{{ url('/request-demo') }}">
@@ -151,7 +151,7 @@
                         <span class="material-symbols-outlined text-secondary">public</span>
                     </div>
                     <div class="mb-1 text-3xl font-black text-primary">2.4M+</div>
-                    <div class="text-xs text-on-surface-variant">Scholars worldwide using Educore platforms.</div>
+                    <div class="text-xs text-on-surface-variant">Scholars worldwide using Euvion platforms.</div>
                 </div>
                 <div class="absolute -right-2 -top-4 w-48 -rotate-3 rounded-2xl bg-primary-container p-6 text-on-primary shadow-xl sm:-right-4 sm:-top-8 sm:w-56">
                     <span class="material-symbols-outlined mb-2 text-3xl">analytics</span>
@@ -233,7 +233,7 @@
         <section class="mx-auto flex max-w-screen-xl flex-col items-center px-6 py-24 text-center lg:px-12 lg:py-32">
             <span class="material-symbols-outlined mb-8 text-6xl text-outline-variant/30">format_quote</span>
             <blockquote class="mb-12 text-3xl font-black italic leading-tight tracking-tight text-primary md:text-5xl">
-                "Educore didn't just digitize our records; they transformed the way our faculty engages with academic data. It's the standard for the modern university."
+                "Euvion didn't just digitize our records; they transformed the way our faculty engages with academic data. It's the standard for the modern university."
             </blockquote>
             <div class="flex items-center gap-4 text-left">
                 <div class="h-16 w-16 overflow-hidden rounded-full">
@@ -252,7 +252,7 @@
                 <div class="relative z-10 flex flex-col items-start justify-between gap-10 px-8 py-16 md:px-16 lg:flex-row lg:items-center lg:px-24 lg:py-24">
                     <div class="max-w-2xl">
                         <h2 class="mb-6 text-4xl font-black text-on-primary md:text-5xl">Ready to elevate your institution?</h2>
-                        <p class="text-lg text-on-primary/70">Join 500+ elite academies redefining the educational experience with Educore's fluid management system.</p>
+                        <p class="text-lg text-on-primary/70">Join 500+ elite academies redefining the educational experience with Euvion's fluid management system.</p>
                     </div>
                     <div class="flex w-full flex-col gap-4 sm:w-auto sm:flex-row">
                         <a class="rounded-xl bg-secondary-container px-10 py-5 text-lg font-black text-on-secondary-container shadow-xl transition-transform hover:scale-105" href="{{ url('/register') }}">
@@ -270,8 +270,8 @@
     <footer class="w-full rounded-none border-t border-[#c3c6d1]/15 bg-[#f2f3fd]">
         <div class="mx-auto flex w-full max-w-screen-2xl flex-col items-center justify-between gap-8 px-6 py-12 md:flex-row lg:px-12">
             <div class="flex flex-col gap-4">
-                <div class="font-['Manrope'] text-xl font-black text-[#1A4175]">Educore</div>
-                <div class="font-['Inter'] text-sm tracking-wide text-[#191b22]/70">&copy; 2024 Educore Systems. The Modern Scholar Standard.</div>
+                <div class="font-['Manrope'] text-xl font-black text-[#1A4175]">Euvion</div>
+                <div class="font-['Inter'] text-sm tracking-wide text-[#191b22]/70">&copy; 2024 Euvion Systems. The Modern Scholar Standard.</div>
             </div>
             <div class="flex flex-wrap justify-center gap-x-12 gap-y-4">
                 <a class="font-['Inter'] text-sm tracking-wide text-[#191b22]/70 underline underline-offset-4 transition-colors duration-300 hover:text-[#1A4175]" href="#">Privacy Policy</a>

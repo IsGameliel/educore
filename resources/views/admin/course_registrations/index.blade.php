@@ -116,7 +116,10 @@
 
                     <form method="GET" action="{{ route('admin.course-registrations.index') }}" class="d-flex flex-column flex-sm-row gap-2">
                         <select name="session" class="form-control">
+                            <option value="all" @selected($currentSession === 'all')>All sessions</option>
+                            <option value="unassigned" @selected($currentSession === 'unassigned')>Session not assigned</option>
                             @foreach($academicSessions as $academicSession)
+                                @continue(in_array($academicSession, ['all', 'unassigned'], true))
                                 <option value="{{ $academicSession }}" {{ $currentSession === $academicSession ? 'selected' : '' }}>
                                     {{ $academicSession }}
                                 </option>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Educore | Frequently Asked Questions</title>
+    <title>Euvion | Frequently Asked Questions</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
@@ -92,7 +92,7 @@
     <header class="fixed top-0 z-50 w-full bg-slate-50/80 shadow-sm backdrop-blur-lg dark:bg-slate-950/80 dark:shadow-none">
         <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
             <a class="flex items-center gap-2 text-xl font-bold tracking-tighter text-[#002b59] dark:text-white" href="{{ url('/') }}">
-                <span class="material-symbols-outlined text-primary">auto_stories</span> Educore
+                <span class="material-symbols-outlined text-primary">auto_stories</span> Euvion
             </a>
             <nav class="hidden items-center gap-8 font-['Manrope'] text-sm font-semibold tracking-tight md:flex">
                 <a class="text-slate-600 transition-colors hover:text-blue-900 dark:text-slate-400 dark:hover:text-white" href="{{ url('/pricing') }}">Pricing</a>
@@ -142,16 +142,16 @@
                     <div class="space-y-4">
                         <div class="cursor-pointer rounded-xl border border-outline-variant/5 bg-surface-container-lowest p-6 shadow-sm transition-shadow hover:shadow-md">
                             <div class="flex items-center justify-between">
-                                <h3 class="font-headline text-lg font-bold text-on-surface">What exactly is Educore Systems?</h3>
+                                <h3 class="font-headline text-lg font-bold text-on-surface">What exactly is Euvion Systems?</h3>
                                 <span class="material-symbols-outlined text-primary">expand_more</span>
                             </div>
                             <div class="mt-4 font-body leading-relaxed text-on-surface-variant">
-                                Educore is a next-generation school management ecosystem designed for precision in pedagogy. We provide administrators, teachers, and students with a unified cockpit for academic excellence.
+                                Euvion is a next-generation school management ecosystem designed for precision in pedagogy. We provide administrators, teachers, and students with a unified cockpit for academic excellence.
                             </div>
                         </div>
                         <div class="cursor-pointer rounded-xl border border-outline-variant/5 bg-surface-container-lowest p-6 shadow-sm transition-shadow hover:shadow-md">
                             <div class="flex items-center justify-between">
-                                <h3 class="font-headline text-lg font-bold text-on-surface">Is Educore suitable for both K-12 and Higher Ed?</h3>
+                                <h3 class="font-headline text-lg font-bold text-on-surface">Is Euvion suitable for both K-12 and Higher Ed?</h3>
                                 <span class="material-symbols-outlined text-primary">add</span>
                             </div>
                         </div>
@@ -175,7 +175,7 @@
                         </div>
                         <div class="cursor-pointer rounded-xl border border-outline-variant/5 bg-surface-container-lowest p-6 shadow-sm transition-shadow hover:shadow-md">
                             <div class="flex items-center justify-between">
-                                <h3 class="font-headline text-lg font-bold text-on-surface">Can we self-host the Educore database?</h3>
+                                <h3 class="font-headline text-lg font-bold text-on-surface">Can we self-host the Euvion database?</h3>
                                 <span class="material-symbols-outlined text-primary">add</span>
                             </div>
                         </div>
@@ -232,7 +232,7 @@
     <footer class="mt-auto w-full border-t border-slate-200 bg-slate-100 py-12 dark:border-slate-800 dark:bg-slate-900">
         <div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-8 md:grid-cols-4">
             <div class="col-span-1 md:col-span-1">
-                <div class="mb-4 font-['Manrope'] text-lg font-bold text-blue-950 dark:text-white">Educore</div>
+                <div class="mb-4 font-['Manrope'] text-lg font-bold text-blue-950 dark:text-white">Euvion</div>
                 <p class="font-['Inter'] text-sm leading-relaxed text-slate-500 dark:text-slate-500">
                     Precision in Pedagogy. Empowering educational institutions through intelligent data management.
                 </p>
@@ -253,7 +253,7 @@
             </div>
         </div>
         <div class="mx-auto mt-12 max-w-7xl border-t border-slate-200/50 px-8 pt-8">
-            <p class="text-center font-['Inter'] text-sm leading-relaxed text-slate-400">&copy; 2024 Educore Systems. All rights reserved. Precision in Pedagogy.</p>
+            <p class="text-center font-['Inter'] text-sm leading-relaxed text-slate-400">&copy; 2024 Euvion Systems. All rights reserved. Precision in Pedagogy.</p>
         </div>
     </footer>
 </body>

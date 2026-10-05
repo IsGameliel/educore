@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <meta content="{{ csrf_token() }}" name="csrf-token"/>
-    <title>Educore - Profile Dashboard</title>
+    <title>Euvion - Profile Dashboard</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
@@ -310,7 +310,7 @@
                 <button class="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors" type="button" x-on:click="mobileMenuOpen = true" aria-label="Open sidebar">
                     <span class="material-symbols-outlined">menu</span>
                 </button>
-                <span class="text-xl font-extrabold tracking-tight text-indigo-600">Educore</span>
+                <span class="text-xl font-extrabold tracking-tight text-indigo-600">Euvion</span>
             </div>
             <nav class="hidden md:flex space-x-6">
                 <a class="text-slate-500 font-medium hover:bg-slate-50 transition-colors px-3 py-1 rounded" href="{{ url('home') }}">Dashboard</a>
@@ -338,7 +338,7 @@
                     {{ strtoupper(substr($displayUser->name, 0, 1)) }}
                 </div>
                 <div>
-                    <p class="text-lg font-bold text-slate-900 leading-none">Educore Portal</p>
+                    <p class="text-lg font-bold text-slate-900 leading-none">Euvion Portal</p>
                     <p class="text-slate-500 text-xs mt-1">{{ $profileLabel }}</p>
                 </div>
             </div>
@@ -383,7 +383,7 @@
                         {{ strtoupper(substr($displayUser->name, 0, 1)) }}
                     </div>
                     <div>
-                        <p class="text-lg font-bold text-slate-900 leading-none">Educore Portal</p>
+                        <p class="text-lg font-bold text-slate-900 leading-none">Euvion Portal</p>
                         <p class="text-slate-500 text-xs mt-1">{{ $profileLabel }}</p>
                     </div>
                 </div>
@@ -496,7 +496,7 @@
         </div>
 
         <footer class="h-20 border-t border-slate-200 flex items-center justify-center text-body-sm text-slate-400">
-            © 2024 Educore Academic Systems. All rights reserved.
+            © 2024 Euvion Academic Systems. All rights reserved.
         </footer>
     </main>
 

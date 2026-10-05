@@ -288,7 +288,7 @@ class DatabaseBackups
     /** Prove both import and schema upgrades work before removing any live tables. */
     protected function preflight($input): void
     {
-        $database = 'educore_restore_check_'.strtolower(Str::random(16));
+        $database = 'euvion_restore_check_'.strtolower(Str::random(16));
         $connectionName = $database;
         $created = false;
         try {

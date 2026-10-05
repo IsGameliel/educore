@@ -1,0 +1,22 @@
+.merge-notice { background: #edf3fc; border: 1px solid #dae5f5; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; color: #455d7f; font-size: 13px; line-height: 1.7; }
+.merge-search { display: flex; gap: 12px; align-items: end; padding: 24px; background: #fbfcfe; border-bottom: 1px solid #e8edf4; }
+.merge-search .students-field { flex: 1; }
+.merge-account-id { display: block; margin-top: 5px; color: #8491a5; font-size: 11px; font-weight: 400; }
+.merge-form-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 24px; }
+.merge-form-footer p { margin: 0; font-size: 12px; color: #6b7890; line-height: 1.7; }
+.merge-history { margin-top: 24px; }
+.merge-profile { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 24px 24px; }
+.merge-confirm { padding: 24px; }
+.students-page .merge-confirm textarea { height: auto; min-height: 90px; }
+.merge-check { display: flex; align-items: start; gap: 12px; margin: 20px 0; font-size: 13px; color: #526179; line-height: 1.7; }
+.students-page input[type=checkbox], .students-page input[type=radio] { width: 17px; height: 17px; accent-color: #001f54; flex-shrink: 0; }
+.merge-check input { margin-top: 3px; }
+.merge-conflicts { margin-top: 24px; background: #fff8ef; border: 1px solid #f1d9b8; border-radius: 10px; padding: 24px; }
+.merge-conflicts h2 { font-size: 17px; color: #855423; }
+.merge-conflicts p { font-size: 13px; color: #7c654c; line-height: 1.7; }
+.merge-conflicts details { background: white; border: 1px solid #ebdcc8; border-radius: 6px; margin: 12px 0; overflow: hidden; }
+.merge-conflicts summary { padding: 14px; cursor: pointer; font-size: 13px; color: #715637; font-weight: 600; }
+.merge-record-details { white-space: normal !important; min-width: 250px; }
+.merge-record-details span { display: block; overflow-wrap: anywhere; }
+.students-page .table .merge-reason { white-space: normal; min-width: 180px; }
+@media(max-width: 700px) { .merge-search { flex-direction: column; align-items: stretch; padding: 20px; } .merge-profile { grid-template-columns: 1fr; padding: 0 20px 20px; } .merge-confirm, .merge-conflicts { padding: 20px; } }

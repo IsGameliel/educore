@@ -260,6 +260,8 @@ Route::middleware([
         Route::get('/course-registrations', [AdminCourseRegistrationController::class, 'index'])
             ->name('course-registrations.index');
 
+        Route::get('/course-registrations/{student}/registrations/{registration}/edit', [\App\Http\Controllers\Admin\RegistrationEditController::class, 'edit'])->name('course-registrations.record.edit');
+        Route::put('/course-registrations/{student}/registrations/{registration}', [\App\Http\Controllers\Admin\RegistrationEditController::class, 'update'])->name('course-registrations.record.update');
         Route::get('/course-registrations/{student}', [AdminCourseRegistrationController::class, 'show'])
             ->name('course-registrations.show');
 
@@ -298,6 +300,9 @@ Route::middleware([
             Route::delete('/{testId}/questions/{questionId}', [TestController::class, 'deleteQuestion'])->name('questions.delete');
         });
 
+        Route::get('/students/merge', [\App\Http\Controllers\Admin\StudentAccountMergeController::class, 'index'])->name('students.merge.index');
+        Route::get('/students/merge/preview', [\App\Http\Controllers\Admin\StudentAccountMergeController::class, 'preview'])->name('students.merge.preview');
+        Route::post('/students/merge', [\App\Http\Controllers\Admin\StudentAccountMergeController::class, 'store'])->middleware('throttle:5,1')->name('students.merge.store');
         Route::get('/students/import', [StudentManagementController::class, 'showImportForm'])
             ->name('students.import.form');
         Route::post('/students/import', [StudentManagementController::class, 'import'])

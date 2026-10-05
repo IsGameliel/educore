@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Request a Demo | EduCore - The Modern Scholar</title>
+    <title>Request a Demo | Euvion - The Modern Scholar</title>
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link crossorigin href="https://fonts.gstatic.com" rel="preconnect" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
@@ -97,7 +97,7 @@
     <header class="fixed top-0 z-50 w-full bg-[#faf8ff]/80 shadow-[0_10px_30px_rgba(25,27,34,0.06)] backdrop-blur-xl dark:bg-[#191b22]/80">
         <div class="mx-auto flex w-full max-w-[1440px] items-center justify-between px-6 py-4 lg:px-8">
             <a class="flex items-center gap-2 text-xl font-bold tracking-tighter text-[#002b59] dark:text-white" href="{{ url('/') }}">
-                <span class="material-symbols-outlined text-primary">auto_stories</span> Educore
+                <span class="material-symbols-outlined text-primary">auto_stories</span> Euvion
             </a>
             <nav class="hidden items-center gap-8 font-['Manrope'] text-sm font-semibold tracking-tight md:flex">
                 <a class="cursor-pointer text-[#191b22]/70 transition-colors transition-transform duration-200 hover:-translate-y-[2px] hover:text-[#1A4175] dark:text-[#f2f3fd]/70" href="{{ url('/pricing') }}">Pricing</a>
@@ -243,8 +243,8 @@
     <footer class="mt-auto w-full border-t border-slate-200/50 bg-slate-50 px-6 py-12 dark:bg-slate-950 lg:px-8">
         <div class="mx-auto grid max-w-7xl grid-cols-1 items-center gap-8 md:grid-cols-2">
             <div class="space-y-4">
-                <span class="font-headline text-xl font-bold text-slate-900 dark:text-white">Educore</span>
-                <p class="font-body text-sm text-slate-500">&copy; 2024 EduCore Systems. All rights reserved.</p>
+                <span class="font-headline text-xl font-bold text-slate-900 dark:text-white">Euvion</span>
+                <p class="font-body text-sm text-slate-500">&copy; 2024 Euvion Systems. All rights reserved.</p>
                 <div class="mt-4 flex gap-6">
                     <a class="text-slate-400 transition-colors hover:text-blue-600" href="#"><span class="material-symbols-outlined">public</span></a>
                     <a class="text-slate-400 transition-colors hover:text-blue-600" href="#"><span class="material-symbols-outlined">alternate_email</span></a>

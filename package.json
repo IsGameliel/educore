@@ -1,4 +1,5 @@
 {
+    "name": "euvion",
     "private": true,
     "type": "module",
     "scripts": {

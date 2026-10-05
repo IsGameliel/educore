@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Educore Account Details</title>
+    <title>Euvion Account Details</title>
 </head>
 <body style="font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.6;">
     <h2>Hello, {{ $user->name }}</h2>
 
     @if($action === 'updated')
-        <p>Your Educore account details were updated by an administrator.</p>
+        <p>Your Euvion account details were updated by an administrator.</p>
     @else
-        <p>Your Educore account has been created successfully.</p>
+        <p>Your Euvion account has been created successfully.</p>
     @endif
 
     @if($user->usertype === 'student')
@@ -33,6 +33,6 @@
 
     <p>Please log in and change your password after your next sign-in if needed.</p>
 
-    <p>Regards,<br>Educore Team</p>
+    <p>Regards,<br>Euvion Team</p>
 </body>
 </html>

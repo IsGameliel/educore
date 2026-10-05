@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>{{ $payment->receiptNumber() }}</title>
 <style>body{font-family:DejaVu Sans,sans-serif;color:#18253b;font-size:12px;line-height:1.6}h1{font-size:25px;color:#194fb2}table{border-collapse:collapse;width:100%;margin-top:20px}td,th{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{width:35%}.amount{font-size:24px;font-weight:bold}.note{margin-top:30px;color:#586477}</style></head><body>
-<h1>{{ config('app.name', 'EduCore') }}</h1><h2>Payment receipt</h2><p>{{ $payment->receiptNumber() }}</p>
+<h1>{{ config('app.name', 'Euvion') }}</h1><h2>Payment receipt</h2><p>{{ $payment->receiptNumber() }}</p>
 @if($payment->gateway_deduction || $payment->dispute_open || $payment->gateway_reversed)<p>This acknowledges the original payment. Verified refunds/reversals: NGN {{ number_format($payment->gateway_deduction / 100, 2) }}. {{ $payment->dispute_open ? 'A dispute is under review.' : '' }} Check the tuition invoice for current clearance.</p>@endif
 <p class="amount">NGN {{ number_format($payment->amount/100,2) }}</p>
 <table>
