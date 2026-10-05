@@ -1,0 +1,48 @@
+.students-page { --student-brand: #001f54; }
+.students-page .content-wrapper { padding: 32px; }
+.students-page .page-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.students-eyebrow { display: block; color: #64748b; font-size: 10px; font-weight: 700; letter-spacing: 1.8px; margin-bottom: 8px; }
+.students-title { color: #172b4d; font-size: 30px; font-weight: 700; letter-spacing: -.8px; margin: 0 0 8px; }
+.students-page .small-muted { font-size: 13px; color: #718096; line-height: 1.6; }
+.students-toolbar { display: flex; flex-wrap: wrap; gap: 10px; }
+.students-toolbar form { margin: 0; }
+.students-page .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 10px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+.students-page .brand-btn { background: var(--student-brand); border: 1px solid var(--student-brand); color: white; }
+.students-page .brand-btn:hover { background: #123b78; color: white; }
+.students-page .btn-outline-primary { background: white; border: 1px solid #d6dfec; color: #344866; }
+.students-page .btn-outline-primary:hover { background: #eef3fb; border-color: #9cb0ce; }
+.students-page .btn-outline-secondary { border-color: #d6dfec; color: #64748b; background: white; }
+.students-page .card-ghost { border: 1px solid #e3e9f1; border-radius: 12px; box-shadow: 0 4px 20px rgba(23,43,77,.04); overflow: hidden; }
+.students-page .card-body { padding: 0; }
+.students-filters { display: grid; grid-template-columns: minmax(180px,1.4fr) minmax(180px,1.2fr) minmax(120px,.7fr) auto; gap: 16px; align-items: end; padding: 24px; margin: 0; background: #fbfcfe; border-bottom: 1px solid #e8edf4; }
+.students-field { min-width: 0; }
+.students-page .form-label { display: block; margin-bottom: 8px; color: #475569; font-size: 12px; font-weight: 600; }
+.students-page .form-control, .students-page .form-select { display: block; width: 100%; height: 42px; padding: 9px 12px; border: 1px solid #dce3ed; border-radius: 6px; background-color: white; color: #334155; font-size: 13px; }
+.students-page .form-control::placeholder { color: #94a3b8; }
+.students-page .form-control:focus, .students-page .form-select:focus { border-color: #6b8cbf; outline: none; box-shadow: 0 0 0 3px #eaf0fa; }
+.students-page .btn:focus-visible { outline: 3px solid #9bb7e4; outline-offset: 3px; }
+.students-filter-actions { display: flex; gap: 8px; padding-bottom: 1px; }
+.students-directory-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px; }
+.students-directory-heading h2 { margin: 0; font-size: 16px; font-weight: 700; color: #243650; }
+.students-directory-heading span { font-size: 12px; color: #7b8799; background: #edf2fa; padding: 6px 10px; border-radius: 5px; }
+.students-page .table { margin: 0; width: 100%; }
+.students-page .table thead th { background: #f5f7fb; color: #6a7890; font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; border-top: 1px solid #e8edf4; border-bottom: 1px solid #e8edf4; padding: 15px 20px; }
+.students-page .table tbody td { padding: 17px 20px; border-bottom: 1px solid #eef1f6; color: #526179; font-size: 12px; vertical-align: middle; line-height: 1.5; }
+.students-page .table tbody tr:hover { background: #fbfcff; }
+.students-page .table .student-name { color: #243650; font-weight: 600; white-space: normal; min-width: 160px; }
+.student-level { display: inline-block; background: #eef3fa; color: #476488; border: 1px solid #e2eaf5; border-radius: 5px; padding: 4px 8px; font-size: 11px; white-space: nowrap; }
+.students-page .student-action { width: 32px; min-height: 32px; padding: 6px; border-radius: 6px; border: 1px solid #e0e7f0; background: #fff; font-size: 16px; }
+.students-page .student-edit { color: #48668f; margin-right: 4px; }
+.students-page .student-edit:hover { background: #edf3fc; }
+.students-page .student-delete { color: #c05a66; border-color: #f0dfe2; }
+.students-page .student-delete:hover { background: #fff0f2; }
+.students-page .table td:last-child { white-space: nowrap; }
+.students-page .table .students-empty { text-align: center; padding: 54px 20px; }
+.students-empty strong { display: block; color: #334155; font-size: 15px; margin-bottom: 7px; }
+.students-empty p { margin: 0; }
+.students-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; }
+.students-pagination > p { font-size: 12px; color: #7b8799; margin: 0; }
+.students-pagination nav, .students-pagination .pagination { margin: 0; }
+.students-pagination svg { width: 20px; height: 20px; }
+@media (max-width: 1200px) { .students-page .page-header { align-items: flex-start; flex-direction: column; } .students-filters { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .students-page .content-wrapper { padding: 20px 14px; } .students-title { font-size: 26px; } .students-toolbar { width: 100%; } .students-toolbar > a, .students-toolbar > form { flex: 1 1 auto; } .students-toolbar form .btn { width: 100%; } .students-filters { grid-template-columns: 1fr; padding: 20px; } .students-filter-actions .btn { flex: 1; } .students-directory-heading { padding: 20px; } .students-pagination { padding: 18px 20px; } }

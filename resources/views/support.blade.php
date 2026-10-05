@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Support | Educore Management Systems</title>
+    <title>Support | Euvion Management Systems</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
@@ -88,7 +88,7 @@
     <nav class="fixed top-0 z-50 w-full bg-[#faf8ff]/80 shadow-[0_10px_30px_rgba(25,27,34,0.06)] backdrop-blur-xl dark:bg-[#191b22]/80">
         <div class="mx-auto flex max-w-screen-2xl items-center justify-between px-8 py-4">
             <a class="flex items-center gap-2 text-2xl font-bold tracking-tighter text-[#1A4175] dark:text-[#f2f3fd] font-headline" href="{{ url('/') }}">
-                <span class="material-symbols-outlined text-primary">auto_stories</span> Educore
+                <span class="material-symbols-outlined text-primary">auto_stories</span> Euvion
             </a>
             <div class="hidden items-center gap-8 font-['Manrope'] font-semibold tracking-tight md:flex">
                 <a class="text-[#191b22]/70 transition-transform duration-200 hover:-translate-y-[2px] dark:text-[#faf8ff]/70" href="{{ url('/pricing') }}">Pricing</a>
@@ -257,7 +257,7 @@
     <footer class="w-full bg-[#f2f3fd] px-8 py-12 dark:bg-[#191b22]">
         <div class="mx-auto grid max-w-screen-2xl grid-cols-1 gap-12 md:grid-cols-4">
             <div class="flex flex-col gap-4">
-                <div class="text-xl font-bold text-[#1A4175] font-headline">Educore</div>
+                <div class="text-xl font-bold text-[#1A4175] font-headline">Euvion</div>
                 <p class="text-sm leading-relaxed text-[#191b22]/60 dark:text-[#faf8ff]/60">
                     Empowering the next generation of educators with high-performance digital tools.
                 </p>
@@ -287,7 +287,7 @@
             </div>
         </div>
         <div class="mx-auto mt-16 flex max-w-screen-2xl flex-col items-center justify-between gap-4 border-t border-[#1A4175]/10 pt-8 md:flex-row">
-            <span class="text-xs text-[#191b22]/60 dark:text-[#faf8ff]/60">&copy; 2024 Educore Management Systems. All rights reserved.</span>
+            <span class="text-xs text-[#191b22]/60 dark:text-[#faf8ff]/60">&copy; 2024 Euvion Management Systems. All rights reserved.</span>
             <div class="flex gap-6">
                 <a class="text-[#191b22]/60 hover:text-[#1A4175]" href="#"><span class="material-symbols-outlined text-lg">language</span></a>
                 <a class="text-[#191b22]/60 hover:text-[#1A4175]" href="#"><span class="material-symbols-outlined text-lg">share</span></a>

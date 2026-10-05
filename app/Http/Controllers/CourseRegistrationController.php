@@ -261,7 +261,7 @@ class CourseRegistrationController extends Controller
         $courses = CourseRegistration::with(['course', 'results'])
             ->where('user_id', $userId)
             ->where('semester', $semester)
-            ->where('session', $session)
+            ->historySession($session)
             ->get();
 
         $availableSessions = AcademicSession::query()
@@ -278,7 +278,8 @@ class CourseRegistrationController extends Controller
             ->unique()
             ->values();
 
-        return view('student.coursereg.index', compact('courses', 'semester', 'session', 'availableSessions'));
+        $historyGroups = CourseRegistration::where('user_id', $userId)->selectRaw('session, semester, COUNT(*) as total')->groupBy('session', 'semester')->get();
+        return view('student.coursereg.index', compact('courses', 'semester', 'session', 'availableSessions', 'historyGroups'));
     }
 
 
@@ -378,7 +379,7 @@ class CourseRegistrationController extends Controller
         $courses = CourseRegistration::with(['course', 'results'])
             ->where('user_id', $user->id)
             ->where('semester', $semester)
-            ->where('session', $session)
+            ->historySession($session)
             ->get();
 
         // Check if courses were fetched
@@ -419,7 +420,7 @@ class CourseRegistrationController extends Controller
         $courses = CourseRegistration::with(['course', 'results'])
             ->where('user_id', $userId)
             ->where('semester', $semester)
-            ->where('session', $session)
+            ->historySession($session)
             ->get();
 
         return Excel::download(new CoursesExport($courses), "registered_courses_{$semester}.xlsx");

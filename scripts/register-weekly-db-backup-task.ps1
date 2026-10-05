@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 param(
-    [string]$TaskName = 'Educore Weekly Database Backup',
+    [string]$TaskName = 'Euvion Weekly Database Backup',
     [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
     [string]$PhpBinary = 'php',
     [string]$DayOfWeek = 'Sunday',
@@ -35,7 +35,7 @@ Register-ScheduledTask `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
-    -Description 'Runs the Educore Laravel database backup once a week.' `
+    -Description 'Runs the Euvion Laravel database backup once a week.' `
     -Force | Out-Null
 
 Write-Host "Scheduled task '$TaskName' created or updated."

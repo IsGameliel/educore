@@ -66,7 +66,7 @@
                     </tr>
                     <tr>
                         <td style="padding:16px 32px 24px;background:#f8fafc;color:#94a3b8;font-size:12px;text-align:center;">
-                            <p style="margin:0;">Powered by Educore | Please contact your lecturer if you have any issues accessing the scan code.</p>
+                            <p style="margin:0;">Powered by Euvion | Please contact your lecturer if you have any issues accessing the scan code.</p>
                         </td>
                     </tr>
                 </table>

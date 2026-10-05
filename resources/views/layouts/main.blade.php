@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ config('app.name', 'Euvion') }}</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -58,7 +58,7 @@
             <div class="d-flex align-items-center">
                 <div class="site-logo mr-auto w-25">
                     <a href="{{ url('/') }}">
-                        <img src="{{ asset('asset/images/educore.png') }}" style="width: 60%;" alt="">
+                        <img src="{{ asset('asset/images/euvion1.png') }}" style="width: 60%;" alt="Euvion">
                     </a>
                 </div>
                 <div class="mx-auto text-center">
@@ -109,8 +109,8 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-4">
-                    <h3>About Educore</h3>
-                    <p>Educore is a comprehensive school management system designed to streamline academic and administrative tasks. From managing student records to facilitating seamless communication and providing actionable insights, Educore empowers schools to deliver excellence in education effortlessly.</p>
+                    <h3>About Euvion</h3>
+                    <p>Euvion is a comprehensive school management system designed to streamline academic and administrative tasks. From managing student records to facilitating seamless communication and providing actionable insights, Euvion empowers schools to deliver excellence in education effortlessly.</p>
                 </div>
                 <div class="col-md-3 ml-auto">
                     <h3>Links</h3>
@@ -123,7 +123,7 @@
                 </div>
                 <div class="col-md-4">
                     <h3>Subscribe</h3>
-                    <p>Stay updated with the latest news, features, and updates from Educore. Join our community and never miss an important announcement!</p>
+                    <p>Stay updated with the latest news, features, and updates from Euvion. Join our community and never miss an important announcement!</p>
                     <form action="#" class="footer-subscribe">
                         <div class="d-flex mb-5">
                             <input type="text" class="form-control rounded-0" placeholder="Email">

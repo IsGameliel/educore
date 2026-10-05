@@ -16,6 +16,13 @@ class User extends Authenticatable implements \Illuminate\Contracts\Auth\MustVer
 {
     use HasApiTokens, HasFactory, HasProfilePhoto, HasTeams, Notifiable, TwoFactorAuthenticatable;
 
+    protected static function booted(): void
+    {
+        // Archived accounts remain available to audit queries, but cannot authenticate
+        // or appear in normal student directories and account lookups.
+        static::addGlobalScope('active_account', fn ($query) => $query->whereNull('users.merged_into_id'));
+    }
+
     protected $fillable = [
         'name',
         'email',

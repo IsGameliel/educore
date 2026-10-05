@@ -2,6 +2,8 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($sessionLabel = match ($session) { 'all' => 'All sessions', 'unassigned' => 'Session not assigned', default => $session })
+@if(!in_array($session, ['all', 'unassigned'], true))
 <div class="card card-body mb-3">
     <h4>Student credit load — {{ $session }}, {{ $semester }} semester</h4>
     <p>Current maximum: {{ \App\Services\Academic\StudentCreditLimit::for($student, $session, $semester) }} credits. Changes apply to future registration submissions; existing courses remain registered.</p>
@@ -15,6 +17,7 @@
         <button class="btn btn-primary mt-2">Save credit load</button>
     </form>
 </div>
+@endif
 <style>
     .course-reg-page .page-title-text {
         color: #001f54;
@@ -157,7 +160,7 @@
                             <span class="student-chip">Dept: {{ optional($student->department)->name ?? 'N/A' }}</span>
                             <span class="student-chip">Level: {{ $student->level ?? 'N/A' }}</span>
                             <span class="student-chip">Matric: {{ $student->matric_number ?? 'N/A' }}</span>
-                            <span class="student-chip">Session: {{ $session }}</span>
+                            <span class="student-chip">Session: {{ $sessionLabel }}</span>
                         </div>
                     </div>
 
@@ -165,7 +168,10 @@
                         <form method="GET" action="{{ route('admin.course-registrations.show', $student->id) }}" class="d-flex flex-column flex-sm-row gap-2">
                             <input type="hidden" name="semester" value="{{ $semester }}">
                             <select name="session" class="form-control form-control-sm">
+                                <option value="all" @selected($session === 'all')>All sessions</option>
+                                <option value="unassigned" @selected($session === 'unassigned')>Session not assigned</option>
                                 @foreach($academicSessions as $academicSession)
+                                    @continue(in_array($academicSession, ['all', 'unassigned'], true))
                                     <option value="{{ $academicSession }}" {{ $session === $academicSession ? 'selected' : '' }}>
                                         {{ $academicSession }}
                                     </option>
@@ -187,17 +193,28 @@
                         >
                             Second Semester
                         </a>
+                        @if(!in_array($session, ['all', 'unassigned'], true))
                         <a
                             href="{{ route('admin.course-registrations.edit', $student->id) }}?semester={{ $semester }}&session={{ urlencode($session) }}"
                             class="btn btn-sm btn-success"
                         >
                             <i class="mdi mdi-pencil me-1"></i> Edit Courses
                         </a>
+                        @endif
                     </div>
                     </div>
                 </div>
 
+                <div class="alert alert-info">
+                    <strong>{{ $historyGroups->sum('total') }} registration records across all sessions and semesters.</strong>
+                    @foreach($historyGroups as $group)
+                        <div><a href="{{ route('admin.course-registrations.show', ['student' => $student->id, 'semester' => $group->semester, 'session' => filled($group->session) ? $group->session : 'unassigned']) }}">{{ $group->session ?: 'Session not assigned' }} / {{ $group->semester }}: {{ $group->total }} records</a></div>
+                    @endforeach
+                </div>
                 <div class="mb-4">
+                    @if($registrations->isNotEmpty() && $session !== 'all')
+                        <a class="btn btn-outline-primary mb-3" href="{{ route('admin.course-registrations.record.edit', ['student' => $student->id, 'registration' => $registrations->first()->id, 'scope' => 'bulk']) }}">Update session / semester for all {{ $registrations->count() }} courses</a>
+                    @endif
                     <div class="credit-summary">
                         <span>Total Credit Units:</span>
                         <strong>{{ $totalCredits }}</strong>
@@ -212,7 +229,9 @@
                                 <th>Title</th>
                                 <th>Credit Unit</th>
                                 <th>Status</th>
+                                <th>Session</th>
                                 <th>Results</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -224,6 +243,7 @@
                                     <td>
                                         <span class="status-badge">{{ $reg->status ?? 'registered' }}</span>
                                     </td>
+                                    <td>{{ $reg->session ?: 'Session not assigned' }}</td>
                                     <td>
                                         @forelse($reg->results as $result)
                                             <div class="mb-2"><a href="{{ route('academic.show', $result) }}">{{ ucfirst($result->attempt_type) }}: {{ $result->score ?? ucfirst(str_replace('_', ' ', $result->outcome_status)) }} {{ $result->grade }}</a>
@@ -236,10 +256,11 @@
                                             @endif
                                         @endforelse
                                     </td>
+                                    <td><a class="btn btn-sm btn-outline-primary" href="{{ route('admin.course-registrations.record.edit', ['student' => $student->id, 'registration' => $reg->id]) }}">Edit registration</a></td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">
+                                    <td colspan="7" class="text-center text-muted py-4">
                                         No registered courses for {{ $semester }} Semester in {{ $session }}.
                                     </td>
                                 </tr>

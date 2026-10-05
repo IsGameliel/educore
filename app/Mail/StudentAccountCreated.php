@@ -23,7 +23,7 @@ class StudentAccountCreated extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Educore Student Account Details',
+            subject: 'Your Euvion Student Account Details',
         );
     }
 

@@ -21,8 +21,8 @@ class UserAccountCredentials extends Mailable
     {
         return new Envelope(
             subject: $this->action === 'updated'
-                ? 'Your Educore Account Details Were Updated'
-                : 'Your Educore Account Login Details',
+                ? 'Your Euvion Account Details Were Updated'
+                : 'Your Euvion Account Login Details',
         );
     }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Sign Up | Educore</title>
+    <title>Sign Up | Euvion</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -99,7 +99,7 @@
     <nav class="fixed top-0 z-50 w-full bg-[#faf8ff]/80 backdrop-blur-xl">
         <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 font-['Manrope'] tracking-tight lg:px-8">
             <a class="flex items-center gap-2 text-xl font-bold tracking-tighter text-[#002b59] dark:text-white" href="{{ url('/') }}">
-                <span class="material-symbols-outlined text-primary">auto_stories</span> Educore
+                <span class="material-symbols-outlined text-primary">auto_stories</span> Euvion
             </a>
             <div class="hidden items-center gap-12 md:flex">
                 <a class="text-[#191b22]/70 transition-colors hover:text-[#1A4175]" href="{{ url('/pricing') }}">Pricing</a>
@@ -248,8 +248,8 @@
 
     <footer class="flex w-full flex-col items-center justify-between gap-6 bg-[#f2f3fd] px-12 py-12 font-['Inter'] text-sm md:flex-row">
         <div class="mb-6 md:mb-0">
-            <span class="font-['Manrope'] text-lg font-bold text-[#1A4175]">Educore</span>
-            <p class="mt-2 text-[#191b22]/60">&copy; 2024 Educore Management Systems. All rights reserved.</p>
+            <span class="font-['Manrope'] text-lg font-bold text-[#1A4175]">Euvion</span>
+            <p class="mt-2 text-[#191b22]/60">&copy; 2024 Euvion Management Systems. All rights reserved.</p>
         </div>
         <div class="flex gap-8">
             <a class="text-[#191b22]/60 transition-colors hover:text-[#1A4175] underline" href="#">Privacy Policy</a>

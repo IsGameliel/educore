@@ -17,7 +17,7 @@ class EmailVerificationOtp extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Your Educore email verification code')
+            ->subject('Your Euvion email verification code')
             ->greeting('Hello '.$notifiable->name.',')
             ->line('Enter this code on the email verification page to continue:')
             ->line($this->code)

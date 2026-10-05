@@ -1,6 +1,6 @@
-# Educore Backup Cron Setup
+# Euvion Backup Cron Setup
 
-Educore already includes a Laravel backup command:
+Euvion already includes a Laravel backup command:
 
 ```bash
 php artisan backup:database
@@ -29,7 +29,7 @@ Use the Laravel scheduler in cPanel so all scheduled tasks stay in one place.
 3. Point it to the scheduler wrapper script:
 
 ```bash
-/bin/sh /home/USERNAME/path-to-educore/scripts/cpanel-scheduler.sh >/dev/null 2>&1
+/bin/sh /home/USERNAME/path-to-euvion/scripts/cpanel-scheduler.sh >/dev/null 2>&1
 ```
 
 This runs `php artisan schedule:run`, and Laravel will trigger the weekly database backup at the configured time.
@@ -39,14 +39,14 @@ This runs `php artisan schedule:run`, and Laravel will trigger the weekly databa
 If you prefer a dedicated cron job just for backups, create a weekly cron job such as:
 
 ```bash
-0 1 * * 0 /bin/sh /home/USERNAME/path-to-educore/scripts/cpanel-weekly-backup.sh >/dev/null 2>&1
+0 1 * * 0 /bin/sh /home/USERNAME/path-to-euvion/scripts/cpanel-weekly-backup.sh >/dev/null 2>&1
 ```
 
 This runs the backup command directly every Sunday at `01:00`.
 
 ## Notes
 
-- Update `USERNAME` and `path-to-educore` to your real cPanel account path.
+- Update `USERNAME` and `path-to-euvion` to your real cPanel account path.
 - If your hosting provider uses a custom PHP path, set `PHP_BIN` inside the shell command or edit the script.
 - Backup SQL files are stored in `storage/app/backups/database`.
 - Backup logs are stored in `storage/logs/backups`.
@@ -55,5 +55,5 @@ This runs the backup command directly every Sunday at `01:00`.
 Example with an explicit PHP binary:
 
 ```bash
-PHP_BIN=/opt/cpanel/ea-php82/root/usr/bin/php /bin/sh /home/USERNAME/path-to-educore/scripts/cpanel-scheduler.sh >/dev/null 2>&1
+PHP_BIN=/opt/cpanel/ea-php82/root/usr/bin/php /bin/sh /home/USERNAME/path-to-euvion/scripts/cpanel-scheduler.sh >/dev/null 2>&1
 ```

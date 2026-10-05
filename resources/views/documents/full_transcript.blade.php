@@ -22,7 +22,7 @@
 </head>
 <body>
 <div class="header">
-    <img src="{{ public_path('asset/images/educore.png') }}" alt="University Logo">
+    <img src="{{ public_path('asset/images/euvion.png') }}" alt="University Logo">
     <h1>{{ config('app.name', 'University') }}</h1>
     <h2>Official Transcript</h2>
 </div>

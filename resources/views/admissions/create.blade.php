@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admission | Educore</title>
+    <title>Admission | Euvion</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Outlined" rel="stylesheet">
     <style>
@@ -16,7 +16,7 @@
         <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
             <a href="{{ route('dashboard') }}" class="flex items-center gap-2 font-extrabold text-blue-700">
                 <span class="material-symbols-outlined">school</span>
-                <span>Educore Admission</span>
+                <span>Euvion Admission</span>
             </a>
             <div class="flex items-center gap-3 text-sm">
                 <span class="hidden text-slate-500 sm:inline">{{ $user->email }}</span>

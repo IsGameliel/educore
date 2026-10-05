@@ -1,6 +1,7 @@
 @extends('layouts.dash')
 
 @section('content')
+@php($sessionLabel = match ($session) { 'all' => 'All sessions', 'unassigned' => 'Session not assigned', default => $session })
 
 <div class="main-panel">
     <div class="content-wrapper">
@@ -28,6 +29,8 @@
                         <div class="col-md-5">
                             <label for="session" class="form-label fw-bold">Academic Session</label>
                             <select name="session" id="session" class="form-control">
+                                <option value="all" @selected($session === 'all')>All sessions</option>
+                                <option value="unassigned" @selected($session === 'unassigned')>Session not assigned</option>
                                 @foreach($availableSessions as $availableSession)
                                     <option value="{{ $availableSession }}" {{ $session === $availableSession ? 'selected' : '' }}>
                                         {{ $availableSession }}
@@ -49,13 +52,19 @@
                 </form>
 
                 <div class="mb-3 d-flex flex-wrap gap-3">
-                    <div><strong>Academic Session:</strong> {{ $session }}</div>
+                    <div><strong>Academic Session:</strong> {{ $sessionLabel }}</div>
                     <div><strong>Semester:</strong> {{ $semester }}</div>
                     <div><strong>Total Courses:</strong> {{ $courses->count() }}</div>
                 </div>
 
+                <div class="alert alert-info">
+                    <strong>{{ $historyGroups->sum('total') }} registration records across all sessions and semesters.</strong>
+                    @foreach($historyGroups as $group)
+                        <div><a href="{{ route('student.courses.registered', ['semester' => $group->semester, 'session' => filled($group->session) ? $group->session : 'unassigned']) }}">{{ $group->session ?: 'Session not assigned' }} / {{ $group->semester }}: {{ $group->total }} records</a></div>
+                    @endforeach
+                </div>
                 @if(count($courses) === 0)
-                    <div class="alert alert-warning">No courses registered for {{ $semester }} Semester in {{ $session }}</div>
+                    <div class="alert alert-warning">No courses registered for {{ $semester }} Semester in {{ $sessionLabel }}</div>
                 @else
                     <table class="table table-bordered mt-4">
                         <thead>
@@ -65,6 +74,7 @@
                                 <th>Credit Unit</th>
                                 <th>Semester</th>
                                 <th>Status</th>
+                                <th>Session</th>
                                 <th>Published results</th>
                             </tr>
                         </thead>
@@ -76,6 +86,7 @@
                                     <td>{{ $registration->course->credit_unit }}</td>
                                     <td>{{ $registration->semester }}</td>
                                     <td>{{ ucfirst($registration->status) }}</td>
+                                    <td>{{ $registration->session ?: 'Session not assigned' }}</td>
                                     <td>
                                         @forelse($registration->results->where('workflow_status', 'published') as $result)
                                             <div><a href="{{ route('academic.show', $result) }}">{{ ucfirst($result->attempt_type) }}: {{ $result->score ?? ucfirst(str_replace('_', ' ', $result->outcome_status)) }} {{ $result->grade }}</a></div>

@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $projectDirectory = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $phpExecutable = (Get-Command php -ErrorAction Stop).Source
-$taskName = 'Educore Weekly Database Backup'
+$taskName = 'Euvion Weekly Database Backup'
 $description = "Weekly database backup for $projectDirectory"
 $existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 if ($existing -and $existing.Description -ne $description) {

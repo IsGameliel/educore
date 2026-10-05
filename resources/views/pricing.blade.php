@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Pricing | Educore Management Systems</title>
+    <title>Pricing | Euvion Management Systems</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
     <script>
@@ -94,7 +94,7 @@
     <nav class="fixed top-0 z-50 w-full bg-slate-50/80 shadow-sm backdrop-blur-lg dark:bg-slate-950/80">
         <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
             <a class="flex items-center gap-2 text-xl font-bold tracking-tighter text-[#002b59] dark:text-white" href="{{ url('/') }}">
-                <span class="material-symbols-outlined text-primary">auto_stories</span> Educore
+                <span class="material-symbols-outlined text-primary">auto_stories</span> Euvion
             </a>
             <div class="hidden items-center gap-8 font-headline text-sm font-semibold tracking-tight md:flex">
                 <a class="border-b-2 border-blue-700 pb-1 text-blue-700 dark:border-blue-300 dark:text-blue-300" href="{{ url('/pricing') }}">Pricing</a>
@@ -261,8 +261,8 @@
 
     <footer class="mt-24 flex flex-col items-center justify-between gap-6 border-t border-slate-200 bg-slate-50 px-6 py-8 md:flex-row lg:px-12">
         <div>
-            <div class="mb-2 font-headline text-lg font-bold text-blue-900">Educore</div>
-            <div class="font-body text-xs text-slate-500">&copy; 2024 Educore Systems. All rights reserved.</div>
+            <div class="mb-2 font-headline text-lg font-bold text-blue-900">Euvion</div>
+            <div class="font-body text-xs text-slate-500">&copy; 2024 Euvion Systems. All rights reserved.</div>
         </div>
         <div class="flex flex-wrap justify-center gap-8 font-body text-xs text-slate-500">
             <a class="transition-all hover:text-blue-600 hover:underline" href="#">Privacy Policy</a>

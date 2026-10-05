@@ -1,4 +1,4 @@
-# EduCore portal user manual
+# Euvion portal user manual
 
 Last updated: 4 October 2026.
 
@@ -727,7 +727,7 @@ If **Delete Account** is available, read its permanent-deletion notice and resol
 
 ### Teams and API tokens
 
-The project enables Jetstream teams and API-token features. Follow these steps where the corresponding account-menu pages are exposed. Team membership and token permissions do not replace EduCore role and ownership checks.
+The project enables Jetstream teams and API-token features. Follow these steps where the corresponding account-menu pages are exposed. Team membership and token permissions do not replace Euvion role and ownership checks.
 
 To manage teams:
 

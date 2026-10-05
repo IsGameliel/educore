@@ -26,6 +26,15 @@ class CourseRegistration extends Model
         'registration_date' => 'datetime',
     ];
 
+    public function scopeHistorySession($query, string $session)
+    {
+        return match ($session) {
+            'all' => $query,
+            'unassigned' => $query->where(fn ($q) => $q->whereNull('session')->orWhere('session', '')),
+            default => $query->where('session', $session),
+        };
+    }
+
     public function previousResult()
     {
         return $this->belongsTo(Result::class, 'previous_result_id');

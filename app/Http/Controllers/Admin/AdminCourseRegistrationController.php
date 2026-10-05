@@ -54,7 +54,7 @@ class AdminCourseRegistrationController extends Controller
 
     public function index(Request $request)
     {
-        $currentSession = $request->query('session', $this->getCurrentAcademicSession());
+        $currentSession = $request->query('session', 'all');
         $academicSessions = $this->getAcademicSessionOptions([$currentSession]);
 
         $students = User::query()
@@ -80,14 +80,17 @@ class AdminCourseRegistrationController extends Controller
     public function show(User $student, Request $request)
     {
         $semester = $this->normalizeSemester($request->query('semester', 'First'));
-        $session = $request->query('session', $this->getCurrentAcademicSession());
+        $session = $request->query('session', 'all');
         $academicSessions = $this->getAcademicSessionOptions([$session]);
 
         $registrations = CourseRegistration::with(['course', 'results'])
             ->where('user_id', $student->id)
             ->where('semester', $semester)
-            ->where('session', $session)
+            ->historySession($session)
             ->get();
+
+        $historyGroups = CourseRegistration::where('user_id', $student->id)
+            ->selectRaw('session, semester, COUNT(*) as total')->groupBy('session', 'semester')->get();
 
         $totalCredits = $registrations->sum(fn ($registration) => $registration->course?->credit_unit ?? 0);
 
@@ -97,7 +100,8 @@ class AdminCourseRegistrationController extends Controller
             'session',
             'academicSessions',
             'registrations',
-            'totalCredits'
+            'totalCredits',
+            'historyGroups'
         ));
     }
 
