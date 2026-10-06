@@ -188,7 +188,7 @@ Route::middleware([
 
         Route::get('/user/profile', [CustomProfileController::class, 'show'])->name('profile.show');
         Route::get('schedule', [StudentScheduleController::class, 'index'])->name('schedule');
-        Route::get('/course-materials', [StudentController::class, 'CourseMaterial'])->name('course-materials');
+        Route::get('/course-materials', [StudentController::class, 'courseMaterial'])->name('course-materials');
 
         Route::prefix('tests')->name('tests.')->middleware('prevent.retake')->group(function () {
             Route::get('/', [TestController::class, 'index'])->name('index');
