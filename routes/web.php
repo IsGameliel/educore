@@ -161,6 +161,12 @@ Route::middleware([
     // -------------------------
     // STUDENT ROUTES
     // -------------------------
+    Route::middleware('usertype:student')->prefix('student/id-card')->name('student.id-card.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\StudentIdCardController::class, 'index'])->name('index');
+        Route::get('/image', [\App\Http\Controllers\StudentIdCardController::class, 'image'])->name('image');
+        Route::get('/pdf', [\App\Http\Controllers\StudentIdCardController::class, 'pdf'])->name('pdf');
+    });
+
     Route::prefix('student')->name('student.')->group(function () {
         Route::prefix('courses')->name('courses.')->group(function () {
             Route::get('/registration', [CourseRegistrationController::class, 'showRegistrationForm'])->name('registration');
