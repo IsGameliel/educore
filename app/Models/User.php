@@ -103,6 +103,8 @@ class User extends Authenticatable implements \Illuminate\Contracts\Auth\MustVer
     {
         return [
             'email_verified_at' => 'datetime',
+            'temporary_id_issued_at' => 'date',
+            'temporary_id_expires_at' => 'date',
             'email_otp_expires_at' => 'datetime',
             'email_otp_sent_at' => 'datetime',
             'email_otp_attempts' => 'integer',

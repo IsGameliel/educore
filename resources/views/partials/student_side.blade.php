@@ -36,6 +36,7 @@
             $link('Receipts', 'payments.receipts', ['payments.receipts', 'payments.receipt'], 'mdi-receipt'),
         ],
         'Account' => [
+            $link('Temporary ID Card', 'student.id-card.index', ['student.id-card.*'], 'mdi-card-account-details-outline'),
             $link('My Profile', 'profile.show', ['profile.*', 'student.profile.*'], 'mdi-account-circle'),
         ],
     ];

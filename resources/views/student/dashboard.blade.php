@@ -17,6 +17,7 @@
                     </ul>
                 </nav>
             </div>
+            <div class="card mb-4"><div class="card-body d-flex flex-wrap align-items-center justify-content-between" style="gap:16px"><div><h4 class="mb-2">Your temporary student ID</h4><p class="text-muted mb-0">Download your card with your photo and matric number in PDF or PNG format.</p></div><a href="{{ route('student.id-card.index') }}" class="btn btn-primary"><i class="mdi mdi-card-account-details-outline" aria-hidden="true"></i> View ID card</a></div></div>
             <div class="row">
                 <div class="col-md-4 stretch-card grid-margin">
                     <div class="card bg-gradient-danger card-img-holder text-white">
