@@ -37,6 +37,15 @@ class Payment extends Model
         return 'EDU-RCT-'.str_pad((string) $this->id, 8, '0', STR_PAD_LEFT);
     }
 
+    public function feeBreakdown(): array
+    {
+        if ($this->purpose === 'tuition' && $this->tuitionInvoice) {
+            return $this->tuitionInvoice->items ?: [['label' => 'Tuition fee', 'amount' => $this->tuitionInvoice->amount]];
+        }
+
+        return [['label' => self::LABELS[$this->purpose] ?? 'Payment fee', 'amount' => $this->amount]];
+    }
+
     public function destination(): string
     {
         return match ($this->purpose) {

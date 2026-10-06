@@ -152,7 +152,7 @@ class AcademicPortalController extends Controller
         $request->validate(['reason' => 'required|string|min:5|max:2000']);
         if ($request->boolean('adopt_policy')) {
             abort_unless(ResultAccess::manager($request->user()), 403);
-            $result->policy_snapshot = Grading::policy($result->department_id, $result->session);
+            $result->policy_snapshot = Grading::policy($result->department_id, $result->session, $result->course_code, $result->semester);
             $result->grading_policy_id = $result->policy_snapshot['id'] ?? null;
         }
         \App\Services\Academic\ResultRegistration::attach($result);
@@ -373,9 +373,17 @@ class AcademicPortalController extends Controller
             $counts = $results->countBy('workflow_status');
             $published = $results->where('workflow_status', 'published');
             if ($request->boolean('export_broadsheet')) {
+                $request->validate(['include_unpublished' => 'nullable|boolean']);
+                $includeUnpublished = $request->boolean('include_unpublished');
+                $exportResults = $includeUnpublished ? $results : $published;
+                if ($exportResults->isEmpty()) {
+                    return back()->withErrors(['broadsheet' => $results->isNotEmpty()
+                        ? 'No published results match these filters. Use Export review copy (includes drafts) to review unpublished results.'
+                        : 'No results match the selected department, session and semester.']);
+                }
                 return \Maatwebsite\Excel\Facades\Excel::download(
-                    new DepartmentalBroadsheetExport($published, Department::findOrFail($departmentId)->name, $session, $data['semester'] ?? null),
-                    'departmental-broadsheet.xlsx',
+                    new DepartmentalBroadsheetExport($exportResults, Department::findOrFail($departmentId)->name, $session, $data['semester'] ?? null, $includeUnpublished),
+                    $includeUnpublished ? 'departmental-broadsheet-review.xlsx' : 'departmental-broadsheet.xlsx',
                     \Maatwebsite\Excel\Excel::XLSX,
                     ['Cache-Control' => 'private, no-store'],
                 );

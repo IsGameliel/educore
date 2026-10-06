@@ -313,6 +313,26 @@ class CourseController extends Controller
         return redirect()->route('admin.courses.index')->with('success', 'Course deleted successfully!');
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $data = $request->validate([
+            'course_ids' => 'required|array|min:1|max:200',
+            'course_ids.*' => 'required|integer|distinct|exists:courses,id',
+        ]);
+        $count = DB::transaction(function () use ($data, $request) {
+            $courses = Courses::whereIn('id', $data['course_ids'])->orderBy('id')->lockForUpdate()->get();
+            foreach ($courses as $course) {
+                ActivityLogger::log($request->user(), 'course_deleted', 'Deleted selected course.', [
+                    'subject' => $course, 'department_id' => $course->department_id,
+                    'properties' => ['before' => $course->toArray()],
+                ]);
+                $course->delete();
+            }
+            return $courses->count();
+        });
+        return back()->with('success', "{$count} selected course(s) deleted successfully.");
+    }
+
     public function assignPrerequisites(Request $request, Courses $course)
     {
         // Validate the input

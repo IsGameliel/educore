@@ -34,7 +34,7 @@ test('students cannot change entry year through profile requests', function ($en
     ])->assertSessionHasNoErrors();
 
     expect($user->fresh()->entry_year)->toBe($entryYear)
-        ->and($user->fresh()->name)->toBe('Updated Student')
+        ->and($user->fresh()->name)->toBe($user->name)
         ->and($user->fresh()->email)->toBe($email)
         ->and($user->fresh()->usertype)->toBe('student');
 })->with([[2025, false], [2025, true], [null, false]]);
@@ -45,10 +45,14 @@ test('student profile shows a read only entry year and ignores forged livewire s
     Livewire::test(\App\Livewire\Profile\UpdateProfileInformationForm::class)
         ->assertSee('Contact administration to correct your entry year.')
         ->assertDontSee('wire:model="state.entry_year"', false)
+        ->assertDontSee('wire:model="state.name"', false)
+        ->assertDontSee('wire:model="state.department_id"', false)
+        ->assertDontSee('wire:model="state.level"', false)
+        ->assertSee('Request a change of name')
         ->set('state.entry_year', 2001)
         ->set('state.name', 'Updated Student')
         ->call('updateProfileInformation')
         ->assertHasNoErrors();
 
-    expect($user->fresh()->entry_year)->toBe(2025)->and($user->fresh()->name)->toBe('Updated Student');
+    expect($user->fresh()->entry_year)->toBe(2025)->and($user->fresh()->name)->toBe($user->name);
 });

@@ -141,7 +141,7 @@ class ResultsImport implements ToCollection
                 $totalScore = $this->numericAt($cells, $columnMap['score']);
                 $existing = Result::where('user_id', $student->id)->where('department_id', $resultDepartmentId)
                     ->where('session', $session)->where('semester', $semester)->where('course_code', $courseForStudent->code)->where('attempt_type', '!=', 'resit')->first();
-                $policy = $existing?->policy_snapshot ?? Grading::policy($resultDepartmentId, $session);
+                $policy = $existing?->policy_snapshot ?? Grading::policy($resultDepartmentId, $session, $courseForStudent->code, $semester);
                 $gradeData = Grading::calculate(['ca_score' => $caScore, 'exam_score' => $examScore, 'score' => $totalScore], $policy);
                 $score = $gradeData['score'];
                 if ($existing && $existing->workflow_status !== 'draft') {

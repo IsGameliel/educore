@@ -8,6 +8,7 @@
     @if($invoice->second_due_date) · Remaining balance due {{ $invoice->second_due_date->format('d M Y') }}@endif</p>
     <div class="table-responsive"><table class="table"><thead><tr><th>Fee breakdown</th><th>Amount</th></tr></thead><tbody>
         @foreach($invoice->items as $item)<tr><td>{{ $item['label'] }}</td><td>₦{{ number_format($item['amount'] / 100, 2) }}</td></tr>@endforeach
+        <tr><th>Original invoice fees</th><td>&#8358;{{ number_format($invoice->amount / 100, 2) }}</td></tr>
         <tr><th>Scholarships / waivers</th><td>− ₦{{ number_format($totals['credits'] / 100, 2) }}</td></tr>
         <tr><th>Adjusted tuition</th><td>₦{{ number_format($totals['due'] / 100, 2) }}</td></tr>
         <tr><th>Net payments received</th><td>₦{{ number_format($totals['paid'] / 100, 2) }}</td></tr>

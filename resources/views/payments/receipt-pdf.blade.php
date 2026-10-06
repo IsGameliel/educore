@@ -14,5 +14,6 @@
 <tr><th>Channel</th><td>{{ ucfirst($payment->channel ?? 'Paystack') }}</td></tr>
 <tr><th>Status</th><td>Verified successful payment</td></tr>
 </table>
+@include('payments.fee-breakdown')
 <p class="note">This receipt acknowledges this payment only. Current outstanding balances, adjustments and registration clearance are available in your student portal.</p>
 </body></html>

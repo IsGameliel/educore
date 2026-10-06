@@ -23,6 +23,9 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         // Enrollment years are maintained through student administration, not self-service.
         if ($user->dashboardRole() === 'student') {
             unset($input['entry_year']);
+            $input['name'] = $user->name;
+            $input['department_id'] = $user->department_id;
+            $input['level'] = $user->level;
         }
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],

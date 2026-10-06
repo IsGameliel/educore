@@ -17,6 +17,7 @@ class Courses extends Model
         'department_id',
         'level',
         'academic_session_id',
+        'pass_mark',
     ];
 
     // Define the relationship with the Department model (belongs to a department)

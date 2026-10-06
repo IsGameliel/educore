@@ -42,6 +42,16 @@
                         @csrf
 
                         <div class="form-group">
+                            <label for="department_id">Department</label>
+                            <select name="department_id" id="department_id" class="form-control" required>
+                                <option value="">Select Department</option>
+                                @foreach($departments as $department)
+                                    <option value="{{ $department->id }}" @selected((string) old('department_id') === (string) $department->id)>{{ $department->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group">
                             <label>Courses</label>
                             @php($selectedCourseIds = collect(old('course_ids', []))->map(fn ($id) => (int) $id))
                             <input
@@ -59,6 +69,7 @@
                                         data-search="{{ strtolower($course->code . ' ' . $course->title . ' ' . $course->semester . ' ' . $course->level . ' ' . ($course->department->name ?? '') . ' ' . ($course->academicSession->name ?? '')) }}"
                                         data-session="{{ $course->academicSession?->name }}"
                                         data-semester="{{ $course->semester }}"
+                                        data-department="{{ $course->department_id }}"
                                     >
                                         <input
                                             type="checkbox"
@@ -174,6 +185,7 @@
             const searchInput = document.getElementById('course-search');
             const sessionSelect = document.getElementById('session');
             const semesterSelect = document.getElementById('semester');
+            const departmentSelect = document.getElementById('department_id');
 
             if (!courseInputs.length || !downloadLink) {
                 return;
@@ -196,6 +208,9 @@
                 if (sessionSelect && sessionSelect.value) {
                     url.searchParams.set('session', sessionSelect.value);
                 }
+                if (departmentSelect && departmentSelect.value) {
+                    url.searchParams.set('department_id', departmentSelect.value);
+                }
 
                 downloadLink.href = url.toString();
             }
@@ -204,14 +219,16 @@
                 const term = searchInput ? searchInput.value.trim().toLowerCase() : '';
                 const session = sessionSelect ? sessionSelect.value : '';
                 const semester = semesterSelect ? semesterSelect.value : '';
+                const department = departmentSelect ? departmentSelect.value : '';
 
                 courseItems.forEach(function (item) {
                     const matchesSearch = term === '' || (item.dataset.search || '').includes(term);
                     const matchesSession = session === '' || item.dataset.session === session;
                     const matchesSemester = semester === '' || item.dataset.semester === semester;
-                    item.classList.toggle('d-none', !matchesSearch || !matchesSession || !matchesSemester);
+                    const matchesDepartment = department !== '' && item.dataset.department === department;
+                    item.classList.toggle('d-none', !matchesSearch || !matchesSession || !matchesSemester || !matchesDepartment);
 
-                    if (!matchesSession || !matchesSemester) {
+                    if (!matchesSession || !matchesSemester || !matchesDepartment) {
                         const input = item.querySelector('input[type="checkbox"]');
                         if (input) {
                             input.checked = false;
@@ -236,6 +253,9 @@
 
             if (semesterSelect) {
                 semesterSelect.addEventListener('change', filterCourses);
+            }
+            if (departmentSelect) {
+                departmentSelect.addEventListener('change', filterCourses);
             }
 
             downloadLink.addEventListener('click', function (event) {

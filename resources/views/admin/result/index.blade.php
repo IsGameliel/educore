@@ -1,6 +1,30 @@
 @extends('layouts.dash')
 
 @section('content')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const groups = Array.from(document.querySelectorAll('.result-group-selection:not(:disabled)'));
+    const all = document.getElementById('select-all-results');
+    function update() {
+        let count = 0;
+        groups.forEach(group => group.closest('td').querySelectorAll('.result-selection-id').forEach(input => {
+            input.disabled = !group.checked;
+            if (group.checked) count++;
+        }));
+        document.getElementById('selected-result-count').textContent = count;
+        document.getElementById('delete-selected-results').disabled = count === 0;
+        const selected = groups.filter(group => group.checked).length;
+        all.checked = selected > 0 && selected === groups.length;
+        all.indeterminate = selected > 0 && selected < groups.length;
+    }
+    all.addEventListener('change', function () { groups.forEach(group => { group.checked = all.checked; }); update(); });
+    groups.forEach(group => group.addEventListener('change', update));
+    document.getElementById('bulk-results-delete').addEventListener('submit', function (event) {
+        const count = document.querySelectorAll('.result-selection-id:not(:disabled)').length;
+        if (!count || !confirm('Delete ' + count + ' selected draft result(s)?')) event.preventDefault();
+    });
+});
+</script>
 @if(session('import_errors'))<div class="alert alert-warning"><ul>@foreach(session('import_errors') as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 @php
     $routePrefix = auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin';
@@ -134,10 +158,17 @@
                     @endif
 
                     <!-- Responsive Results Table -->
+                    @if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
+                    <form id="bulk-results-delete" action="{{ route('results.bulk-delete') }}" method="POST" class="mb-3">
+                        @csrf @method('DELETE')
+                        <button id="delete-selected-results" type="submit" class="btn btn-danger" disabled>Delete selected results (<span id="selected-result-count">0</span>)</button>
+                        <p class="text-muted small mt-2">Select student result groups on this page. Only groups containing draft results exclusively can be deleted.</p>
+                    </form>
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
+                                    <th><input id="select-all-results" type="checkbox" aria-label="Select all deletable result groups on this page"></th>
                                     <th>Student</th>
                                     <th>Department</th>
                                     <th>Matric Number</th>
@@ -158,6 +189,10 @@
                                         $fullTranscriptKey = $first->user_id . '_' . $first->department_id;
                                     @endphp
                                     <tr>
+                                        <td>
+                                            <input class="result-group-selection" type="checkbox" aria-label="Select results for {{ $first->user->name }} {{ $first->session }} {{ $first->semester }}" @disabled($group->contains(fn ($result) => $result->workflow_status !== 'draft'))>
+                                            @foreach($group as $result)<input type="hidden" class="result-selection-id" name="result_ids[]" value="{{ $result->id }}" form="bulk-results-delete" disabled>@endforeach
+                                        </td>
                                         <td>{{ $first->user->name }}</td>
                                         <td>{{ $first->department->name ?? 'N/A' }}</td>
                                         <td>{{ $first->matric_number }}</td>
@@ -237,7 +272,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ $isLecturer ? 8 : 9 }}" class="text-center text-muted py-4">
+                                        <td colspan="{{ $isLecturer ? 9 : 10 }}" class="text-center text-muted py-4">
                                             No result groups found for the selected filters.
                                         </td>
                                     </tr>
