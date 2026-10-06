@@ -2,7 +2,8 @@
 @section('content')
 <div class="main-panel"><div class="content-wrapper">
     <div class="page-header"><div><h1 class="h3">Payments</h1><p class="text-muted mb-0">Monitor tuition, application, transcript and result appeal fees.</p></div></div>
-    <div class="d-flex flex-wrap gap-2 mb-3"><a href="{{ route('finance.schedules') }}" class="btn btn-outline-primary">Tuition fee schedules</a><a href="{{ route('finance.invoices') }}" class="btn btn-outline-primary">Tuition invoices & balances</a></div>
+    @php($exportRoute = auth()->user()->dashboardRole() === 'admin' ? 'admin.payments.export' : 'finance.payments.export')
+    <div class="d-flex flex-wrap gap-2 mb-3"><a href="{{ route('finance.schedules') }}" class="btn btn-outline-primary">Tuition fee schedules</a><a href="{{ route('finance.invoices') }}" class="btn btn-outline-primary">Tuition invoices & balances</a><a href="{{ route($exportRoute) }}" class="btn btn-outline-success">Export all payments (Excel)</a></div>
     @if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger" role="alert">@foreach($errors->all() as $error)<p class="mb-1">{{ $error }}</p>@endforeach</div>@endif
     @unless(config('services.paystack.secret_key'))<div class="alert alert-warning">Paystack is not configured. Add the Paystack secret key to enable checkout.</div>@endunless
@@ -21,6 +22,7 @@
             <div class="col-md-4"><label for="payment-to">To</label><input id="payment-to" name="to" type="date" class="form-control" value="{{ $filters['to'] ?? '' }}"></div>
             <div class="col-md-4 d-flex align-items-end gap-2"><button type="submit" class="btn btn-primary">Filter payments</button><a class="btn btn-outline-secondary" href="{{ route(auth()->user()->dashboardRole() === 'admin' ? 'admin.payments.index' : 'finance.payments') }}">Reset</a></div>
         </div>
+        <div class="mt-3"><button type="submit" formaction="{{ route($exportRoute) }}" class="btn btn-outline-success">Export filtered payments (Excel)</button><p class="text-muted small mt-2 mb-0">Exports every payment matching these filters, across all pages.</p></div>
     </form>
     <div class="card"><div class="card-body"><div class="table-responsive">
         <table class="table"><thead><tr><th>Payer</th><th>Fee / request</th><th>Amount</th><th>Status</th><th>Reference</th><th>Dates</th><th>Action</th></tr></thead><tbody>

@@ -151,7 +151,7 @@ class ResultWorkflow
             $policy = $result->policy_snapshot;
             if ($adoptPolicy) {
                 abort_unless(ResultAccess::manager($actor), 403);
-                $policy = Grading::policy($result->department_id, $result->session);
+                $policy = Grading::policy($result->department_id, $result->session, $result->course_code, $result->semester);
                 $proposed['policy_snapshot'] = $policy;
                 $proposed['grading_policy_id'] = $policy['id'] ?? null;
             }

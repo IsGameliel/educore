@@ -15,6 +15,7 @@
             </div>
 
             <div class="students-toolbar">
+                <a href="{{ route('name-changes.index') }}" class="btn btn-outline-primary btn-sm">Name-change requests</a>
                 <a href="{{ route('admin.students.merge.index') }}" class="btn btn-outline-primary btn-sm"><i class="mdi mdi-account-switch"></i> Merge duplicates</a>
                 <a href="{{ route('admin.students.create') }}" class="btn brand-btn btn-sm">
                     <i class="mdi mdi-plus me-1"></i> Add New Student
@@ -80,6 +81,18 @@
                     </div>
                 </form>
 
+                @if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
+                @if($errors->any())<div class="alert alert-danger" role="alert">@foreach($errors->all() as $error)<p class="mb-1">{{ $error }}</p>@endforeach</div>@endif
+                <form method="POST" action="{{ route('admin.students.bulk-entry-year') }}" class="border rounded p-3 my-3" onsubmit="return confirm('Update the entry year for all {{ $students->total() }} matching students across all pages?')">
+                    @csrf
+                    @foreach(['name', 'department', 'level'] as $filter)<input type="hidden" name="{{ $filter }}" value="{{ $filters[$filter] ?? '' }}">@endforeach
+                    <h2 class="h6">Bulk edit entry year</h2>
+                    <p class="small text-muted">Applies to all {{ number_format($students->total()) }} students matching the current filters, across all pages. Apply your filters above before updating.</p>
+                    <div class="d-flex flex-wrap align-items-end gap-2">
+                        <div><label for="bulk-entry-year" class="form-label">Entry year</label><input id="bulk-entry-year" name="entry_year" type="number" min="1900" max="2100" required value="{{ old('entry_year') }}" class="form-control form-control-sm" placeholder="e.g. 2024"></div>
+                        <button type="submit" class="btn brand-btn btn-sm" @disabled($students->total() === 0)>Update matching students</button>
+                    </div>
+                </form>
                 <div class="students-directory-heading"><h2>Student directory</h2><span>{{ number_format($students->total()) }} students</span></div>
                 <div class="table-responsive">
                     <table class="table align-middle">
@@ -89,6 +102,7 @@
                                 <th>Matric No.</th>
                                 <th>Department</th>
                                 <th>Level</th>
+                                <th>Entry year</th>
                                 <th>Email</th>
                                 <th class="text-center">Actions</th>
                             </tr>
@@ -100,6 +114,7 @@
                                     <td>{{ $student->matric_number ?: 'Not set' }}</td>
                                     <td>{{ optional($student->department)->name }}</td>
                                     <td><span class="student-level">{{ $student->level }} Level</span></td>
+                                    <td>{{ $student->entry_year ?: 'Not set' }}</td>
                                     <td>{{ $student->email }}</td>
                                     <td class="text-center">
                                         <a href="{{ route('admin.students.edit', $student->id) }}" class="btn student-action student-edit" aria-label="Edit {{ $student->name }}" title="Edit student">
@@ -116,7 +131,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="students-empty"><strong>No students found.</strong><p>Try a different name, department, or level.</p></td>
+                                    <td colspan="7" class="students-empty"><strong>No students found.</strong><p>Try a different name, department, or level.</p></td>
                                 </tr>
                             @endforelse
                         </tbody>

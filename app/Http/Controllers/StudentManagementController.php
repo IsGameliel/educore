@@ -23,21 +23,7 @@ class StudentManagementController extends Controller
      */
     public function index(Request $request)
     {
-        $students = User::where('usertype', 'student')->paginate(10);
-
-        $query = User::where('usertype', 'student');
-
-        if ($request->filled('name')) {
-            $query->where('name', 'like', "%{$request->name}%");
-        }
-
-        if ($request->filled('department')) {
-            $query->where('department_id', $request->department);
-        }
-
-        if ($request->filled('level')) {
-            $query->where('level', $request->level);
-        }
+        [$query, $filters] = $this->filteredStudents($request);
 
         if ($request->filled('export') && $request->export === 'excel') {
             $collection = $query->get(); // get filtered collection
@@ -48,12 +34,48 @@ class StudentManagementController extends Controller
 
         $departments = Department::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.students.index', compact('students', 'departments'));
+        return view('admin.students.index', compact('students', 'departments', 'filters'));
     }
 
     /**
      * Show the form for creating a new resource.
      */
+    private function filteredStudents(Request $request): array
+    {
+        $filters = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'department' => 'nullable|integer|exists:departments,id',
+            'level' => 'nullable|in:100,200,300,400,500,600',
+        ]);
+        $query = User::where('usertype', 'student')
+            ->when($filters['name'] ?? null, fn ($q, $value) => $q->where('name', 'like', "%{$value}%"))
+            ->when($filters['department'] ?? null, fn ($q, $value) => $q->where('department_id', $value))
+            ->when($filters['level'] ?? null, fn ($q, $value) => $q->where('level', $value));
+        return [$query, $filters];
+    }
+
+    public function bulkEntryYear(Request $request)
+    {
+        $data = $request->validate(['entry_year' => 'required|integer|between:1900,2100']);
+        [$query, $filters] = $this->filteredStudents($request);
+        $count = DB::transaction(function () use ($query, $data, $request, $filters) {
+            $count = 0;
+            foreach ($query->lockForUpdate()->lazyById(200) as $student) {
+                $before = $student->entry_year;
+                if ((int) $before === (int) $data['entry_year']) { continue; }
+                $student->update(['entry_year' => $data['entry_year']]);
+                \App\Support\ActivityLogger::log($request->user(), 'student_entry_year_updated', 'Updated student entry year in bulk.', [
+                    'subject' => $student, 'target_user' => $student,
+                    'properties' => ['before' => $before, 'after' => (int) $data['entry_year'], 'filters' => $filters],
+                ]);
+                $count++;
+            }
+            return $count;
+        });
+        return redirect()->route('admin.students.index', array_filter($filters, fn ($value) => filled($value)))
+            ->with('success', "Entry year updated to {$data['entry_year']} for {$count} student(s).");
+    }
+
     public function create()
     {
         $departments = Department::all();

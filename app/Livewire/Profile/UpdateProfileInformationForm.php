@@ -42,7 +42,7 @@ class UpdateProfileInformationForm extends JetstreamUpdateProfileInformationForm
             return;
         }
 
-        $deptId = $this->state['department_id'] ?? $this->user->department_id;
+        $deptId = $this->user->department_id;
 
         // Department is required to generate the matric
         if (blank($deptId)) {

@@ -101,8 +101,8 @@ class Result extends Model
             }
             $result->outcome_status ??= 'graded';
             $result->attempt_type ??= 'regular';
-            if (! $result->policy_snapshot || $result->isDirty(['session', 'department_id'])) {
-                $result->policy_snapshot = Grading::policy($result->department_id, $result->session);
+            if (! $result->policy_snapshot || $result->isDirty(['session', 'department_id', 'course_code', 'semester'])) {
+                $result->policy_snapshot = Grading::policy($result->department_id, $result->session, $result->course_code, $result->semester);
                 $result->grading_policy_id = $result->policy_snapshot['id'] ?? null;
             }
             $result->forceFill(Grading::calculate($result->getAttributes(), $result->policy_snapshot));

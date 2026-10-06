@@ -47,6 +47,38 @@ function publishAcademicFixture(array $f): void
     $f['result']->refresh();
 }
 
+it('bulk deletes selected draft results and refuses published or unauthorized selections', function () {
+    $f = academicFixture();
+    $this->actingAs($f['student'])->delete(route('results.bulk-delete'), ['result_ids' => [$f['result']->id]])->assertForbidden();
+    $this->actingAs($f['admin']);
+    publishAcademicFixture($f);
+    $this->actingAs($f['admin'])->delete(route('results.bulk-delete'), ['result_ids' => [$f['result']->id]])->assertSessionHasErrors('result_ids');
+    expect($f['result']->fresh()->deleted_at)->toBeNull();
+    DB::table('results')->where('id', $f['result']->id)->update(['workflow_status' => 'draft']);
+    $this->delete(route('results.bulk-delete'), ['result_ids' => [$f['result']->id, 999999]])->assertSessionHasErrors('result_ids.1');
+    expect($f['result']->fresh()->deleted_at)->toBeNull();
+    $this->delete(route('results.bulk-delete'), ['result_ids' => [$f['result']->id]])->assertRedirect()->assertSessionHas('success', '1 selected result(s) deleted successfully.');
+    $this->assertSoftDeleted('results', ['id' => $f['result']->id]);
+});
+
+it('configures course pass marks independently by department and snapshots them for new results', function () {
+    $f = academicFixture();
+    $other = Department::create(['name' => 'Other', 'faculty_id' => $f['department']->faculty_id, 'pass_mark' => 40]);
+    $otherCourse = Courses::create(['code' => $f['course']->code, 'title' => 'Other course', 'credit_unit' => 3, 'department_id' => $other->id, 'academic_session_id' => $f['session']->id, 'semester' => 'First', 'level' => '100', 'pass_mark' => 40]);
+    $this->actingAs($f['admin'])->get(route('admin.departments.passmarks', ['department_id' => $f['department']->id]))->assertOk()->assertSee('Course pass marks by department')->assertDontSee('Other course');
+    $this->post(route('admin.courses.passmarks.update'), ['course_pass_marks' => [$f['course']->id => 80]])->assertSessionHasNoErrors();
+    $policy = \App\Services\Academic\Grading::policy($f['department']->id, $f['session']->name, $f['course']->code, 'First');
+    expect($policy['pass_mark'])->toBe(80)
+        ->and(\App\Services\Academic\Grading::calculate(['score' => 70], $policy)['grade'])->toBe('F')
+        ->and(\App\Services\Academic\Grading::policy($other->id, $f['session']->name, $otherCourse->code, 'First')['pass_mark'])->toBe(40)
+        ->and($f['result']->fresh()->policy_snapshot['pass_mark'])->toBe(40);
+    $f['result']->delete();
+    $new = Result::create($f['result']->only(['course_registration_id', 'user_id', 'uploaded_by', 'matric_number', 'session', 'semester', 'level', 'course_code', 'course_title', 'credit_unit', 'department_id']) + ['score' => 70]);
+    expect($new->policy_snapshot['pass_mark'])->toBe(80)->and($new->grade)->toBe('F');
+    $this->post(route('admin.courses.passmarks.update'), ['course_pass_marks' => [$f['course']->id => 101]])->assertSessionHasErrors();
+    $this->actingAs($f['student'])->post(route('admin.courses.passmarks.update'), ['course_pass_marks' => [$f['course']->id => 1]])->assertForbidden();
+});
+
 it('downloads the published departmental broadsheet as a real Excel workbook', function () {
     $f = academicFixture();
     publishAcademicFixture($f);
@@ -66,7 +98,12 @@ it('downloads the published departmental broadsheet as a real Excel workbook', f
             ->and($sheet->getCell('A7')->getDataType())->toBe('s')
             ->and($sheet->getCell('B7')->getValue())->toBe('000123')
             ->and($sheet->getCell('C7')->getValue())->toBe('0 / F')
-            ->and($sheet->getFreezePane())->toBe('C7');
+            ->and($sheet->getFreezePane())->toBe('A7')
+            ->and($sheet->getColumnDimension('A')->getWidth())->toEqual(32)
+            ->and($sheet->getColumnDimension('C')->getWidth())->toEqual(24)
+            ->and($sheet->getColumnDimension('C')->getVisible())->toBeTrue()
+            ->and($sheet->getStyle('C6')->getAlignment()->getWrapText())->toBeTrue()
+            ->and($sheet->getProtection()->getSheet())->toBeFalse();
         $book->disconnectWorksheets();
     } finally {
         @unlink($path);
@@ -79,10 +116,15 @@ it('limits broadsheet exports to published results matching all selected filters
     $this->actingAs($f['officer']);
     $filters = ['department_id' => $f['department']->id, 'session' => $f['session']->name, 'export_broadsheet' => 1];
     $assertEmpty = function (array $params) {
-        $this->get(route('academic.reports', $params))->assertOk();
-        \Maatwebsite\Excel\Facades\Excel::assertDownloaded('departmental-broadsheet.xlsx', fn ($export) => $export->results->isEmpty());
+        $this->get(route('academic.reports', $params))->assertRedirect()->assertSessionHasErrors('broadsheet');
     };
     $assertEmpty($filters); // Drafts are excluded.
+    $this->get(route('academic.reports', $filters + ['include_unpublished' => 1]))->assertOk();
+    \Maatwebsite\Excel\Facades\Excel::assertDownloaded('departmental-broadsheet-review.xlsx', function ($export) use ($f) {
+        $rows = $export->array();
+        return $export->results->modelKeys() === [$f['result']->id]
+            && str_contains($rows[0][0], 'review copy') && str_contains($rows[6][2], '[draft]');
+    });
     publishAcademicFixture($f);
     $assertEmpty($filters + ['semester' => 'Second']);
     $other = Department::create(['name' => 'Other', 'faculty_id' => $f['department']->faculty_id, 'pass_mark' => 40]);

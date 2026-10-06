@@ -3,17 +3,27 @@
 namespace App\Services\Academic;
 
 use App\Models\Department;
+use App\Models\Courses;
 use App\Models\GradingPolicy;
 use App\Models\Result;
 use Illuminate\Validation\ValidationException;
 
 class Grading
 {
-    public static function policy(int $departmentId, string $session): array
+    public static function policy(int $departmentId, string $session, ?string $courseCode = null, ?string $semester = null): array
     {
         $policy = GradingPolicy::where('department_id', $departmentId)->where('session', $session)->orderByDesc('version')->first();
 
-        return $policy?->snapshot() ?? GradingPolicy::defaults(Department::find($departmentId)?->pass_mark);
+        $snapshot = $policy?->snapshot() ?? GradingPolicy::defaults(Department::find($departmentId)?->pass_mark);
+        if ($courseCode) {
+            $course = Courses::where('department_id', $departmentId)->where('code', $courseCode)
+                ->forAcademicSession($session)->when($semester, fn ($q) => $q->where('semester', $semester))->first();
+            if ($course && $course->pass_mark !== null) {
+                $snapshot['pass_mark'] = (int) $course->pass_mark;
+                $snapshot['course_id'] = $course->id;
+            }
+        }
+        return $snapshot;
     }
 
     public static function calculate(array $values, array $policy): array

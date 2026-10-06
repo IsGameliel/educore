@@ -42,6 +42,34 @@ function verifyTuitionPayment(Payment $payment): void
     app(PaystackPayments::class)->verify($payment);
 }
 
+it('exports all and filtered invoices to Excel across pages for finance staff', function () {
+    User::factory()->count(21)->create(['usertype' => 'student', 'department_id' => $this->department->id, 'level' => '100', 'entry_year' => 2026]);
+    $invoice = tuitionFixture($this);
+    $invoice->update(['cancelled_at' => now()]);
+    $filters = ['session_id' => $this->session->id, 'department_id' => $this->department->id, 'status' => 'unpaid', 'page' => 2];
+    $this->get(route('finance.invoices', $filters))->assertOk()
+        ->assertSee('Export all invoices (Excel)')->assertSee('Export filtered invoices (Excel)');
+    $read = function ($response) {
+        $response->assertOk()->assertDownload('invoices-'.today()->format('Y-m-d').'.xlsx');
+        \PhpOffice\PhpSpreadsheet\Cell\Cell::setValueBinder(new \PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder());
+        $workbook = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->baseResponse->getFile()->getPathname());
+        $rows = $workbook->getActiveSheet()->toArray(null, true, false);
+        $workbook->disconnectWorksheets();
+        return array_slice($rows, 1);
+    };
+    $filtered = $read($this->get(route('finance.invoices.export', $filters)));
+    expect($filtered)->toHaveCount(21)->and(array_column($filtered, 0))->not->toContain($invoice->number)
+        ->and($filtered[0][10])->toEqual(200000)->and($filtered[0][12])->toEqual(200000);
+    $all = $read($this->get(route('finance.invoices.export')));
+    expect($all)->toHaveCount(22)->and(array_column($all, 0))->toContain($invoice->number);
+    $searched = $read($this->get(route('finance.invoices.export', ['search' => $invoice->number, 'status' => 'cancelled'])));
+    expect($searched)->toHaveCount(1)->and($searched[0][0])->toBe($invoice->number)->and($searched[0][10])->toEqual(0);
+    foreach ([$this->bursar, $this->accountant] as $staff) {
+        $this->actingAs($staff)->get(route('finance.invoices.export'))->assertOk();
+    }
+    $this->actingAs($this->student)->get(route('finance.invoices.export'))->assertForbidden();
+});
+
 it('creates drafts and publishes immutable invoices only for the matching cohort', function () {
     $other = User::factory()->create(['usertype' => 'student', 'department_id' => $this->department->id, 'level' => '200', 'entry_year' => 2025]);
     $this->actingAs($this->bursar)->post(route('finance.schedules.store'), $this->scheduleData)->assertSessionHasNoErrors();
@@ -229,6 +257,22 @@ it('protects invoices payments and receipts from other students', function () {
     $this->get(route('payments.receipt', $payment))->assertForbidden();
     $this->get(route('finance.invoices'))->assertForbidden();
     $this->actingAs($this->student)->get(route('payments.receipt', $payment))->assertNotFound();
+});
+
+it('shows billed fee items on payment invoices and receipts without treating installments as full payments', function () {
+    $invoice = tuitionFixture($this, ['first_percent' => 60, 'second_due_date' => '2027-04-01']);
+    $payment = app(TuitionBilling::class)->payment($invoice, 'installment');
+    TuitionSchedule::sole()->update(['items' => [['label' => 'Changed future fee', 'amount' => 90000000]], 'amount' => 90000000]);
+    $this->actingAs($this->student)->get(route('payments.show', $payment))->assertOk()
+        ->assertSee('Fee breakdown')->assertSee('Tuition')->assertSee('Library')
+        ->assertSee('190,000.00')->assertSee('10,000.00')->assertSee('120,000.00')->assertDontSee('Changed future fee');
+    $this->get(route('tuition.show', $invoice))->assertOk()->assertSee('Original invoice fees')->assertSee('200,000.00');
+    verifyTuitionPayment($payment);
+    $payment->refresh()->load(['user', 'tuitionInvoice']);
+    $receipt = view('payments.receipt-pdf', compact('payment'))->render();
+    expect($receipt)->toContain('Fee breakdown', 'Tuition', 'Library', '190,000.00', '10,000.00', '120,000.00', 'Amount paid in this transaction')
+        ->not->toContain('Changed future fee');
+    $this->get(route('payments.receipt', $payment))->assertOk()->assertHeader('content-type', 'application/pdf');
 });
 
 it('generates a downloadable receipt only for verified payments', function () {

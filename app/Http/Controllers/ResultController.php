@@ -146,6 +146,10 @@ class ResultController extends Controller
         $courses = $this->getAccessibleCoursesForUser($actor, $session)
             ->whereIn('id', $selectedCourseIds)
             ->values();
+        if ($request->filled('department_id')) {
+            $request->validate(['department_id' => 'integer|exists:departments,id']);
+            $courses = $courses->where('department_id', (int) $request->department_id)->values();
+        }
 
         if ($courses->isEmpty()) {
             return redirect()->back()->with('error', 'Select at least one course to download the template.');
@@ -600,6 +604,27 @@ class ResultController extends Controller
     /**
      * Remove the specified result from storage.
      */
+    public function bulkDestroy(Request $request)
+    {
+        abort_unless(in_array($request->user()->dashboardRole(), ['admin', 'exam_officer', 'lecturer'], true), 403);
+        $data = $request->validate(['result_ids' => 'required|array|min:1|max:2000', 'result_ids.*' => 'required|integer|distinct|exists:results,id']);
+        $count = DB::transaction(function () use ($data) {
+            $results = Result::whereIn('id', $data['result_ids'])->orderBy('user_id')->orderBy('id')->get();
+            if ($results->count() !== count($data['result_ids'])) {
+                throw ValidationException::withMessages(['result_ids' => 'Some results are no longer available. Refresh the list.']);
+            }
+            foreach ($results as $result) {
+                $this->ensureCanManageResultRecord($result);
+                if ($result->workflow_status !== 'draft') {
+                    throw ValidationException::withMessages(['result_ids' => 'Only draft results can be deleted. No selected results were deleted.']);
+                }
+            }
+            foreach ($results as $result) { $result->delete(); }
+            return $results->count();
+        });
+        return back()->with('success', "{$count} selected result(s) deleted successfully.");
+    }
+
     public function destroy(Request $request, Result $result)
     {
         $this->ensureCanManageResultRecord($result);
@@ -658,8 +683,11 @@ class ResultController extends Controller
         $actor = Auth::user();
         $courses = $this->getAccessibleCoursesForUser($actor);
         $academicSessions = $this->getAcademicSessionOptions();
+        $departments = $this->isPrivilegedResultManager($actor)
+            ? Department::orderBy('name')->get()
+            : Department::whereIn('id', $courses->pluck('department_id')->unique())->orderBy('name')->get();
 
-        return view('admin.result.upload', compact('courses', 'academicSessions'));
+        return view('admin.result.upload', compact('courses', 'academicSessions', 'departments'));
     }
 
     public function storeUpload(Request $request)
@@ -668,6 +696,7 @@ class ResultController extends Controller
         $request->validate([
             'course_ids' => 'required|array|min:1',
             'course_ids.*' => 'required|exists:courses,id',
+            'department_id' => 'nullable|integer|exists:departments,id',
             'session' => $this->sessionValidationRules(),
             'semester' => 'required|in:First,Second',
             'file' => 'required|file|mimes:csv,xls,xlsx|max:5120',
@@ -676,6 +705,9 @@ class ResultController extends Controller
         $courses = collect($request->input('course_ids'))
             ->map(fn ($courseId) => $this->resolveManagedCourse($courseId, $request->session))
             ->values();
+        if ($request->filled('department_id') && $courses->contains(fn ($course) => (int) $course->department_id !== (int) $request->department_id)) {
+            throw ValidationException::withMessages(['department_id' => 'Every selected course must belong to the selected department.']);
+        }
 
         $spreadsheet = IOFactory::load($request->file('file')->getRealPath());
         $worksheets = collect($spreadsheet->getWorksheetIterator())

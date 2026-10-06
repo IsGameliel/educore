@@ -35,10 +35,59 @@ function pendingTranscriptPayment(User $student): Payment
 it('exports filtered payments safely and restricts financial reports to finance staff', function () {
     $payment = pendingTranscriptPayment($this->student);
     $payment->update(['email'=>'=unsafe@example.com']);
-    $this->actingAs($this->admin)->get(route('finance.payments.export', ['status'=>'pending']))->assertOk()
-        ->assertStreamedContent("Reference,Email,Purpose,Status,Currency,\"Gross kobo\",\"Deductions kobo\",\"Net kobo\",\"Paid at\"\n".$payment->reference.",'=unsafe@example.com,transcript,pending,NGN,3000000,0,0,\n");
+    $response = $this->actingAs($this->admin)->get(route('finance.payments.export', ['status'=>'pending']))->assertOk();
+    $response->assertDownload('payments-'.today()->format('Y-m-d').'.xlsx');
+    \PhpOffice\PhpSpreadsheet\Cell\Cell::setValueBinder(new \PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder());
+    $workbook = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->baseResponse->getFile()->getPathname());
+    $sheet = $workbook->getActiveSheet();
+    expect($sheet->getCell('B2')->getValue())->toBe('=unsafe@example.com')
+        ->and($sheet->getCell('B2')->getDataType())->toBe(\PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING)
+        ->and($sheet->getCell('F2')->getValue())->toBe(3000000)
+        ->and($sheet->getCell('F2')->getDataType())->toBe(\PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+    $workbook->disconnectWorksheets();
     $this->actingAs($this->student)->get(route('finance.payments.export'))->assertForbidden();
 });
+
+it('shows a single fee breakdown for non tuition payments', function () {
+    $payment = pendingTranscriptPayment($this->student);
+    expect($payment->feeBreakdown())->toBe([['label' => 'Transcript request', 'amount' => 3000000]]);
+    $this->actingAs($this->student)->get(route('payments.show', $payment))->assertOk()
+        ->assertSee('Fee breakdown')->assertSee('Transcript request')->assertSee('30,000.00');
+});
+
+it('exports all admin payments and filters across pagination with admin access only', function () {
+    $matching = collect();
+    for ($i = 0; $i < 21; $i++) {
+        $payment = pendingTranscriptPayment($this->student);
+        $payment->update(['created_at' => '2026-10-01 12:00:00']);
+        $matching->push($payment);
+    }
+    $excluded = pendingTranscriptPayment($this->student);
+    $excluded->update(['status' => 'failed', 'created_at' => '2026-09-01 12:00:00']);
+    $filters = ['search' => $this->student->name, 'purpose' => 'transcript', 'status' => 'pending', 'from' => '2026-10-01', 'to' => '2026-10-01', 'page' => 2];
+
+    $this->actingAs($this->admin)->get(route('admin.payments.index', $filters))
+        ->assertOk()->assertSee('Export all payments (Excel)')->assertSee('Export filtered payments (Excel)')
+        ->assertSee(route('admin.payments.export'));
+    $filtered = paymentWorkbookReferences($this->get(route('admin.payments.export', $filters))->assertOk());
+    expect($filtered)->toHaveCount(21);
+    foreach ($matching as $payment) {
+        expect($filtered)->toContain($payment->reference);
+    }
+    expect($filtered)->not->toContain($excluded->reference);
+    $all = paymentWorkbookReferences($this->get(route('admin.payments.export'))->assertOk());
+    expect($all)->toHaveCount(22)->and($all)->toContain($excluded->reference);
+    $this->actingAs($this->student)->get(route('admin.payments.export'))->assertForbidden();
+});
+
+function paymentWorkbookReferences($response): array
+{
+    $response->assertDownload('payments-'.today()->format('Y-m-d').'.xlsx');
+    $workbook = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->baseResponse->getFile()->getPathname());
+    $rows = $workbook->getActiveSheet()->toArray();
+    $workbook->disconnectWorksheets();
+    return array_column(array_slice($rows, 1), 0);
+}
 
 function fakePaymentVerification(Payment $payment, array $overrides = []): void
 {

@@ -58,6 +58,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/email/verification-notification', [\App\Http\Controllers\EmailOtpController::class, 'resend'])
         ->middleware('throttle:3,1')->name('verification.send');
     // Retire the link-based endpoint: email verification now requires a code.
+    Route::get('/profile/name-change-requests', [\App\Http\Controllers\NameChangeRequestController::class, 'index'])->name('name-changes.index');
+    Route::post('/profile/name-change-requests', [\App\Http\Controllers\NameChangeRequestController::class, 'store'])->name('name-changes.store');
+    Route::get('/profile/name-change-requests/{nameChange}/document', [\App\Http\Controllers\NameChangeRequestController::class, 'document'])->name('name-changes.document');
+    Route::post('/profile/name-change-requests/{nameChange}/review', [\App\Http\Controllers\NameChangeRequestController::class, 'review'])->name('name-changes.review');
     Route::get('/email/verify/{id}/{hash}', fn () => abort(404))->name('verification.verify');
 });
 
@@ -72,6 +76,7 @@ Route::middleware([
         ->name('documents.transcripts.show');
 
     Route::get('/home', [HomeController::class, 'index'])->name('dashboard');
+    Route::delete('/results/bulk-delete', [ResultController::class, 'bulkDestroy'])->middleware('usertype:admin,exam_officer,lecturer')->name('results.bulk-delete');
     Route::get('/academic-assistance', [\App\Http\Controllers\AcademicAssistanceController::class, 'index'])->name('academic.assistance');
     Route::get('/student-services', [\App\Http\Controllers\StudentServicesController::class, 'index'])->name('student.services');
     Route::get('/payments/paystack/callback', [PaymentController::class, 'callback'])->middleware('throttle:30,1')->name('payments.callback');
@@ -106,6 +111,7 @@ Route::middleware([
         Route::post('/sessions/{session}/enable', [\App\Http\Controllers\Finance\TuitionController::class, 'enable'])->name('sessions.enable');
         Route::post('/sessions/{session}/generate', [\App\Http\Controllers\Finance\TuitionController::class, 'generate'])->name('sessions.generate');
         Route::get('/invoices', [\App\Http\Controllers\Finance\TuitionController::class, 'invoices'])->name('invoices');
+        Route::get('/invoices/export', [\App\Http\Controllers\Finance\TuitionController::class, 'exportInvoices'])->name('invoices.export');
         Route::get('/invoices/{invoice}', [\App\Http\Controllers\Finance\TuitionController::class, 'show'])->name('invoices.show');
         Route::post('/invoices/{invoice}/adjust', [\App\Http\Controllers\Finance\TuitionController::class, 'adjust'])->name('invoices.adjust');
         Route::post('/invoices/{invoice}/exempt', [\App\Http\Controllers\Finance\TuitionController::class, 'exempt'])->name('invoices.exempt');
@@ -220,6 +226,7 @@ Route::middleware([
         Route::put('/promotion-policy', [\App\Http\Controllers\Admin\PromotionPolicyController::class, 'update'])->name('promotion-policy.update');
         Route::get('/system-health', [\App\Http\Controllers\Admin\SystemHealthController::class, 'index'])->name('system-health');
         Route::get('/payments', [\App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('payments.index');
+        Route::get('/payments/export', [\App\Http\Controllers\Admin\PaymentController::class, 'export'])->name('payments.export');
         Route::prefix('backups')->name('backups.')->controller(\App\Http\Controllers\Admin\BackupController::class)->group(function () {
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->middleware('throttle:3,1')->name('store');
@@ -237,12 +244,14 @@ Route::middleware([
         Route::post('/departments/import', [DepartmentController::class, 'import'])->name('departments.import');
 
         // pass mark configuration page
+        Route::post('/courses/pass-marks', [DepartmentController::class, 'updateCoursePassMarks'])->name('courses.passmarks.update');
         Route::get('/departments/pass-marks', [DepartmentController::class, 'showPassMarks'])
             ->name('departments.passmarks');
         Route::post('/departments/pass-marks', [DepartmentController::class, 'updatePassMarks'])
             ->name('departments.passmarks.update');
         Route::get('/courses/import', [CourseController::class, 'showImportForm'])->name('courses.import.form');
         Route::post('/courses/import', [CourseController::class, 'import'])->name('courses.import');
+        Route::delete('/courses/bulk-delete', [CourseController::class, 'bulkDestroy'])->name('courses.bulk-delete');
         Route::resource('courses', CourseController::class);
         Route::get('courses/{course}/prerequisites', [CourseController::class, 'showPrerequisites'])->name('courses.prerequisites');
         Route::post('courses/{course}/prerequisites', [CourseController::class, 'assignPrerequisites'])->name('courses.assignPrerequisites');
@@ -311,6 +320,7 @@ Route::middleware([
         Route::post('/students/merge', [\App\Http\Controllers\Admin\StudentAccountMergeController::class, 'store'])->middleware('throttle:5,1')->name('students.merge.store');
         Route::get('/students/import', [StudentManagementController::class, 'showImportForm'])
             ->name('students.import.form');
+        Route::post('/students/bulk-entry-year', [StudentManagementController::class, 'bulkEntryYear'])->name('students.bulk-entry-year');
         Route::post('/students/import', [StudentManagementController::class, 'import'])
             ->name('students.import');
 

@@ -184,6 +184,33 @@ class TuitionController extends Controller
 
     public function invoices(Request $request)
     {
+        [$matchingInvoices, $filters] = $this->filteredInvoices($request);
+        $page = max(1, $request->integer('page', 1));
+        $stats = ['expected'=>0, 'paid'=>0, 'balance'=>0, 'overpayment'=>0];
+        $count = 0; $rows = collect();
+        // Aggregate financial rules in bounded batches and retain only the requested page.
+        foreach ($matchingInvoices as $invoice) {
+            $totals = $invoice->totals();
+            foreach (['expected'=>'due','paid'=>'paid','balance'=>'balance','overpayment'=>'overpayment'] as $key=>$field) { $stats[$key] += $totals[$field]; }
+            if ($count >= ($page - 1) * 20 && $count < $page * 20) { $rows->push($invoice); }
+            $count++;
+        }
+        $invoices = new LengthAwarePaginator($rows, $count, 20, $page, ['path' => $request->url(), 'query' => $request->query()]);
+        return view('finance.invoices', compact('invoices', 'stats', 'filters') + [
+            'sessions' => AcademicSession::orderByDesc('start_year')->get(), 'departments' => Department::orderBy('name')->get(),
+        ]);
+    }
+
+    public function exportInvoices(Request $request)
+    {
+        [$invoices] = $this->filteredInvoices($request);
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\InvoicesExport($invoices), 'invoices-'.today()->format('Y-m-d').'.xlsx'
+        );
+    }
+
+    private function filteredInvoices(Request $request): array
+    {
         $filters = $request->validate([
             'session_id' => 'nullable|exists:academic_sessions,id', 'department_id' => 'nullable|exists:departments,id',
             'status' => 'nullable|in:paid,partially_paid,unpaid,overdue,credit,withdrawn,cancelled', 'search' => 'nullable|string|max:120',
@@ -194,25 +221,17 @@ class TuitionController extends Controller
             ->when($filters['search'] ?? null, fn ($q, $v) => $q->where(fn ($q) => $q->where('number', 'like', "%{$v}%")->orWhere('student_name', 'like', "%{$v}%")
                 ->orWhereHas('user', fn ($q) => $q->where('email', 'like', "%{$v}%")->orWhere('matric_number', 'like', "%{$v}%"))))
             ;
-        $page = max(1, $request->integer('page', 1));
-        $stats = ['expected'=>0, 'paid'=>0, 'balance'=>0, 'overpayment'=>0];
-        $count = 0; $rows = collect();
-        // Aggregate financial rules in bounded batches and retain only the requested page.
-        foreach ($query->lazyByIdDesc(200) as $invoice) {
-            $totals = $invoice->totals();
+        $invoices = $query->lazyByIdDesc(200)->filter(function ($invoice) use ($filters) {
             $status = $filters['status'] ?? null;
-            if ($status && ! match ($status) {
-                'overdue'=>$invoice->overdue(), 'credit'=>$totals['overpayment'] > 0,
-                'withdrawn'=>$invoice->needsWithdrawalReview(), default=>$totals['status'] === $status,
-            }) { continue; }
-            foreach (['expected'=>'due','paid'=>'paid','balance'=>'balance','overpayment'=>'overpayment'] as $key=>$field) { $stats[$key] += $totals[$field]; }
-            if ($count >= ($page - 1) * 20 && $count < $page * 20) { $rows->push($invoice); }
-            $count++;
-        }
-        $invoices = new LengthAwarePaginator($rows, $count, 20, $page, ['path' => $request->url(), 'query' => $request->query()]);
-        return view('finance.invoices', compact('invoices', 'stats', 'filters') + [
-            'sessions' => AcademicSession::orderByDesc('start_year')->get(), 'departments' => Department::orderBy('name')->get(),
-        ]);
+            $totals = $invoice->totals();
+            return ! $status || match ($status) {
+                'overdue' => $invoice->overdue(),
+                'credit' => $totals['overpayment'] > 0,
+                'withdrawn' => $invoice->needsWithdrawalReview(),
+                default => $totals['status'] === $status,
+            };
+        });
+        return [$invoices, $filters];
     }
 
     public function show(TuitionInvoice $invoice, TuitionBilling $billing)

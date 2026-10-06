@@ -4,7 +4,7 @@
     <h1 class="h3 mb-4">@yield('heading', 'Tuition administration')</h1>
     <nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Finance navigation">
         <a class="btn btn-outline-primary" href="{{ route('finance.controls') }}">Approvals & settlements</a>
-        <a class="btn btn-outline-primary" href="{{ route('finance.payments.export') }}">Export payments CSV</a>
+        <a class="btn btn-outline-primary" href="{{ route('finance.payments.export') }}">Export payments Excel</a>
         <a class="btn btn-outline-primary" href="{{ route('finance.templates') }}">Fee templates</a>
         <a class="btn btn-outline-primary" href="{{ route('finance.schedules') }}">Fee schedules</a>
         <a class="btn btn-outline-primary" href="{{ route('finance.invoices') }}">Invoices & balances</a>

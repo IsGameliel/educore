@@ -14,6 +14,7 @@
             <dt class="col-sm-3">Created</dt><dd class="col-sm-9">{{ $payment->created_at->format('d M Y, H:i') }}</dd>
             @if($payment->paid_at)<dt class="col-sm-3">Paid</dt><dd class="col-sm-9">{{ $payment->paid_at->format('d M Y, H:i') }}</dd>@endif
         </dl>
+        <div class="table-responsive mb-3">@include('payments.fee-breakdown')</div>
         @if($payment->status === 'success')
             @if($payment->gateway_deduction || $payment->dispute_open || $payment->gateway_reversed)
                 <div class="alert alert-warning">This is the original successful transaction. Verified refunds/reversals: NGN {{ number_format($payment->gateway_deduction / 100, 2) }}. {{ $payment->dispute_open ? 'A dispute is under review.' : '' }} Your tuition invoice shows the current balance and clearance.</div>

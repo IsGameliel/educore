@@ -32,7 +32,7 @@ class PrepareAcademicRecords extends Command
                     if ($result->policy_snapshot) {
                         return;
                     }
-                    $snapshot = Grading::policy($result->department_id, $result->session);
+                    $snapshot = Grading::policy($result->department_id, $result->session, $result->course_code, $result->semester);
                     $snapshot['legacy_baseline'] = true;
                     $before = $result->attributesToArray();
                     $result->policy_snapshot = $snapshot;

@@ -102,10 +102,32 @@ class DepartmentController extends Controller
      * Display a simple page that lists every department alongside its current
      * pass mark.  Administrators can update the values in bulk.
      */
-    public function showPassMarks()
+    public function showPassMarks(Request $request)
     {
         $departments = Department::orderBy('name')->get();
-        return view('admin.departments.pass_marks', compact('departments'));
+        $courses = \App\Models\Courses::with(['department', 'academicSession'])
+            ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->department_id))
+            ->when($request->filled('academic_session_id'), fn ($q) => $q->where('academic_session_id', $request->academic_session_id))
+            ->orderBy('department_id')->orderBy('code')->paginate(30)->withQueryString();
+        $sessions = \App\Models\AcademicSession::orderByDesc('start_year')->get();
+        return view('admin.departments.pass_marks', compact('departments', 'courses', 'sessions'));
+    }
+
+    public function updateCoursePassMarks(Request $request)
+    {
+        $data = $request->validate(['course_pass_marks' => 'required|array|min:1|max:100', 'course_pass_marks.*' => 'required|integer|min:0|max:100']);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($data, $request) {
+            foreach ($data['course_pass_marks'] as $id => $mark) {
+                $course = \App\Models\Courses::lockForUpdate()->findOrFail($id);
+                $before = $course->pass_mark;
+                $course->update(['pass_mark' => $mark]);
+                \App\Support\ActivityLogger::log($request->user(), 'pass_mark_updated', 'Updated pass mark for '.$course->code.'.', [
+                    'subject' => $course, 'department_id' => $course->department_id,
+                    'properties' => ['old_pass_mark' => $before, 'new_pass_mark' => (int) $mark, 'course_id' => $course->id],
+                ]);
+            }
+        });
+        return back()->with('success', 'Course pass marks saved. Existing results retain their recorded grading policy.');
     }
 
     /**

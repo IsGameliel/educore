@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\PaymentsExport;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PaymentController extends Controller
 {
@@ -21,18 +23,7 @@ class PaymentController extends Controller
     public function export(Request $request)
     {
         [$query] = $this->filteredQuery($request);
-        return response()->streamDownload(function () use ($query) {
-            $stream = fopen('php://output', 'w');
-            fputcsv($stream, ['Reference','Email','Purpose','Status','Currency','Gross kobo','Deductions kobo','Net kobo','Paid at']);
-            foreach ($query->orderBy('id')->lazyById(500) as $payment) {
-                $safe = fn ($value) => preg_match('/^(?:\s*[=+\-@]|[\t\r\n])/', (string) $value) ? "'".$value : $value;
-                fputcsv($stream, array_map($safe, [$payment->reference, $payment->email, $payment->purpose,
-                    $payment->status, $payment->currency, $payment->amount, $payment->gateway_deduction,
-                    $payment->status === 'success' ? max(0, $payment->amount - $payment->gateway_deduction) : 0,
-                    $payment->paid_at?->toIso8601String()]));
-            }
-            fclose($stream);
-        }, 'payments-'.today()->format('Y-m-d').'.csv', ['Content-Type'=>'text/csv; charset=UTF-8']);
+        return Excel::download(new PaymentsExport($query), 'payments-'.today()->format('Y-m-d').'.xlsx');
     }
 
     private function filteredQuery(Request $request): array

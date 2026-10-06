@@ -129,10 +129,18 @@
 
 
                 {{-- DataTable --}}
+                @if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
+                @if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
+                <form id="bulk-course-delete" action="{{ route('admin.courses.bulk-delete') }}" method="POST" class="mb-3">
+                    @csrf @method('DELETE')
+                    <button id="delete-selected-courses" type="submit" class="btn btn-danger btn-sm" disabled>Delete selected courses (<span id="selected-course-count">0</span>)</button>
+                    <span class="text-muted small ms-2">Select courses below. Select all applies to this page only.</span>
+                </form>
                 <div class="table-responsive">
                     <table id="coursesTable" class="table table-striped table-bordered" style="width:100%;">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="select-all-courses" aria-label="Select all courses on this page"></th>
                                 <th>Code</th>
                                 <th>Title</th>
                                 <th>Credit Unit</th>
@@ -145,6 +153,7 @@
                         <tbody>
                             @forelse($courses as $course)
                                 <tr>
+                                    <td><input type="checkbox" name="course_ids[]" value="{{ $course->id }}" form="bulk-course-delete" class="course-selection" aria-label="Select {{ $course->code }} {{ $course->title }}"></td>
                                     <td class="fw-semibold">{{ $course->code }}</td>
                                     <td>{{ $course->title }}</td>
                                     <td>{{ $course->credit_unit }}</td>
@@ -158,7 +167,7 @@
                                         <form action="{{ route('admin.courses.destroy', $course->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this student?')">
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this course?')">
                                                 <i class="mdi mdi-delete"></i>
                                             </button>
                                         </form>
@@ -166,7 +175,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-3">No courses found.</td>
+                                    <td colspan="8" class="text-center text-muted py-3">No courses found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -183,6 +192,29 @@
 </div>
 
 <!-- Scripts -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selections = Array.from(document.querySelectorAll('.course-selection'));
+    const selectAll = document.getElementById('select-all-courses');
+    const button = document.getElementById('delete-selected-courses');
+    function updateSelection() {
+        const count = selections.filter(input => input.checked).length;
+        document.getElementById('selected-course-count').textContent = count;
+        button.disabled = count === 0;
+        selectAll.checked = count > 0 && count === selections.length;
+        selectAll.indeterminate = count > 0 && count < selections.length;
+    }
+    selectAll.addEventListener('change', function () {
+        selections.forEach(input => { input.checked = selectAll.checked; });
+        updateSelection();
+    });
+    selections.forEach(input => input.addEventListener('change', updateSelection));
+    document.getElementById('bulk-course-delete').addEventListener('submit', function (event) {
+        const count = selections.filter(input => input.checked).length;
+        if (!count || !confirm('Delete ' + count + ' selected course(s)? This cannot be undone.')) event.preventDefault();
+    });
+});
+</script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
