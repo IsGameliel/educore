@@ -34,6 +34,14 @@ it('uploads materials for a course matching the department and semester', functi
     $this->put(route('admin.course-materials.update', $material), $this->payload)->assertSessionHasNoErrors()->assertRedirect();
 });
 
+it('loads student course materials for the student department and level', function () {
+    CourseMaterial::create($this->payload + ['file_path' => 'materials/notes.pdf']);
+    CourseMaterial::create(array_replace($this->payload, ['title' => 'Other level notes', 'level' => '200']) + ['file_path' => 'materials/other.pdf']);
+    $student = User::factory()->create(['usertype' => 'student', 'department_id' => $this->department->id, 'level' => '100']);
+    $this->actingAs($student)->get(route('student.course-materials'))->assertOk()
+        ->assertSee('Lecture notes')->assertDontSee('Other level notes');
+});
+
 it('rejects courses from another department or semester before storing files', function () {
     $other = Department::create(['name' => 'Physics', 'faculty_id' => $this->department->faculty_id]);
     foreach ([['department_id' => $other->id], ['semester' => 'Second']] as $change) {
