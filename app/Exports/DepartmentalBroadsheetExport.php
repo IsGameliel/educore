@@ -30,7 +30,7 @@ class DepartmentalBroadsheetExport extends StringValueBinder implements FromArra
             ['Department', $this->department],
             ['Academic session', $this->session],
             ['Semester', $this->semester ?: 'All semesters'],
-            [$this->includeUnpublished ? 'REVIEW COPY: includes unpublished results. Workflow status is shown in each course cell.' : 'Published results only. Course cells show score / grade, or outcome status.'],
+            [$this->includeUnpublished ? 'REVIEW COPY: includes unpublished results. Workflow status is shown in each course cell.' : 'Reviewed, approved and published results. Unpublished marks show workflow status.'],
             array_merge(['Student', 'Matric number'], $courses->map(fn ($r) => $r->course_code.' ('.$r->semester.', '.$r->attempt_type.')')->all()),
         ];
 
@@ -39,7 +39,7 @@ class DepartmentalBroadsheetExport extends StringValueBinder implements FromArra
             $row = [$group->first()->user?->name, $group->first()->matric_number];
             foreach ($courses as $course) {
                 $row[] = $byCourse->get($key($course), collect())->map(
-                    fn ($r) => ($r->score ?? $r->outcome_status).' / '.($r->grade ?? '—').($this->includeUnpublished ? ' ['.$r->workflow_status.']' : '')
+                    fn ($r) => ($r->score ?? $r->outcome_status).' / '.($r->grade ?? '—').($this->includeUnpublished || $r->workflow_status !== 'published' ? ' ['.$r->workflow_status.']' : '')
                 )->implode('; ');
             }
             $rows[] = $row;

@@ -51,10 +51,20 @@ class PaymentController extends Controller
             return redirect()->away($gateway->checkout($payment));
         } catch (\Throwable $exception) {
             // Do not log gateway payloads, credentials or card data.
-            Log::warning('Payment checkout unavailable.', ['reference' => $payment->reference, 'exception_type' => get_class($exception)]);
+            $context = ['reference' => $payment->reference, 'exception_type' => get_class($exception)];
+            $previous = $exception->getPrevious();
+            if ($previous instanceof \GuzzleHttp\Exception\ConnectException) {
+                $context['curl_errno'] = $previous->getHandlerContext()['errno'] ?? null;
+            }
+            if ($exception instanceof \Illuminate\Http\Client\RequestException) {
+                $context['http_status'] = $exception->response->status();
+            }
+            Log::warning('Payment checkout unavailable.', $context);
 
             return redirect()->route('payments.show', $payment)->withErrors([
-                'payment' => 'Your request is saved, but checkout is unavailable. Please try again shortly or contact administration with your payment reference.',
+                'payment' => $exception instanceof \Illuminate\Http\Client\ConnectionException
+                    ? 'Your payment is saved, but the server could not connect to Paystack. Check payment status if you were charged; otherwise try again shortly using this payment reference.'
+                    : 'Your request is saved, but checkout is unavailable. Please try again shortly or contact administration with your payment reference.',
             ]);
         }
     }
@@ -87,7 +97,7 @@ class PaymentController extends Controller
     private function check(Payment $payment, PaystackPayments $gateway, bool $recheck = false)
     {
         try {
-            $payment = $gateway->verify($payment, $recheck && $payment->purpose === 'tuition');
+            $payment = $gateway->verify($payment, $recheck && in_array($payment->purpose, ['tuition', 'late_registration'], true));
             if ($recheck) { app(\App\Services\PaymentFinancialSync::class)->reconcile($payment); }
         } catch (\Throwable $exception) {
             return redirect()->route('payments.show', $payment)->withErrors(['payment' => 'We could not confirm this payment yet. If you were charged, check the status again before paying.']);
@@ -96,7 +106,7 @@ class PaymentController extends Controller
             if ($payment->fresh()->gateway_deduction || $payment->fresh()->dispute_open || $payment->fresh()->gateway_reversed) {
                 return redirect($payment->destination())->with('success', 'Payment checked. Refunds, reversals and dispute review are reflected in your current tuition balance and clearance.');
             }
-            return redirect($payment->destination())->with('success', $payment->purpose === 'tuition' ? 'Tuition payment confirmed. Your balance and registration clearance have been updated.' : 'Payment confirmed. Your request has been submitted successfully.');
+            return redirect($payment->destination())->with('success', $payment->purpose === 'late_registration' ? 'Late registration payment confirmed. You can now register your courses.' : ($payment->purpose === 'tuition' ? 'Tuition payment confirmed. Your balance and registration clearance have been updated.' : 'Payment confirmed. Your request has been submitted successfully.'));
         }
 
         return redirect()->route('payments.show', $payment)->withErrors(['payment' => 'Payment has not been completed. Your request remains saved until payment is confirmed.']);

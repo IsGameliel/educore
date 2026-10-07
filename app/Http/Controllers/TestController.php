@@ -513,11 +513,22 @@ public function storeAnswer(Request $request, $testId, $questionIndex = 0)
         return redirect()->route($this->testRouteName('questions'), $testId)->with('success', 'Question deleted successfully');
     }
 
-    public function viewResponses($testId)
+    public function viewResponses(Request $request, $testId)
     {
         $test = Tests::findOrFail($testId);
         $this->ensureCanManageTest($test);
         $responses = Responses::where('test_id', $testId)->with('student')->get();
+
+        if ($request->boolean('export')) {
+            $courseCodes = $this->manageableCourses(Auth::user())->where('title', $test->subject)
+                ->where('department_id', $test->department_id)->where('level', $test->level)
+                ->pluck('code')->unique()->sort()->join('; ');
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\TestResponsesExport($responses, $courseCodes, $test->subject),
+                'test-'.$test->id.'-responses.xlsx', \Maatwebsite\Excel\Excel::XLSX,
+                ['Cache-Control' => 'private, no-store'],
+            );
+        }
 
         return view('admin.tests.responses', compact('test', 'responses'));
     }

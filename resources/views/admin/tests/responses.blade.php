@@ -23,6 +23,7 @@
             <div class="card">
                 <div class="card-body">
                     <h1>Responses for: {{ $test->name }}</h1>
+                    <a href="{{ route((auth()->user()->usertype === 'lecturer' ? 'lecturer' : 'admin').'.tests.responses', ['testId' => $test->id, 'export' => 1]) }}" class="btn btn-outline-success mb-3">Export responses (Excel)</a>
 
                     <table class="table">
                         <thead>

@@ -136,6 +136,7 @@ class ResultsImport implements ToCollection
 
             try {
                 $registration = \App\Services\Academic\ResultRegistration::requireForCourse($student->id, $courseForStudent, $session, $semester);
+                $sessionLevel = \App\Services\Academic\StudentSessionLevel::require($student, $session);
                 $caScore = $this->numericAt($cells, $columnMap['ca_score']);
                 $examScore = $this->numericAt($cells, $columnMap['exam_score']);
                 $totalScore = $this->numericAt($cells, $columnMap['score']);
@@ -164,7 +165,7 @@ class ResultsImport implements ToCollection
 
             $attributes = [
                 'course_registration_id' => $registration->id,
-                'level' => $level ?: $student->level,
+                'level' => $sessionLevel,
                 'uploaded_by' => $this->actorId,
                 'matric_number' => $student->matric_number,
                 'course_title' => $courseForStudent->title,
@@ -216,6 +217,16 @@ class ResultsImport implements ToCollection
     public function getReport(): array
     {
         return $this->report;
+    }
+
+    public function worksheetCourseCode(Collection $rows): ?string
+    {
+        return $this->extractMetadata($rows)['course_code'] ?? null;
+    }
+
+    public static function normalizeCourseCode(string $code): string
+    {
+        return preg_replace('/[^a-z0-9]+/', '', strtolower(trim($code)));
     }
 
     protected function extractMetadata(Collection $rows): array
@@ -461,6 +472,9 @@ class ResultsImport implements ToCollection
         $departmentId = (int) $student->department_id;
         $course = $courseVariants->get($departmentId)
             ?? $courseVariantsFallback->get($departmentId);
+        if ((int) $this->course->department_id === $departmentId) {
+            $course = $this->course;
+        }
 
         if ($course) {
             return [

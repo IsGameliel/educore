@@ -22,6 +22,14 @@ Verification checks reference, amount, currency, customer email and test/live en
 
 Admins use **Payments** (`/admin/payments`) for filtered totals, payer/reference search, fee/status/date filters and verification of payments. There is no manual “mark paid” override. Refunds and disputes are initiated/resolved in Paystack. Tuition synchronizes their verified financial effects through signed webhooks, manual checks and scheduled reconciliation; see `tuition.md`. This does not initiate refunds or revoke completed non-tuition services. Payment history retains original transaction amounts; finance invoice totals show net tuition after financial changes.
 
+## Late course registration
+
+Admins can enable **Late course registration** in Registration Settings. The toggle defaults to off. When enabled, students must pay NGN 5,000 for each academic session and semester before registering courses. Registration-open and tuition-clearance rules still apply.
+
+The course registration page creates or resumes the student's payment. Only a successfully verified payment for that student, session and semester clears the requirement. A payment for another semester does not clear it; reversed, disputed or deducted payments do not clear it either. Turning the toggle off removes the requirement and prevents new late-registration checkout.
+
+Apply the pending student-session-level and late-registration migrations before using these features.
+
 ## Tests
 
 Use an isolated database, never the application database. In PowerShell:

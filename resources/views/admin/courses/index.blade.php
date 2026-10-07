@@ -152,7 +152,7 @@
                         </thead>
                         <tbody>
                             @forelse($courses as $course)
-                                <tr>
+                                <tr id="course-{{ $course->id }}">
                                     <td><input type="checkbox" name="course_ids[]" value="{{ $course->id }}" form="bulk-course-delete" class="course-selection" aria-label="Select {{ $course->code }} {{ $course->title }}"></td>
                                     <td class="fw-semibold">{{ $course->code }}</td>
                                     <td>{{ $course->title }}</td>
@@ -161,7 +161,7 @@
                                     <td>{{ $course->semester }}</td>
                                     <td>{{ optional($course->department)->name }}</td>
                                     <td class="text-center">
-                                        <a href="{{ route('admin.courses.edit', $course->id) }}" class="btn btn-sm btn-warning me-1">
+                                        <a href="{{ route('admin.courses.edit', array_merge(['course' => $course->id], request()->only(['title', 'department_id', 'department', 'academic_session_id', 'page']))) }}" class="btn btn-sm btn-warning me-1">
                                             <i class="mdi mdi-pencil"></i>
                                         </a>
                                         <form action="{{ route('admin.courses.destroy', $course->id) }}" method="POST" class="d-inline">

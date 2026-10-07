@@ -29,6 +29,7 @@ class AcademicSessionController extends Controller
             || DB::table('student_progressions')->where('from_session_id', $academicSession->id)->orWhere('to_session_id', $academicSession->id)->exists()
             || \App\Models\Result::where('session', $academicSession->name)->exists()
             || \App\Models\CourseRegistration::where('session', $academicSession->name)->exists()
+            || \App\Models\StudentAcademicSession::where('academic_session_id', $academicSession->id)->exists()
         )) {
             throw ValidationException::withMessages(['name' => 'This session has academic or billing records. Create a new session instead of renaming it.']);
         }
@@ -57,6 +58,11 @@ class AcademicSessionController extends Controller
                 throw ValidationException::withMessages(['preview_token' => 'Enrollment, promotion policy or session details changed. Reload the activation review before continuing.']);
             }
             $rows = $preview['rows']->keyBy(fn ($row) => $row['student']->id);
+            foreach ($rows as $row) {
+                if ($preview['source']) {
+                    \App\Services\Academic\StudentSessionLevel::snapshot($row['student'], $preview['source'], (string) $row['student']->level);
+                }
+            }
             foreach ($data['student_ids'] ?? [] as $id) {
                 $row = $rows->get($id);
                 if (! $row || ! $row['eligible']) {
@@ -69,6 +75,15 @@ class AcademicSessionController extends Controller
                     'created_at' => now(), 'updated_at' => now(),
                 ]);
                 $student->update(['level' => $row['next']]);
+            }
+            foreach ($rows as $row) {
+                $student = $row['student']->fresh();
+                $existingLevel = \App\Models\StudentAcademicSession::where('user_id', $student->id)
+                    ->where('academic_session_id', $academicSession->id)->value('level');
+                if (in_array($student->id, $data['student_ids'] ?? []) && $existingLevel !== null && (string) $existingLevel !== (string) $student->level) {
+                    throw ValidationException::withMessages(['student_ids' => 'Target session level conflicts with a saved student session record. Review session levels before activation.']);
+                }
+                \App\Services\Academic\StudentSessionLevel::snapshot($student, $academicSession, (string) $student->level);
             }
             AcademicSession::query()->update(['is_active' => false]);
             $academicSession->update(['is_active' => true]);

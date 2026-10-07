@@ -50,13 +50,41 @@
                         </div>
                     @endif
 
+                    <form method="GET" action="{{ route('student.courses.registration') }}" class="mb-3">
+                        <label for="registration-session">Choose academic session</label>
+                        <select name="session" id="registration-session" class="form-control" required>
+                            @foreach($academicSessions as $academicSession)
+                                <option value="{{ $academicSession }}" @selected($currentSession === $academicSession)>{{ $academicSession }}</option>
+                            @endforeach
+                        </select>
+                        <input type="hidden" name="semester" value="{{ $defaultSemester }}">
+                        <button class="btn btn-outline-primary mt-2" type="submit">Load Session</button>
+                    </form>
+                    @if(!$sessionLevel)
+                        <div class="alert alert-warning">Your level for {{ $currentSession }} has not been set. Ask an administrator to save your session level in Course Registrations before registering.</div>
+                    @endif
+
+                    @if($registrationSettings->require_late_registration_fee)
+                        <div class="alert alert-info">
+                            <strong>Late registration: ₦5,000 per session and semester.</strong>
+                            <span id="late-fee-status">{{ $lateFeePaid[$defaultSemester] ? 'Your payment has been verified for this semester.' : 'Payment must be verified before you can register.' }}</span>
+                            @if($registrationSettings->registration_open && $sessionLevel)
+                                <form id="late-fee-payment" method="POST" action="{{ route('student.courses.late-payment') }}" class="mt-2" @if($lateFeePaid[$defaultSemester]) hidden @endif>
+                                    @csrf
+                                    <input type="hidden" name="session" value="{{ $currentSession }}">
+                                    <input type="hidden" name="semester" id="late-fee-semester" value="{{ $defaultSemester }}">
+                                    <button type="submit" class="btn btn-outline-primary">Pay ₦5,000 with Paystack</button>
+                                </form>
+                            @endif
+                        </div>
+                    @endif
                     <form action="{{ route('student.courses.register') }}" method="POST">
                         @csrf <!-- CSRF token for form submission -->
 
                         <div class="form-group">
                             <label>Academic Session:</label>
                             <input type="text" class="form-control" value="{{ $currentSession }}" readonly>
-                            <input type="hidden" id="academic_session" value="{{ $currentSession }}">
+                            <input type="hidden" name="session" id="academic_session" value="{{ $currentSession }}">
                         </div>
 
                         <!-- Semester Field -->
@@ -70,9 +98,9 @@
 
                         <!-- Level Field -->
                         <div class="form-group">
-                            <label for="level">Select Level:</label>
-                            <input id="level" type="hidden" name="level" value="{{ auth()->user()->level }}">
-                            <div class="form-control">{{ auth()->user()->level }} Level</div>
+                            <label for="level">Level for {{ $currentSession }}:</label>
+                            <input id="level" type="hidden" name="level" value="{{ $sessionLevel }}">
+                            <div class="form-control">{{ $sessionLevel ? $sessionLevel.' Level' : 'Not set' }}</div>
                         </div>
 
                         <!-- Courses Field -->
@@ -148,7 +176,7 @@
 
                         <!-- Submit Button -->
                         <div class="form-group">
-                            <button type="submit" class="btn btn-gradient-primary" @disabled(! $registrationSettings->registration_open)>Register for Selected Courses</button>
+                            <button type="submit" class="btn btn-gradient-primary" @disabled(! $registrationSettings->registration_open || !$sessionLevel)>Register for Selected Courses</button>
                         </div>
                     </form>
                 </div>
@@ -161,6 +189,19 @@
 
 <script>
     let creditLimits = @json($creditLimits);
+    const lateFeePaid = @json($lateFeePaid);
+    function updateLateFee() {
+        const semester = $('#semester').val();
+        const status = document.getElementById('late-fee-status');
+        const paymentForm = document.getElementById('late-fee-payment');
+        if (status) status.textContent = lateFeePaid[semester] ? 'Your payment has been verified for this semester.' : 'Payment must be verified before you can register.';
+        if (paymentForm) {
+            document.getElementById('late-fee-semester').value = semester;
+            paymentForm.hidden = !!lateFeePaid[semester];
+        }
+    }
+    $('#semester').on('change', updateLateFee);
+    updateLateFee();
 
     let courseCreditMapping = {}; // Store course_id => credit_unit
 

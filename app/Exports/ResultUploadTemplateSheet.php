@@ -27,7 +27,7 @@ class ResultUploadTemplateSheet implements FromArray, WithTitle
             ['S/NO', 'MATRIC NO.', 'NAME', 'CA', 'EXAM', 'Total'],
 
         ];
-        $registrations = \App\Models\CourseRegistration::with('student')->where('course_id', $this->course->id)
+        $registrations = \App\Models\CourseRegistration::with('student')->whereIn('course_id', $this->course->equivalentIds())
             ->where('session', $this->course->academicSession?->name)->where('semester', $this->course->semester)
             ->whereIn('status', \App\Services\Academic\ResultRegistration::ELIGIBLE_STATUSES)
             ->orderBy('user_id')->get()->unique('user_id');

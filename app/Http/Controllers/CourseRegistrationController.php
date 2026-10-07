@@ -19,6 +19,22 @@ use Illuminate\Http\JsonResponse;
 
 class CourseRegistrationController extends Controller
 {
+    public function lateRegistrationPayment(Request $request)
+    {
+        $data = $request->validate(['session' => 'required|exists:academic_sessions,name', 'semester' => 'required|in:First,Second']);
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($request, $data) {
+            $settings = \App\Models\RegistrationSetting::whereKey(1)->lockForUpdate()->firstOrFail();
+            $student = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+            abort_unless($student->dashboardRole() === 'student', 403);
+            if (!$settings->registration_open || !$settings->require_late_registration_fee) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['late_registration' => 'Late registration payment is not required or registration is closed.']);
+            }
+            \App\Services\Academic\StudentSessionLevel::require($student, $data['session']);
+            $payment = \App\Services\Academic\LateRegistrationFee::payment($student, $data['session'], $data['semester']);
+            return redirect()->route('payments.show', $payment);
+        });
+    }
+
     private function normalizeSemester($semester)
     {
         $semester = strtolower(trim((string) $semester));
@@ -34,37 +50,45 @@ class CourseRegistrationController extends Controller
     /**
      * Show the course registration form.
      */
-    public function showRegistrationForm()
+    public function showRegistrationForm(Request $request)
     {
         $user = Auth::user(); // Get the authenticated student
         $departmentId = $user->department_id;
-        $defaultSemester = $this->normalizeSemester(old('semester', 'First'));
-        $currentSession = $this->getCurrentAcademicSession();
+        $request->validate(['session' => 'nullable|exists:academic_sessions,name']);
+        $defaultSemester = $this->normalizeSemester(old('semester', $request->query('semester', 'First')));
+        $currentSession = old('session', $request->query('session', $this->getCurrentAcademicSession()));
+        $sessionLevel = \App\Services\Academic\StudentSessionLevel::find($user, $currentSession);
+        $academicSessions = AcademicSession::orderByDesc('start_year')->pluck('name');
         $courses = Courses::where('department_id', $departmentId)
             ->forAcademicSession($currentSession)
-            ->where('level', $user->level)
+            ->where('level', $sessionLevel ?? '')
             ->where('semester', $defaultSemester)
             ->with('prerequisites')
             ->orderBy('code')
             ->get();
         $carryoverCourses = \App\Services\Academic\CarryoverRegistration::available($user, $currentSession);
+        $courses = Courses::uniqueOptions($courses);
         $creditLimits = collect(['First', 'Second'])->mapWithKeys(fn ($semester) => [
             $semester => \App\Services\Academic\StudentCreditLimit::for($user, $currentSession, $semester),
         ])->all();
         $departments = Department::all();
-        $assistance = \App\Services\Academic\RegistrationAssistance::forStudent($user);
+        $assistance = \App\Services\Academic\RegistrationAssistance::forStudent($user, $currentSession);
         $registrationSettings = \App\Models\RegistrationSetting::current();
+        $lateFeePaid = collect(['First', 'Second'])->mapWithKeys(fn ($semester) => [
+            $semester => $registrationSettings->require_late_registration_fee && \App\Services\Academic\LateRegistrationFee::paid($user, $currentSession, $semester),
+        ])->all();
 
-        return view('student.coursereg.create', compact('courses', 'departments', 'defaultSemester', 'currentSession', 'carryoverCourses', 'creditLimits', 'assistance', 'registrationSettings'));
+        return view('student.coursereg.create', compact('courses', 'departments', 'defaultSemester', 'currentSession', 'carryoverCourses', 'creditLimits', 'assistance', 'registrationSettings', 'sessionLevel', 'academicSessions', 'lateFeePaid'));
     }
 
     public function getCoursesByLevel(Request $request)
     {
         $user = Auth::user();
         $departmentId = $user->department_id;
-        $level = $request->level;
+        $request->validate(['session' => 'nullable|exists:academic_sessions,name']);
         $semester = $this->normalizeSemester($request->semester);
         $session = $request->query('session', $this->getCurrentAcademicSession());
+        $level = \App\Services\Academic\StudentSessionLevel::require($user, $session);
 
         $courses = Courses::where('department_id', $departmentId)
             ->forAcademicSession($session)
@@ -74,7 +98,7 @@ class CourseRegistrationController extends Controller
             ->orderBy('code')
             ->get();
 
-        return response()->json($courses);
+        return response()->json(Courses::uniqueOptions($courses));
     }
 
 
@@ -97,12 +121,13 @@ class CourseRegistrationController extends Controller
             'course_ids' => 'nullable|array', 'course_ids.*' => 'integer|distinct',
             'carryover_ids' => 'nullable|array', 'carryover_ids.*' => 'integer|distinct',
             'semester' => 'required|in:First,Second',
+            'session' => 'nullable|exists:academic_sessions,name',
         ]);
         $user = Auth::user(); // Get the authenticated student
         $userId = $user->id;
         $semester = $this->normalizeSemester($request->input('semester'));
-        $level = $user->level;
-        $session = $this->getCurrentAcademicSession();
+        $session = $request->input('session') ?: $this->getCurrentAcademicSession();
+        $level = \App\Services\Academic\StudentSessionLevel::require($user, $session);
         \App\Services\Academic\RegistrationAccess::assertAllowed($user, $session, $semester, $settings);
         $courseIds = collect($request->input('course_ids', []))
             ->filter(fn ($courseId) => filled($courseId))
@@ -135,10 +160,14 @@ class CourseRegistrationController extends Controller
             );
         }
 
+        if (Courses::uniqueOptions($courses)->count() !== $courses->count()) {
+            return $this->courseRegistrationError($request, 'The same course was selected more than once. Refresh the course list.', 422);
+        }
+        $equivalentIds = $courses->flatMap(fn ($course) => $course->equivalentIds())->unique()->all();
         $alreadyRegisteredCourse = CourseRegistration::where('user_id', $userId)
             ->where('semester', $semester)
             ->where('session', $session)
-            ->whereIn('course_id', $courseIds)
+            ->whereIn('course_id', $equivalentIds)
             ->first();
 
         if ($alreadyRegisteredCourse) {
@@ -279,7 +308,8 @@ class CourseRegistrationController extends Controller
             ->values();
 
         $historyGroups = CourseRegistration::where('user_id', $userId)->selectRaw('session, semester, COUNT(*) as total')->groupBy('session', 'semester')->get();
-        return view('student.coursereg.index', compact('courses', 'semester', 'session', 'availableSessions', 'historyGroups'));
+        $sessionLevel = \App\Services\Academic\StudentSessionLevel::find(Auth::user(), $session);
+        return view('student.coursereg.index', compact('courses', 'semester', 'session', 'availableSessions', 'historyGroups', 'sessionLevel'));
     }
 
 

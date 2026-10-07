@@ -158,7 +158,8 @@
                         <div class="helper-text mb-3">{{ $student->email }}</div>
                         <div class="d-flex flex-wrap gap-2">
                             <span class="student-chip">Dept: {{ optional($student->department)->name ?? 'N/A' }}</span>
-                            <span class="student-chip">Level: {{ $student->level ?? 'N/A' }}</span>
+                            <span class="student-chip">Current level: {{ $student->level ?? 'N/A' }}</span>
+                            @if($session !== 'all' && $session !== 'unassigned')<span class="student-chip">Session level: {{ $sessionLevel ?? 'Not set' }}</span>@endif
                             <span class="student-chip">Matric: {{ $student->matric_number ?? 'N/A' }}</span>
                             <span class="student-chip">Session: {{ $sessionLabel }}</span>
                         </div>

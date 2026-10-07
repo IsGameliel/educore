@@ -173,7 +173,7 @@ it('edits only matching course records in the same academic session', function (
             'title' => 'Computing Fundamentals',
             'credit_unit' => 4,
         ]))
-        ->assertRedirect(route('admin.courses.index'))
+        ->assertRedirect(route('admin.courses.index').'#course-'.$currentSessionCourse->id)
         ->assertSessionHas('success');
 
     expect($currentSessionCourse->fresh()?->title)->toBe('Computing Fundamentals')

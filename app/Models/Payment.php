@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
-    public const FEES = ['application' => 1000000, 'transcript' => 3000000, 'appeal' => 1500000];
-    public const LABELS = ['application' => 'Application fee', 'transcript' => 'Transcript request', 'appeal' => 'Result appeal', 'tuition' => 'Tuition fee'];
+    public const FEES = ['application' => 1000000, 'transcript' => 3000000, 'appeal' => 1500000, 'late_registration' => 500000];
+    public const LABELS = ['application' => 'Application fee', 'transcript' => 'Transcript request', 'appeal' => 'Result appeal', 'tuition' => 'Tuition fee', 'late_registration' => 'Late course registration'];
 
     protected $guarded = ['id'];
 
@@ -49,6 +49,7 @@ class Payment extends Model
     public function destination(): string
     {
         return match ($this->purpose) {
+            'late_registration' => route('student.courses.registration', ['session' => $this->payable->academicSession->name, 'semester' => $this->payable->semester]),
             'tuition' => route('tuition.show', $this->tuition_invoice_id),
             'application' => $this->status === 'success' ? route('dashboard') : route('admissions.create'),
             'transcript' => route('academic.transcripts'),

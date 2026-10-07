@@ -115,6 +115,18 @@
                     </div>
 
                     <form method="GET" action="{{ route('admin.course-registrations.index') }}" class="d-flex flex-column flex-sm-row gap-2">
+                        <select name="department_id" class="form-control" aria-label="Department">
+                            <option value="">All departments</option>
+                            @foreach($departments as $department)
+                                <option value="{{ $department->id }}" @selected((string) request('department_id') === (string) $department->id)>{{ $department->name }}</option>
+                            @endforeach
+                        </select>
+                        <select name="current_level" class="form-control" aria-label="Current level">
+                            <option value="">All current levels</option>
+                            @foreach(['100','200','300','400','500','600'] as $level)
+                                <option value="{{ $level }}" @selected(request('current_level') === $level)>Current {{ $level }} Level</option>
+                            @endforeach
+                        </select>
                         <select name="session" class="form-control">
                             <option value="all" @selected($currentSession === 'all')>All sessions</option>
                             <option value="unassigned" @selected($currentSession === 'unassigned')>Session not assigned</option>
@@ -138,20 +150,65 @@
                     </form>
                 </div>
 
+                <div class="border rounded p-3 mb-3">
+                    <h5>Bulk session level update</h5>
+                    <p class="helper-text">Choose a department above and click Search. Filter by current level to select the right cohort. This saves historical session levels without changing current profile levels.</p>
+                    <form id="bulk-session-level" method="POST" action="{{ route('admin.course-registrations.bulk-session-level') }}">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="department_id" value="{{ request('department_id') }}">
+                        <input type="hidden" name="current_level" value="{{ request('current_level') }}">
+                        <input type="hidden" name="q" value="{{ request('q') }}">
+                        <div class="d-flex flex-wrap gap-3 align-items-end">
+                            <div>
+                                <label for="bulk-target-session">Session to update</label>
+                                <select id="bulk-target-session" name="target_session" class="form-control" required>
+                                    <option value="">Select session</option>
+                                    @foreach($academicSessions as $academicSession)
+                                        @continue(in_array($academicSession, ['all', 'unassigned'], true))
+                                        <option value="{{ $academicSession }}" @selected(old('target_session', $currentSession) === $academicSession)>{{ $academicSession }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label for="bulk-target-level">Level for that session</label>
+                                <select id="bulk-target-level" name="level" class="form-control" required>
+                                    <option value="">Select level</option>
+                                    @foreach(['100','200','300','400','500','600'] as $level)
+                                        <option value="{{ $level }}" @selected(old('level') === $level)>{{ $level }} Level</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label for="bulk-scope">Students to update</label>
+                                <select id="bulk-scope" name="scope" class="form-control">
+                                    <option value="selected" @selected(old('scope', 'selected') === 'selected')>Ticked students on this page</option>
+                                    <option value="all_matching" @selected(old('scope') === 'all_matching')>All {{ $students->total() }} students matching filters (every page)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-brand" @disabled(!request('department_id'))>Save bulk session level</button>
+                        </div>
+                        <p class="helper-text mt-2 mb-0">Every selected student receives the same session level. If existing results conflict, the entire update stops and shows the affected students.</p>
+                    </form>
+                </div>
+
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="select-page-students" aria-label="Select all students on this page"></th>
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Department</th>
-                                <th>Level</th>
+                                <th>Current level</th>
+                                <th>Session level</th>
                                 <th class="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($students as $student)
                                 <tr>
+                                    <td><input type="checkbox" class="bulk-student" name="student_ids[]" value="{{ $student->id }}" form="bulk-session-level" aria-label="Select {{ $student->name }}" @checked(in_array($student->id, old('student_ids', [])))></td>
                                     <td>
                                         <div class="student-name">{{ $student->name }}</div>
                                         <div class="student-meta">{{ $student->matric_number ?? 'No matric number' }}</div>
@@ -161,6 +218,7 @@
                                     <td>
                                         <span class="level-badge">{{ $student->level ?? 'N/A' }}</span>
                                     </td>
+                                    <td>{{ $sessionLevels[$student->id][$currentSession] ?? (in_array($currentSession, ['all', 'unassigned'], true) ? 'Select a session' : 'Not set') }}</td>
                                     <td class="text-end">
                                         <a
                                             href="{{ route('admin.course-registrations.show', $student->id) }}?semester=First&session={{ urlencode($currentSession) }}"
@@ -172,7 +230,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">
+                                    <td colspan="7" class="text-center text-muted py-4">
                                         No students found{{ request('q') ? ' for "' . request('q') . '"' : '' }}.
                                     </td>
                                 </tr>
@@ -189,4 +247,17 @@
     </div>
 </div>
 </div>
+<script>
+    const pageSelection = document.getElementById('select-page-students');
+    const studentSelections = Array.from(document.querySelectorAll('.bulk-student'));
+    pageSelection.addEventListener('change', () => {
+        studentSelections.forEach(input => input.checked = pageSelection.checked);
+        pageSelection.indeterminate = false;
+    });
+    studentSelections.forEach(input => input.addEventListener('change', () => {
+        const count = studentSelections.filter(input => input.checked).length;
+        pageSelection.checked = count > 0 && count === studentSelections.length;
+        pageSelection.indeterminate = count > 0 && count < studentSelections.length;
+    }));
+</script>
 @endsection

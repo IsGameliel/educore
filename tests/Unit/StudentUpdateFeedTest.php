@@ -6,97 +6,12 @@ use App\Models\Faculty;
 use App\Models\Result;
 use App\Models\User;
 use App\Support\StudentUpdateFeed;
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
-uses(TestCase::class);
-
-beforeEach(function () {
-    config([
-        'database.default' => 'sqlite',
-        'database.connections.sqlite.database' => ':memory:',
-        'database.connections.sqlite.foreign_key_constraints' => false,
-    ]);
-
-    DB::purge('sqlite');
-    DB::reconnect('sqlite');
-
-    Schema::create('faculties', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('description')->nullable();
-        $table->string('code')->nullable();
-        $table->timestamps();
-    });
-
-    Schema::create('departments', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('description')->nullable();
-        $table->unsignedBigInteger('faculty_id')->nullable();
-        $table->unsignedTinyInteger('pass_mark')->nullable();
-        $table->timestamps();
-    });
-
-    Schema::create('users', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('email')->unique();
-        $table->string('usertype')->default('student');
-        $table->string('matric_number')->nullable();
-        $table->unsignedBigInteger('department_id')->nullable();
-        $table->string('level')->nullable();
-        $table->timestamp('email_verified_at')->nullable();
-        $table->string('password');
-        $table->rememberToken();
-        $table->unsignedBigInteger('current_team_id')->nullable();
-        $table->string('profile_photo_path')->nullable();
-        $table->text('two_factor_secret')->nullable();
-        $table->text('two_factor_recovery_codes')->nullable();
-        $table->timestamps();
-    });
-
-    Schema::create('results', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('user_id');
-        $table->unsignedBigInteger('uploaded_by')->nullable();
-        $table->string('matric_number');
-        $table->string('session');
-        $table->string('semester');
-        $table->string('level');
-        $table->string('course_code');
-        $table->string('course_title');
-        $table->unsignedTinyInteger('credit_unit');
-        $table->decimal('ca_score', 5, 2)->nullable();
-        $table->decimal('exam_score', 5, 2)->nullable();
-        $table->decimal('score', 5, 2);
-        $table->string('grade')->nullable();
-        $table->decimal('grade_point', 3, 2)->nullable();
-        $table->unsignedBigInteger('source_result_id')->nullable();
-        $table->unsignedBigInteger('department_id');
-        $table->string('transcript_path')->nullable();
-        $table->string('full_transcript_path')->nullable();
-        $table->timestamps();
-        $table->softDeletes();
-    });
-
-    Schema::create('activity_logs', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('actor_id')->nullable();
-        $table->unsignedBigInteger('target_user_id')->nullable();
-        $table->unsignedBigInteger('department_id')->nullable();
-        $table->string('action');
-        $table->string('description');
-        $table->string('subject_type')->nullable();
-        $table->unsignedBigInteger('subject_id')->nullable();
-        $table->text('properties')->nullable();
-        $table->timestamps();
-    });
-    (require database_path('migrations/2026_09_20_120000_create_academic_result_workflow.php'))->up();
-    (require database_path('migrations/2026_09_21_120000_link_resits_to_original_results.php'))->up();
-});
+uses(TestCase::class, RefreshDatabase::class);
 
 it('includes department pass mark updates in the student feed', function () {
     $faculty = Faculty::create([

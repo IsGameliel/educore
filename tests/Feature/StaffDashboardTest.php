@@ -56,6 +56,7 @@ it('sends staff to their dashboard after two factor authentication', function ()
     $staff = User::factory()->unverified()->create(['usertype' => 'hod']);
     $this->actingAs($staff);
     $request = request();
+    $request->setUserResolver(fn () => $staff);
     $request->setLaravelSession(app('session.store'));
     $request->session()->put('url.intended', route('admissions.create'));
     $response = app(TwoFactorLoginResponse::class)->toResponse($request);

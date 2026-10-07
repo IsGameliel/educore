@@ -4,6 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 it('serves public get routes without dead responses', function () {
+    $firebaseAuth = Mockery::mock();
+    $firebaseAuth->shouldReceive('listUsers')->once()->with(1)->andReturn([]);
+    $this->app->instance('firebase.auth', $firebaseAuth);
+
     $routes = collect(Route::getRoutes())
         ->filter(function ($route) {
             $methods = $route->methods();

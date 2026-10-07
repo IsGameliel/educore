@@ -155,6 +155,7 @@ $(document).ready(function () {
     let studentRequest;
     // Offer only the registered roster for this course and semester.
     function loadStudents(departmentId) {
+        $('#level').val('');
         if (studentRequest) studentRequest.abort();
         $('#student_id').html('<option value="">Loading...</option>');
 
@@ -166,9 +167,12 @@ $(document).ready(function () {
                 success: function (data) {
                     $('#student_id').empty().append('<option value="">Select Student</option>');
                     $.each(data, function (key, student) {
-                        $('#student_id').append(new Option(student.name + ' (' + (student.matric_number || '') + ')', student.id));
+                        const option = new Option(student.name + ' (' + (student.matric_number || '') + ')', student.id);
+                        option.dataset.level = student.level || '';
+                        $('#student_id').append(option);
                     });
                     $('#student_id').val(@json(old('user_id', '')));
+                    $('#student_id').trigger('change');
                     if (!data.length) $('#student_id').html('<option value="">No active registered students</option>');
                 },
                 error: function (_xhr, status) {
@@ -183,13 +187,15 @@ $(document).ready(function () {
     $('#department_id').on('change', function () {
         loadStudents($(this).val());
     });
+    $('#student_id').on('change', function () {
+        $('#level').val(this.options[this.selectedIndex]?.dataset.level || '');
+    });
 
     $('#course_id').on('change', function () {
         const selectedOption = this.options[this.selectedIndex];
         const departmentId = selectedOption.getAttribute('data-department-id') || '';
 
         $('#semester').val(selectedOption.getAttribute('data-semester') || 'First');
-        $('#level').val(selectedOption.getAttribute('data-level') || '');
         if (selectedOption.value) $('#session').val(selectedOption.getAttribute('data-session'));
         $('#course_code').val(selectedOption.getAttribute('data-code') || '');
         $('#course_title').val(selectedOption.getAttribute('data-title') || '');

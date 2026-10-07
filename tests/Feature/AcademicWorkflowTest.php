@@ -110,7 +110,7 @@ it('downloads the published departmental broadsheet as a real Excel workbook', f
     }
 });
 
-it('limits broadsheet exports to published results matching all selected filters', function () {
+it('limits broadsheet exports to reviewed and later results matching all selected filters', function () {
     $f = academicFixture();
     \Maatwebsite\Excel\Facades\Excel::fake();
     $this->actingAs($f['officer']);
@@ -125,7 +125,17 @@ it('limits broadsheet exports to published results matching all selected filters
         return $export->results->modelKeys() === [$f['result']->id]
             && str_contains($rows[0][0], 'review copy') && str_contains($rows[6][2], '[draft]');
     });
-    publishAcademicFixture($f);
+    ResultWorkflow::transition($f['result'], $f['lecturer'], 'submit', 'Marks checked and submitted');
+    $assertEmpty($filters);
+    ResultWorkflow::transition($f['result'], $f['admin'], 'review', 'Academic review completed');
+    foreach (['reviewed', 'approved'] as $status) {
+        $this->get(route('academic.reports', $filters))->assertOk();
+        \Maatwebsite\Excel\Facades\Excel::assertDownloaded('departmental-broadsheet.xlsx', function ($export) use ($f, $status) {
+            return $export->results->modelKeys() === [$f['result']->id]
+                && str_contains($export->array()[6][2], '['.$status.']');
+        });
+        ResultWorkflow::transition($f['result'], $f['admin'], $status === 'reviewed' ? 'approve' : 'publish', 'Academic review completed');
+    }
     $assertEmpty($filters + ['semester' => 'Second']);
     $other = Department::create(['name' => 'Other', 'faculty_id' => $f['department']->faculty_id, 'pass_mark' => 40]);
     $assertEmpty(array_replace($filters, ['department_id' => $other->id]));
@@ -451,7 +461,7 @@ it('links manual results to active registrations and rejects wrong semesters and
     $this->post(route('academic.results.store'), array_merge($payload, ['semester' => 'Second']))->assertSessionHasErrors('course_registration');
     $this->post(route('academic.results.store'), $payload)->assertSessionHasNoErrors()->assertRedirect();
     $result = Result::where('user_id', $student->id)->firstOrFail();
-    expect($result->course_registration_id)->toBe($registration->id)->and($result->level)->toBe('100');
+    expect($result->course_registration_id)->toBe($registration->id)->and($result->level)->toBe('200');
     $this->get(route('academic.entry', ['registration_id' => $registration->id]))->assertRedirect(route('academic.show', $result));
     expect(fn () => $result->update(['semester' => 'Second']))->toThrow(ValidationException::class);
     expect(fn () => $result->fresh()->update(['course_registration_id' => null]))->toThrow(ValidationException::class);

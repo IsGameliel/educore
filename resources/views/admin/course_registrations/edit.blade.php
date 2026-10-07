@@ -154,6 +154,26 @@
                     </div>
                 </div>
 
+                <div class="p-3 border-bottom">
+                    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+                    <p>Current profile: {{ $student->level }} Level. Level for {{ $session }}: {{ $sessionLevel ?? 'Not set' }}.</p>
+                    <form method="POST" action="{{ route('admin.course-registrations.session-level', $student->id) }}" class="d-flex flex-wrap align-items-center gap-2">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="session" value="{{ $session }}">
+                        <input type="hidden" name="semester" value="{{ $semester }}">
+                        <label for="session-level">Student level for this session</label>
+                        <select name="level" id="session-level" class="form-select w-auto" required>
+                            <option value="">Select level</option>
+                            @foreach(['100','200','300','400','500','600'] as $level)
+                                <option value="{{ $level }}" @selected((string) old('level', $sessionLevel) === $level)>{{ $level }} Level</option>
+                            @endforeach
+                        </select>
+                        <button class="btn btn-outline-primary" type="submit">Save session level</button>
+                    </form>
+                    <small class="text-muted">Save the historical level, then select courses below. This does not change the current profile level.</small>
+                </div>
+
                 <form method="POST" action="{{ route('admin.course-registrations.update', $student->id) }}">
                     @csrf
                     @method('PUT')
@@ -246,5 +266,6 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection

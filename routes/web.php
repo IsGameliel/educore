@@ -177,6 +177,7 @@ Route::middleware([
         Route::prefix('courses')->name('courses.')->group(function () {
             Route::get('/registration', [CourseRegistrationController::class, 'showRegistrationForm'])->name('registration');
             Route::post('/register', [CourseRegistrationController::class, 'registerForCourses'])->name('register');
+            Route::post('/late-registration-payment', [CourseRegistrationController::class, 'lateRegistrationPayment'])->name('late-payment');
             Route::get('/by-level', [CourseRegistrationController::class, 'getCoursesByLevel'])->name('byLevel');
             Route::get('/{semester}', [CourseRegistrationController::class, 'getRegisteredCourses'])->name('registered');
             Route::post('/withdraw', [CourseRegistrationController::class, 'withdrawFromCourse'])->name('withdraw');
@@ -274,6 +275,8 @@ Route::middleware([
 
         Route::get('/course-registrations', [AdminCourseRegistrationController::class, 'index'])
             ->name('course-registrations.index');
+        Route::put('/course-registrations/bulk-session-level', [AdminCourseRegistrationController::class, 'bulkUpdateSessionLevel'])
+            ->name('course-registrations.bulk-session-level');
 
         Route::get('/course-registrations/{student}/registrations/{registration}/edit', [\App\Http\Controllers\Admin\RegistrationEditController::class, 'edit'])->name('course-registrations.record.edit');
         Route::put('/course-registrations/{student}/registrations/{registration}', [\App\Http\Controllers\Admin\RegistrationEditController::class, 'update'])->name('course-registrations.record.update');
@@ -285,6 +288,8 @@ Route::middleware([
 
         Route::put('/course-registrations/{student}/credit-limit', [AdminCourseRegistrationController::class, 'updateCreditLimit'])
             ->name('course-registrations.credit-limit');
+        Route::put('/course-registrations/{student}/session-level', [AdminCourseRegistrationController::class, 'updateSessionLevel'])
+            ->name('course-registrations.session-level');
 
         Route::put('/course-registrations/{student}', [AdminCourseRegistrationController::class, 'update'])
             ->name('course-registrations.update');
