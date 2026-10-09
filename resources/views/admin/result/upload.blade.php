@@ -61,6 +61,13 @@
                                 placeholder="Search course code, title, semester, level, or department"
                                 autocomplete="off"
                             >
+                            <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                                <label class="mb-0" for="select-all-courses">
+                                    <input type="checkbox" id="select-all-courses" disabled> Select all filtered courses
+                                </label>
+                                <button type="button" id="clear-course-selection" class="btn btn-sm btn-outline-secondary">Clear selection</button>
+                                <span id="course-selection-count" class="text-muted small" aria-live="polite"></span>
+                            </div>
                             <div class="result-course-checklist" id="course_ids">
                                 @foreach ($courses as $course)
                                     <label
@@ -85,7 +92,7 @@
                                     </label>
                                 @endforeach
                             </div>
-                            <small class="text-muted">Tick one or more courses. The template creates one worksheet per selected course, listing active registered students with blank marks. Only registered students can receive results.</small>
+                            <small class="text-muted">Tick one or more courses. Worksheets may be in any order: each selected course must have exactly one worksheet with its Course code in the header. Extra unselected sheets are ignored. Only registered students can receive results.</small>
                         </div>
 
                         <div class="form-group mt-3">
@@ -133,7 +140,8 @@
                             <li>Result table headers: <strong>S/NO</strong>, <strong>MATRIC NO.</strong>, <strong>NAME</strong>, <strong>CA</strong>, <strong>EXAM</strong>, <strong>Total</strong>.</li>
                             <li>The <strong>NAME</strong> column is optional and can be left blank; student records are matched by matric number.</li>
                             <li>Enter the academic session and semester on this page before uploading.</li>
-                            <li>The selected course order should match the worksheet order in the uploaded workbook.</li>
+                            <li>For historical results, set each student's level for that session in Course Registrations and register their courses first. Results use the student's session level; the current profile level stays unchanged.</li>
+                            <li>Worksheets can be arranged in any order. Keep the correct <strong>Course code</strong> in every sheet's header.</li>
                         </ul>
 
                         <div class="table-responsive">
@@ -186,12 +194,31 @@
             const sessionSelect = document.getElementById('session');
             const semesterSelect = document.getElementById('semester');
             const departmentSelect = document.getElementById('department_id');
+            const selectAll = document.getElementById('select-all-courses');
+            const clearSelection = document.getElementById('clear-course-selection');
+            const selectionCount = document.getElementById('course-selection-count');
 
-            if (!courseInputs.length || !downloadLink) {
+            if (!downloadLink) {
                 return;
             }
 
             const baseHref = downloadLink.getAttribute('href');
+
+            function visibleCourseInputs() {
+                return courseItems.filter(item => !item.classList.contains('d-none'))
+                    .map(item => item.querySelector('input[type="checkbox"]'));
+            }
+
+            function updateSelectionControls() {
+                const visible = visibleCourseInputs();
+                const checked = visible.filter(input => input.checked).length;
+                selectAll.disabled = visible.length === 0;
+                selectAll.checked = visible.length > 0 && checked === visible.length;
+                selectAll.indeterminate = checked > 0 && checked < visible.length;
+                const total = courseInputs.filter(input => input.checked).length;
+                selectionCount.textContent = `${total} selected · ${visible.length} courses shown`;
+                clearSelection.disabled = total === 0;
+            }
 
             function updateTemplateLink() {
                 const selectedCourses = courseInputs.filter(function (input) {
@@ -213,7 +240,17 @@
                 }
 
                 downloadLink.href = url.toString();
+                updateSelectionControls();
             }
+
+            selectAll.addEventListener('change', function () {
+                visibleCourseInputs().forEach(input => input.checked = selectAll.checked);
+                updateTemplateLink();
+            });
+            clearSelection.addEventListener('click', function () {
+                courseInputs.forEach(input => input.checked = false);
+                updateTemplateLink();
+            });
 
             function filterCourses() {
                 const term = searchInput ? searchInput.value.trim().toLowerCase() : '';

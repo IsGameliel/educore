@@ -31,7 +31,7 @@ class CourseImport implements ToCollection, WithHeadingRow
             $departmentIds = $this->extractDepartmentIds($row);
 
             $data = [
-                'code' => trim((string) ($row['code'] ?? '')),
+                'code' => preg_replace('/([A-Za-z])(?=[0-9])/', '$1 ', trim((string) ($row['code'] ?? ''))),
                 'title' => trim((string) ($row['title'] ?? '')),
                 'credit_unit' => $row['credit_unit'] ?? null,
                 'semester' => trim((string) ($row['semester'] ?? '')),

@@ -31,6 +31,18 @@ class Courses extends Model
         return $this->belongsTo(AcademicSession::class);
     }
 
+    public function equivalentIds()
+    {
+        return static::where($this->only(['code', 'title', 'credit_unit', 'semester', 'department_id', 'level', 'academic_session_id', 'pass_mark']))->pluck('id');
+    }
+
+    public static function uniqueOptions(\Illuminate\Support\Collection $courses)
+    {
+        return $courses->sortBy('id')->unique(fn ($course) => json_encode($course->only([
+            'code', 'title', 'credit_unit', 'semester', 'department_id', 'level', 'academic_session_id', 'pass_mark',
+        ])))->sortBy('code')->values();
+    }
+
     public function scopeForAcademicSession($query, string $sessionName)
     {
         return $query->whereHas('academicSession', fn ($sessionQuery) => $sessionQuery->where('name', $sessionName));

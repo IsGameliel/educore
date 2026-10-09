@@ -53,6 +53,10 @@
 
                 <div class="mb-3 d-flex flex-wrap gap-3">
                     <div><strong>Academic Session:</strong> {{ $sessionLabel }}</div>
+                    @if(!in_array($session, ['all', 'unassigned'], true))
+                        <div><strong>Level for this session:</strong> {{ $sessionLevel ?? 'Not set' }}</div>
+                        <a href="{{ route('student.courses.registration', ['session' => $session, 'semester' => $semester]) }}" class="btn btn-outline-primary mt-2">Register courses for {{ $session }}</a>
+                    @endif
                     <div><strong>Semester:</strong> {{ $semester }}</div>
                     <div><strong>Total Courses:</strong> {{ $courses->count() }}</div>
                 </div>

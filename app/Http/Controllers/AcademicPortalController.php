@@ -372,13 +372,14 @@ class AcademicPortalController extends Controller
                 ->when($data['semester'] ?? null, fn ($q, $semester) => $q->where('semester', $semester))->get();
             $counts = $results->countBy('workflow_status');
             $published = $results->where('workflow_status', 'published');
+            $broadsheetResults = $results->whereIn('workflow_status', ['reviewed', 'approved', 'published']);
             if ($request->boolean('export_broadsheet')) {
                 $request->validate(['include_unpublished' => 'nullable|boolean']);
                 $includeUnpublished = $request->boolean('include_unpublished');
-                $exportResults = $includeUnpublished ? $results : $published;
+                $exportResults = $includeUnpublished ? $results : $broadsheetResults;
                 if ($exportResults->isEmpty()) {
                     return back()->withErrors(['broadsheet' => $results->isNotEmpty()
-                        ? 'No published results match these filters. Use Export review copy (includes drafts) to review unpublished results.'
+                        ? 'No reviewed, approved or published results match these filters. Use Export review copy (includes drafts) to review unpublished results.'
                         : 'No results match the selected department, session and semester.']);
                 }
                 return \Maatwebsite\Excel\Facades\Excel::download(
@@ -392,7 +393,7 @@ class AcademicPortalController extends Controller
             $passedCount = $graded->filter(fn ($r) => $r->grade_point > 0)->count();
             $performance = ['graded' => $graded->count(), 'passed' => $passedCount, 'failed' => $graded->count() - $passedCount, 'pass_rate' => $graded->isEmpty() ? null : round(100 * $passedCount / $graded->count(), 1)];
             $distribution = $published->map(fn ($r) => $r->outcome_status === 'graded' ? $r->grade : $r->outcome_status)->countBy();
-            $broadsheet = $published->groupBy('user_id');
+            $broadsheet = $broadsheetResults->groupBy('user_id');
             $rows = User::where('usertype', 'student')->where('department_id', $departmentId)->orderBy('name')->get()
                 ->map(fn ($student) => ['student' => $student, 'report' => AcademicStanding::report($student, $departmentId, $session, $data['semester'] ?? null)]);
             foreach ($results->unique(fn ($r) => $r->course_code.'-'.$r->semester) as $result) {

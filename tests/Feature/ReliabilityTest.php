@@ -50,6 +50,8 @@ it('promotes only explicitly approved students and records the decision once', f
     $this->actingAs($this->admin)->post(route('admin.academic-sessions.activate', $this->target), reliabilityActivation($this, $this->target, [$this->student->id]))->assertSessionHasNoErrors();
     expect($this->student->fresh()->level)->toBe('200')->and(DB::table('student_progressions')->count())->toBe(1);
     $this->assertDatabaseHas('student_progressions', ['approved_by'=>$this->admin->id,'from_level'=>'100','to_level'=>'200']);
+    $this->assertDatabaseHas('student_academic_sessions', ['user_id' => $this->student->id, 'academic_session_id' => $this->source->id, 'level' => '100']);
+    $this->assertDatabaseHas('student_academic_sessions', ['user_id' => $this->student->id, 'academic_session_id' => $this->target->id, 'level' => '200']);
     $this->post(route('admin.academic-sessions.activate', $this->source), reliabilityActivation($this, $this->source))->assertSessionHasNoErrors();
     $this->post(route('admin.academic-sessions.activate', $this->target), reliabilityActivation($this, $this->target, [$this->student->id]))->assertSessionHasErrors('student_ids');
     expect($this->student->fresh()->level)->toBe('200')->and(DB::table('student_progressions')->count())->toBe(1);

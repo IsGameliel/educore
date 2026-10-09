@@ -13,5 +13,11 @@ try {
     }
     echo 'Paystack authenticated successfully ('.(str_starts_with($key, 'sk_test_') ? 'test' : 'live')." environment).\n";
 } catch (Throwable $exception) {
-    fwrite(STDERR, 'Paystack connectivity check failed: '.get_class($exception).".\n"); exit(1);
+    fwrite(STDERR, 'Paystack connectivity check failed: '.get_class($exception).".\n");
+    $previous = $exception->getPrevious();
+    if ($previous instanceof \GuzzleHttp\Exception\ConnectException) {
+        $context = $previous->getHandlerContext();
+        fwrite(STDERR, 'cURL error '.($context['errno'] ?? 'unknown').': '.($context['error'] ?? 'No transport detail available')."\n");
+    }
+    exit(1);
 }

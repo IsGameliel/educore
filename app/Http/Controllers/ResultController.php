@@ -280,7 +280,12 @@ class ResultController extends Controller
                 ->whereIn('status', \App\Services\Academic\ResultRegistration::ELIGIBLE_STATUSES))
             ->get(['id', 'name', 'matric_number', 'level']);
 
-        return response()->json($students);
+        $sessionLevels = \App\Services\Academic\StudentSessionLevel::forStudents($students);
+        return response()->json($students->map(function ($student) use ($sessionLevels, $request) {
+            $data = $student->toArray();
+            $data['level'] = $sessionLevels[$student->id][$request->input('session')] ?? null;
+            return $data;
+        }));
     }
 
 
@@ -324,7 +329,7 @@ class ResultController extends Controller
             'matric_number' => $user->matric_number,
             'session' => $request->session,
             'semester' => $request->semester,
-            'level' => $course->level,
+            'level' => \App\Services\Academic\StudentSessionLevel::require($user, $request->session),
             'course_code' => $course->code,
             'course_title' => $course->title,
             'credit_unit' => $course->credit_unit,
@@ -364,7 +369,8 @@ class ResultController extends Controller
         $this->ensureCanManageResultRecord($result);
         $students = User::where('usertype', 'student')->get();
         $academicSessions = $this->getAcademicSessionOptions([$result->session]);
-        return view('admin.result.edit', compact('result', 'students', 'academicSessions'));
+        $sessionLevels = \App\Services\Academic\StudentSessionLevel::forStudents($students);
+        return view('admin.result.edit', compact('result', 'students', 'academicSessions', 'sessionLevels'));
     }
 
     public function update(Request $request, Result $result)
@@ -403,7 +409,7 @@ class ResultController extends Controller
             'matric_number' => $user->matric_number,
             'session' => $request->session,
             'semester' => $request->semester,
-            'level' => $user->level,
+            'level' => \App\Services\Academic\StudentSessionLevel::require($user, $request->session),
             'course_code' => $request->course_code,
             'course_title' => $request->course_title,
             'credit_unit' => $request->credit_unit,
@@ -732,6 +738,27 @@ class ResultController extends Controller
             ]);
         }
 
+        $metadataReader = new ResultsImport($courses->first());
+        $sheetsByCode = $worksheets->groupBy(function ($worksheet) use ($metadataReader) {
+            $code = $metadataReader->worksheetCourseCode(collect($worksheet->toArray('', true, true, false)));
+            return $code ? ResultsImport::normalizeCourseCode($code) : '';
+        });
+        $selectedCodes = $courses->groupBy(fn ($course) => ResultsImport::normalizeCourseCode($course->code));
+        $matchedSheets = [];
+        foreach ($selectedCodes as $code => $selected) {
+            if ($selected->count() !== 1) {
+                throw ValidationException::withMessages(['course_ids' => 'Select only one course record per course code. Filter by department, session and semester first.']);
+            }
+            $course = $selected->first();
+            $matches = $sheetsByCode->get($code, collect());
+            if ($matches->count() !== 1) {
+                throw ValidationException::withMessages(['file' => $matches->isEmpty()
+                    ? "No worksheet identifies selected course {$course->code}. Include a Course code field in the worksheet header."
+                    : "More than one worksheet identifies {$course->code}. Keep exactly one sheet for each selected course."]);
+            }
+            $matchedSheets[$course->id] = $matches->first();
+        }
+
         $report = [
             'created' => 0,
             'updated' => 0,
@@ -739,13 +766,9 @@ class ResultController extends Controller
             'errors' => [],
         ];
 
-        DB::transaction(function () use ($courses, $worksheets, $request, $actor, &$report) {
-            foreach ($courses as $index => $course) {
-                $worksheet = $worksheets->get($index);
-
-                if ($worksheet === null) {
-                    continue;
-                }
+        DB::transaction(function () use ($courses, $matchedSheets, $request, $actor, &$report) {
+            foreach ($courses as $course) {
+                $worksheet = $matchedSheets[$course->id];
 
                 $import = new ResultsImport(
                     $course,
@@ -833,11 +856,11 @@ class ResultController extends Controller
         $applySession = fn ($query) => $session ? $query->forAcademicSession($session) : $query;
 
         if ($this->isPrivilegedResultManager($user)) {
-            return $applySession(Courses::with(['department', 'academicSession']))->orderBy('code')->get();
+            return Courses::uniqueOptions($applySession(Courses::with(['department', 'academicSession']))->orderBy('code')->get());
         }
 
         if ($user->usertype === 'lecturer') {
-            return $applySession($user->assignedCourses()->with(['department', 'academicSession']))->orderBy('code')->get();
+            return Courses::uniqueOptions($applySession($user->assignedCourses()->with(['department', 'academicSession']))->orderBy('code')->get());
         }
 
         return collect();

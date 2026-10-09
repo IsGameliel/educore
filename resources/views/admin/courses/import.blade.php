@@ -45,6 +45,7 @@
                         <small>
                             Use <code>department_ids</code> for one or many departments in the same row, for example
                             <code>1,4,7</code>. A single <code>department_id</code> column is also still supported.
+                            <br>Course codes such as <code>GST101</code> are automatically saved as <code>GST 101</code>.
                         </small>
                     </div>
 

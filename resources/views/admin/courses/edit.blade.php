@@ -90,7 +90,7 @@
         <!-- Registration Form -->
         <div class="card">
             <div class="card-body">
-                <form action="{{ route('admin.courses.update', $course->id) }}" method="POST">
+                <form action="{{ route('admin.courses.update', array_merge(['course' => $course->id], request()->only(['title', 'department_id', 'department', 'academic_session_id', 'page']))) }}" method="POST">
                     @csrf
                     @method('PUT')
 

@@ -24,3 +24,4 @@ yarn-error.log
 /storage/app/firebase/*.json
 /storage/app/firebase/*.json
 .env.zip
+/mysql-recovery-*/

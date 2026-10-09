@@ -47,7 +47,7 @@
                     <select name="user_id" for="form-control" required>
                         <option value="">Select Student</option>
                         @foreach ($students as $student)
-                            <option value="{{ $student->id }}" data-level="{{ $student->level }}" {{ $result->user_id == $student->id ? 'selected' : '' }}>{{ $student->name }} ({{ $student->matric_number }})</option>
+                            <option value="{{ $student->id }}" {{ $result->user_id == $student->id ? 'selected' : '' }}>{{ $student->name }} ({{ $student->matric_number }})</option>
                         @endforeach
                     </select>
                 </div>
@@ -109,10 +109,12 @@
         const examField = document.getElementById('exam_score');
         const scoreField = document.getElementById('score');
 
-        studentSelect.addEventListener('change', function() {
-            var level = this.options[this.selectedIndex].getAttribute('data-level');
-            levelField.value = level || '';
-        });
+        const sessionLevels = @json($sessionLevels);
+        function updateLevel() {
+            levelField.value = sessionLevels[studentSelect.value]?.[document.getElementById('session').value] || '';
+        }
+        studentSelect.addEventListener('change', updateLevel);
+        document.getElementById('session').addEventListener('change', updateLevel);
 
         function updateScoreField() {
             const hasCa = caField.value !== '';
@@ -130,7 +132,7 @@
         caField.addEventListener('input', updateScoreField);
         examField.addEventListener('input', updateScoreField);
 
-        levelField.value = studentSelect.options[studentSelect.selectedIndex].getAttribute('data-level') || '';
+        updateLevel();
         updateScoreField();
     </script>
 

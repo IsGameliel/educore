@@ -300,7 +300,9 @@ class CourseController extends Controller
 
         $message .= ' Departments not selected were left unchanged.';
 
-        return redirect()->route('admin.courses.index')->with('success', $message);
+        $filters = array_intersect_key($request->query(), array_flip(['title', 'department_id', 'department', 'academic_session_id', 'page']));
+
+        return redirect()->to(route('admin.courses.index', $filters).'#course-'.$course->id)->with('success', $message);
     }
 
     /**

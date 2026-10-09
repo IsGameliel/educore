@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicSession;
 use App\Models\CourseRegistration;
 use App\Models\Courses;
+use App\Models\Department;
 use App\Models\User;
 use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
@@ -14,6 +15,85 @@ use Illuminate\Support\Facades\DB;
 
 class AdminCourseRegistrationController extends Controller
 {
+    public function bulkUpdateSessionLevel(Request $request)
+    {
+        $data = $request->validate([
+            'department_id' => 'required|exists:departments,id',
+            'target_session' => 'required|exists:academic_sessions,name',
+            'level' => 'required|in:100,200,300,400,500,600',
+            'scope' => 'required|in:selected,all_matching',
+            'student_ids' => 'required_if:scope,selected|array|min:1',
+            'student_ids.*' => 'required|integer|distinct',
+            'current_level' => 'nullable|in:100,200,300,400,500,600',
+            'q' => 'nullable|string|max:255',
+        ]);
+        $count = DB::transaction(function () use ($request, $data) {
+            $query = User::where('usertype', 'student')->where('department_id', $data['department_id'])
+                ->when($data['current_level'] ?? null, fn ($q, $level) => $q->where('level', $level))
+                ->when($data['q'] ?? null, function ($query, $search) {
+                    $query->where(fn ($q) => $q->where('name', 'like', '%'.trim($search).'%')
+                        ->orWhere('email', 'like', '%'.trim($search).'%')->orWhere('matric_number', 'like', '%'.trim($search).'%'));
+                });
+            if ($data['scope'] === 'selected') { $query->whereIn('id', $data['student_ids']); }
+            $students = $query->orderBy('id')->lockForUpdate()->get();
+            if ($students->isEmpty() || ($data['scope'] === 'selected' && $students->count() !== count($data['student_ids']))) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['student_ids' => 'Select students from the chosen department and filters. No levels were changed.']);
+            }
+            $conflicts = \App\Models\Result::withoutGlobalScopes()->whereIn('user_id', $students->pluck('id'))
+                ->where('session', $data['target_session'])
+                ->where(fn ($q) => $q->whereNull('level')->orWhere('level', '!=', $data['level']))->distinct()->pluck('user_id');
+            if ($conflicts->isNotEmpty()) {
+                $names = $students->whereIn('id', $conflicts)->take(5)->map(fn ($s) => $s->matric_number ?: $s->name)->join(', ');
+                throw \Illuminate\Validation\ValidationException::withMessages(['level' => "{$conflicts->count()} student(s) have results with a different level for this session: {$names}. No levels were changed."]);
+            }
+            $session = AcademicSession::where('name', $data['target_session'])->firstOrFail();
+            foreach ($students as $student) {
+                \App\Models\StudentAcademicSession::updateOrCreate(
+                    ['user_id' => $student->id, 'academic_session_id' => $session->id], ['level' => $data['level']]
+                );
+            }
+            ActivityLogger::log($request->user(), 'student_session_levels_bulk_updated', 'Saved student session levels in bulk.', [
+                'department_id' => (int) $data['department_id'], 'properties' => [
+                    'session' => $session->name, 'level' => $data['level'], 'student_ids' => $students->pluck('id')->all(),
+                ],
+            ]);
+            return $students->count();
+        });
+        return redirect()->route('admin.course-registrations.index', [
+            'department_id' => $data['department_id'], 'session' => $data['target_session'],
+            'current_level' => $data['current_level'] ?? null, 'q' => $data['q'] ?? null,
+        ])->with('success', "Session level {$data['level']} saved for {$count} student(s) in {$data['target_session']}. Current profile levels were left unchanged.");
+    }
+
+    public function updateSessionLevel(User $student, Request $request)
+    {
+        abort_unless($student->dashboardRole() === 'student', 404);
+        $data = $request->validate([
+            'session' => 'required|exists:academic_sessions,name',
+            'level' => 'required|in:100,200,300,400,500,600',
+            'semester' => 'required|in:First,Second',
+        ]);
+        DB::transaction(function () use ($student, $request, $data) {
+            User::whereKey($student->id)->lockForUpdate()->firstOrFail();
+            $session = AcademicSession::where('name', $data['session'])->firstOrFail();
+            if (\App\Models\Result::withoutGlobalScopes()->where('user_id', $student->id)
+                ->where('session', $session->name)->where(fn ($q) => $q->whereNull('level')->orWhere('level', '!=', $data['level']))->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'level' => 'Existing results have a different level for this session. Correct those academic records before changing the session level.',
+                ]);
+            }
+            $record = \App\Models\StudentAcademicSession::updateOrCreate(
+                ['user_id' => $student->id, 'academic_session_id' => $session->id], ['level' => $data['level']]
+            );
+            ActivityLogger::log($request->user(), 'student_session_level_updated', 'Saved student level for academic session.', [
+                'target_user' => $student, 'properties' => ['session' => $session->name, 'level' => $record->level],
+            ]);
+        });
+        return redirect()->route('admin.course-registrations.edit', [
+            'student' => $student->id, 'session' => $data['session'], 'semester' => $data['semester'],
+        ])->with('success', 'Session level saved. Current profile level was left unchanged.');
+    }
+
     private function normalizeSemester($semester)
     {
         $semester = strtolower(trim((string) $semester));
@@ -56,10 +136,12 @@ class AdminCourseRegistrationController extends Controller
     {
         $currentSession = $request->query('session', 'all');
         $academicSessions = $this->getAcademicSessionOptions([$currentSession]);
+        $departments = Department::orderBy('name')->get(['id', 'name']);
 
         $students = User::query()
             ->where('usertype', 'student')
             ->when($request->filled('department_id'), fn($q) => $q->where('department_id', $request->department_id))
+            ->when($request->filled('current_level'), fn ($q) => $q->where('level', $request->current_level))
             ->when($request->filled('q'), function ($query) use ($request) {
                 $search = trim((string) $request->q);
 
@@ -74,7 +156,8 @@ class AdminCourseRegistrationController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.course_registrations.index', compact('students', 'currentSession', 'academicSessions'));
+        $sessionLevels = \App\Services\Academic\StudentSessionLevel::forStudents($students->getCollection());
+        return view('admin.course_registrations.index', compact('students', 'currentSession', 'academicSessions', 'departments', 'sessionLevels'));
     }
 
     public function show(User $student, Request $request)
@@ -93,6 +176,7 @@ class AdminCourseRegistrationController extends Controller
             ->selectRaw('session, semester, COUNT(*) as total')->groupBy('session', 'semester')->get();
 
         $totalCredits = $registrations->sum(fn ($registration) => $registration->course?->credit_unit ?? 0);
+        $sessionLevel = \App\Services\Academic\StudentSessionLevel::find($student, $session);
 
         return view('admin.course_registrations.show', compact(
             'student',
@@ -101,7 +185,8 @@ class AdminCourseRegistrationController extends Controller
             'academicSessions',
             'registrations',
             'totalCredits',
-            'historyGroups'
+            'historyGroups',
+            'sessionLevel'
         ));
     }
 
@@ -110,6 +195,7 @@ class AdminCourseRegistrationController extends Controller
         $semester = $this->normalizeSemester($request->query('semester', 'First'));
         $session = $request->query('session', $this->getCurrentAcademicSession());
         $academicSessions = $this->getAcademicSessionOptions([$session]);
+        $sessionLevel = \App\Services\Academic\StudentSessionLevel::find($student, $session);
 
         $registeredCourseIds = CourseRegistration::where('user_id', $student->id)
             ->where('semester', $semester)
@@ -125,7 +211,7 @@ class AdminCourseRegistrationController extends Controller
 
         $courses = Courses::where('department_id', $student->department_id)
             ->forAcademicSession($session)
-            ->where('level', $student->level)
+            ->where('level', $sessionLevel ?? '')
             ->where('semester', $semester)
             ->with('prerequisites')
             ->orderBy('code')
@@ -139,7 +225,7 @@ class AdminCourseRegistrationController extends Controller
             'courses',
             'registeredCourseIds',
             'registeredStatuses'
-        ));
+        ) + ['sessionLevel' => $sessionLevel]);
     }
 
     public function update(User $student, Request $request)
@@ -156,12 +242,13 @@ class AdminCourseRegistrationController extends Controller
         ]);
 
         $session = $data['session'];
+        $sessionLevel = \App\Services\Academic\StudentSessionLevel::require($student, $session);
         $courseIds = $data['course_ids'] ?? [];
 
         $courses = Courses::whereIn('id', $courseIds)
             ->where('department_id', $student->department_id)
             ->forAcademicSession($session)
-            ->where('level', $student->level)
+            ->where('level', $sessionLevel)
             ->where('semester', $semester)
             ->with('prerequisites')
             ->get();

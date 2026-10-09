@@ -13,7 +13,7 @@ class ResultRegistration
 
     public static function requireForCourse(int $studentId, Courses $course, string $session, string $semester): CourseRegistration
     {
-        $registrations = CourseRegistration::where('user_id', $studentId)->where('course_id', $course->id)
+        $registrations = CourseRegistration::where('user_id', $studentId)->whereIn('course_id', $course->equivalentIds())
             ->where('session', $session)->where('semester', $semester)
             ->whereIn('status', self::ELIGIBLE_STATUSES)->get();
         if ($course->academicSession?->name !== $session || $course->semester !== $semester || $registrations->count() !== 1) {
@@ -34,6 +34,7 @@ class ResultRegistration
 
     public static function attach(Result $result): void
     {
+        $result->level = StudentSessionLevel::require(\App\Models\User::findOrFail($result->user_id), $result->session);
         if (! $result->course_registration_id) {
             $ids = self::matching($result)->whereIn('status', self::ELIGIBLE_STATUSES)->pluck('id');
             if ($ids->count() !== 1) {

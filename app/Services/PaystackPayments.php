@@ -42,6 +42,10 @@ class PaystackPayments
 
     public function checkout(Payment $payment): string
     {
+        if ($payment->purpose === 'late_registration' && $payment->status !== 'success'
+            && (! \App\Models\RegistrationSetting::current()->require_late_registration_fee || ! \App\Models\RegistrationSetting::current()->registration_open)) {
+            throw new RuntimeException('Late registration payment is not currently required or registration is closed. Return to course registration.');
+        }
         // Persist gateway intent before network I/O, including process crashes/timeouts.
         DB::transaction(function () use ($payment) {
             $invoice = null;
@@ -146,6 +150,9 @@ class PaystackPayments
                     $payment->update(['gateway_reversed' => $data['status'] === 'reversed']);
                     app(PaymentFinancialSync::class)->recalculate($payment);
                 }
+                if ($recheck && $payment->purpose === 'late_registration' && in_array($data['status'] ?? '', ['success', 'reversed'], true)) {
+                    $payment->update(['gateway_reversed' => $data['status'] === 'reversed']);
+                }
                 $payment->update(['verified_at' => now()]);
                 return $payment;
             }
@@ -192,6 +199,8 @@ class PaystackPayments
             } elseif ($payable instanceof ResultAppeal) {
                 $payable->update(['status' => 'open']);
             } elseif ($payable instanceof TuitionCharge) {
+                $payable->update(['status' => 'paid']);
+            } elseif ($payable instanceof \App\Models\LateRegistrationCharge) {
                 $payable->update(['status' => 'paid']);
             } else {
                 throw new RuntimeException('Unsupported payment purpose.');

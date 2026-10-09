@@ -25,7 +25,7 @@
     <form method="POST" action="{{ route('admin.registration-settings.update') }}">
         @csrf
         @method('PUT')
-        <div class="registration-settings__scope"><i class="mdi mdi-information-outline" aria-hidden="true"></i><span>Applies to all students and both semesters of the active academic session.</span></div>
+        <div class="registration-settings__scope"><i class="mdi mdi-information-outline" aria-hidden="true"></i><span>Applies to all student registration submissions for their selected session and semester.</span></div>
         <section class="registration-settings__card" aria-labelledby="registration-access-title">
             <div class="registration-settings__row">
                 <div class="registration-settings__description">
@@ -66,6 +66,26 @@
                 <div><strong>When optional</strong><p>Students can register with pending fees while registration is open.</p></div>
             </div>
             <div class="registration-settings__note"><i class="mdi mdi-information-outline" aria-hidden="true"></i><p>Checks apply to issued tuition bills for the active session. Sessions without tuition billing do not require payment.</p></div>
+        </section>
+        <section class="registration-settings__card" aria-labelledby="late-registration-title">
+            <div class="registration-settings__row">
+                <div class="registration-settings__description">
+                    <div class="registration-settings__icon"><i class="mdi mdi-clock-alert-outline" aria-hidden="true"></i></div>
+                    <div><h2 id="late-registration-title">Late course registration</h2><p>Require a ₦5,000 late registration payment before students register.</p></div>
+                </div>
+                <div class="registration-settings__control">
+                    <input type="hidden" name="require_late_registration_fee" value="0">
+                    <label class="registration-toggle" for="require_late_registration_fee">
+                        <input type="checkbox" role="switch" id="require_late_registration_fee" name="require_late_registration_fee" value="1" aria-label="Require the 5000 naira late registration fee" aria-describedby="late-registration-help" @checked(old('require_late_registration_fee', $settings->require_late_registration_fee))>
+                        <span class="registration-toggle__track" aria-hidden="true"></span>
+                        <span class="registration-toggle__status" aria-hidden="true"><span class="registration-toggle__on">On</span><span class="registration-toggle__off">Off</span></span>
+                    </label>
+                </div>
+            </div>
+            <div class="registration-settings__detail" id="late-registration-help">
+                <div><strong>When on</strong><p>Students pay ₦5,000 through Paystack once per session and semester. Verified payment is required before registering courses.</p></div>
+                <div><strong>When off</strong><p>No late registration fee is required. Existing tuition-clearance rules still apply.</p></div>
+            </div>
         </section>
         <div class="registration-settings__footer">
             <div><strong>Ready to apply your changes?</strong><p>Changes take effect after saving. Closing registration overrides fee clearance.</p></div>

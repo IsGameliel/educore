@@ -30,12 +30,15 @@
                         <input type="text" name="name" id="name" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label for="subject" class="form-label">course</label>
-                        <select name="subject" id="subject-select" class="form-control">
+                        <label for="subject-select" class="form-label">Course</label>
+                        <input type="search" id="course-search" class="form-control mb-2" placeholder="Search course code or title" aria-label="Search courses" autocomplete="off" aria-controls="subject-select">
+                        <select name="subject" id="subject-select" class="form-control" required>
+                            <option value="">Select a course</option>
                             @foreach($courses as $course)
-                                <option value="{{ $course->title }}">{{ $course->title }}</option>
+                                <option value="{{ $course->title }}" @selected(old('subject') === $course->title)>{{ $course->code }} - {{ $course->title }}</option>
                             @endforeach
                         </select>
+                        <small id="course-search-status" class="text-muted" aria-live="polite"></small>
                     </div>
                     <div class="mb-3">
                         <label for="level" class="form-label">Level</label>
@@ -77,10 +80,24 @@
 
 @section('scripts')
 <script>
-    $(document).ready(function() {
-        $('#subject-select').select2({
-            placeholder: "Select a course",
-            allowClear: true
+    document.addEventListener('DOMContentLoaded', function () {
+        const search = document.getElementById('course-search');
+        const select = document.getElementById('subject-select');
+        const status = document.getElementById('course-search-status');
+        const courses = Array.from(select.options).slice(1);
+        const placeholder = select.options[0];
+        search.addEventListener('input', function () {
+            const term = search.value.trim().toLowerCase();
+            const selected = select.selectedOptions[0];
+            const matches = courses.filter(option => option.textContent.toLowerCase().includes(term));
+            select.replaceChildren(placeholder, ...matches);
+            // Retain a chosen course while searching for another one.
+            if (selected && selected !== placeholder && !matches.includes(selected)) {
+                select.appendChild(selected);
+            }
+            if (selected) select.value = selected.value;
+            placeholder.textContent = matches.length ? 'Select a course' : 'No matching courses';
+            status.textContent = `${matches.length} matching courses`;
         });
     });
 </script>

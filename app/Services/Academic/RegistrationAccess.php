@@ -14,6 +14,9 @@ class RegistrationAccess
         if (! $settings->registration_open) {
             return ['cleared' => false, 'field' => 'course_registration', 'message' => 'Course registration is currently closed. Please wait for the administrator to reopen it.'];
         }
+        if ($settings->require_late_registration_fee && ! LateRegistrationFee::paid($student, $sessionName, $semester)) {
+            return ['cleared' => false, 'field' => 'late_registration', 'message' => 'Pay the ₦5,000 late registration fee for this session and semester before registering.'];
+        }
         if (! $settings->require_fee_clearance) {
             return ['cleared' => true, 'message' => 'Course registration is open. Fee clearance is currently not required.'];
         }
