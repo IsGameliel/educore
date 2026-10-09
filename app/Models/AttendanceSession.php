@@ -37,6 +37,6 @@ class AttendanceSession extends Model
 
     public function takenBy()
     {
-        return $this->belongsTo(User::class, 'taken_by');
+        return $this->belongsTo(User::class, 'taken_by')->withTrashed();
     }
 }

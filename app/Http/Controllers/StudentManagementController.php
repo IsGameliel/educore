@@ -265,6 +265,6 @@ class StudentManagementController extends Controller
     public function destroy(User $student)
     {
         $student->delete();
-        return redirect()->route('admin.students.index')->with('success', 'Student deleted successfully');
+        return redirect()->route('admin.students.index')->with('success', 'Student deactivated. Academic and financial records have been retained.');
     }
 }

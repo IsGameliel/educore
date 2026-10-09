@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    Storage::fake('public');
+    Storage::fake('local');
     $this->admin = User::factory()->create(['usertype' => 'admin']);
     $this->student = User::factory()->create(['usertype' => 'student', 'name' => 'Jane Smith', 'matric_number' => 'MAT-123']);
     $faculty = Faculty::create(['name' => 'Science', 'code' => 'SCI']);
@@ -23,7 +23,7 @@ beforeEach(function () {
         'olevel_results' => [['subject' => 'Mathematics', 'grade' => 'A1']],
         'completed_at' => now(), 'jamb_result_path' => 'admission-documents/jamb.pdf',
     ]);
-    Storage::disk('public')->put('admission-documents/jamb.pdf', '%PDF-1.4 test document');
+    Storage::disk('local')->put('admission-documents/jamb.pdf', '%PDF-1.4 test document');
 });
 
 it('lists completed admissions and filters by student identifiers and admission fields', function () {
@@ -61,7 +61,7 @@ it('serves documents inline or as downloads and handles missing or unknown docum
     $this->get($url.'?download=1')->assertOk()->assertDownload('jamb_result.pdf');
     $this->get(route('admin.admitted-students.document', [$this->application, 'transcript']))->assertNotFound();
     $this->get(route('admin.admitted-students.document', [$this->application, 'unknown']))->assertNotFound();
-    Storage::disk('public')->delete($this->application->jamb_result_path);
+    Storage::disk('local')->delete($this->application->jamb_result_path);
     $this->get($url)->assertNotFound();
     $this->get(route('admin.admitted-students.show', $this->application))->assertOk()->assertSee('File unavailable');
 });

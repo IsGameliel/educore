@@ -181,7 +181,9 @@ class PaystackPayments
                 throw new RuntimeException('This request is not awaiting payment.');
             }
             if ($payable instanceof AdmissionApplication) {
-                $user = User::lockForUpdate()->findOrFail($payable->user_id);
+                // A pending payment may settle after account deactivation.
+                // Record its outcome without restoring access to the account.
+                $user = User::withTrashed()->lockForUpdate()->findOrFail($payable->user_id);
                 if (! $user->isAdmissionApplicant()) {
                     throw new RuntimeException('Applicant account requires review.');
                 }
@@ -191,7 +193,7 @@ class PaystackPayments
                     'usertype' => 'student', 'department_id' => $payable->department_id,
                     'level' => $payable->level, 'entry_year' => $payable->entry_year,
                 ])->save();
-                if ($session = AcademicSession::current()) {
+                if (! $user->trashed() && ($session = AcademicSession::current())) {
                     app(TuitionBilling::class)->ensureInvoices($user, $session);
                 }
             } elseif ($payable instanceof TranscriptRequest) {

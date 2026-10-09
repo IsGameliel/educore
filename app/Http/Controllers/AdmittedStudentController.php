@@ -68,7 +68,7 @@ class AdmittedStudentController extends Controller
         $documents = collect(self::DOCUMENTS)->map(function ($label, $key) use ($application) {
             $path = $application->{$key.'_path'};
 
-            return ['label' => $label, 'available' => $path && Storage::disk('public')->exists($path)];
+            return ['label' => $label, 'available' => $path && Storage::disk('local')->exists($path)];
         });
 
         return view('admin.admitted-students.show', [
@@ -80,13 +80,13 @@ class AdmittedStudentController extends Controller
     {
         abort_unless($application->status === 'completed' && isset(self::DOCUMENTS[$document]), 404);
         $path = $application->{$document.'_path'};
-        abort_unless($path && Storage::disk('public')->exists($path), 404, 'Document unavailable.');
+        abort_unless($path && Storage::disk('local')->exists($path), 404, 'Document unavailable.');
 
         $name = $document.'.'.pathinfo($path, PATHINFO_EXTENSION);
         $headers = ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff'];
 
         return $request->boolean('download')
-            ? Storage::disk('public')->download($path, $name, $headers)
-            : Storage::disk('public')->response($path, $name, $headers);
+            ? Storage::disk('local')->download($path, $name, $headers)
+            : Storage::disk('local')->response($path, $name, $headers);
     }
 }

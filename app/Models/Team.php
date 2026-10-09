@@ -13,6 +13,11 @@ class Team extends JetstreamTeam
     /** @use HasFactory<\Database\Factories\TeamFactory> */
     use HasFactory;
 
+    public function owner()
+    {
+        return parent::owner()->withTrashed();
+    }
+
     /**
      * The attributes that are mass assignable.
      *

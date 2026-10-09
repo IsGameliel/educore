@@ -29,7 +29,7 @@ class StudentAccountMerge
         $accounts = ($lock ? $query->lockForUpdate() : $query)->get();
         if (count($ids) < 2 || count($ids) > 10 || !in_array($retainedId, $ids, true)
             || $accounts->count() !== count($ids)
-            || $accounts->contains(fn ($user) => $user->usertype !== 'student' || $user->merged_into_id)) {
+            || $accounts->contains(fn ($user) => $user->usertype !== 'student' || $user->merged_into_id || $user->trashed())) {
             throw ValidationException::withMessages(['accounts' => 'Select between two and ten active student accounts, including the account to keep.']);
         }
 

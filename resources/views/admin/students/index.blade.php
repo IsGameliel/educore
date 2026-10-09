@@ -123,7 +123,7 @@
                                         <form action="{{ route('admin.students.destroy', $student->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn student-action student-delete" aria-label="Delete {{ $student->name }}" title="Delete student" onclick="return confirm('Are you sure you want to delete this student?')">
+                                            <button type="submit" class="btn student-action student-delete" aria-label="Deactivate {{ $student->name }}" title="Deactivate student" onclick="return confirm('Deactivate this student? Login will be disabled and institutional records retained.')">
                                                 <i class="mdi mdi-delete"></i>
                                             </button>
                                         </form>

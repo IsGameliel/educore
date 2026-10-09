@@ -33,7 +33,9 @@
                     @foreach ($tests as $test)
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span>{{ $test->name }} ({{ $test->subject }})</span>
-                            @if ($test->status)
+                            @if ($test->responses->isNotEmpty())
+                                <a href="{{ route('student.tests.result', $test->id) }}" class="btn btn-success btn-sm">View Result</a>
+                            @elseif ($test->status)
                                 <a href="{{ route('student.tests.start', $test->id) }}" class="btn btn-primary btn-sm">Start Test</a>
                             @else
                                 <span class="badge bg-secondary">Inactive</span>

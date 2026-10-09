@@ -156,6 +156,6 @@ class StaffManagementController extends Controller
     public function destroy(User $staff)
     {
         $staff->delete();
-        return redirect()->route('admin.staffs.index')->with('success', 'Staff deleted successfully');
+        return redirect()->route('admin.staffs.index')->with('success', 'Staff deactivated. Institutional records have been retained.');
     }
 }

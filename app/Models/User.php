@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -14,13 +16,30 @@ use App\Models\ActivityLog;
 
 class User extends Authenticatable implements \Illuminate\Contracts\Auth\MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, HasProfilePhoto, HasTeams, Notifiable, TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, HasProfilePhoto, HasTeams, Notifiable, TwoFactorAuthenticatable, SoftDeletes;
 
     protected static function booted(): void
     {
         // Archived accounts remain available to audit queries, but cannot authenticate
         // or appear in normal student directories and account lookups.
         static::addGlobalScope('active_account', fn ($query) => $query->whereNull('users.merged_into_id'));
+        static::deleting(function (User $user) {
+            $user->tokens()->delete();
+            $user->setRememberToken(null);
+            $user->saveQuietly();
+            \App\Support\ActivityLogger::log(auth()->user(), 'account_deactivated', 'Account deactivated; institutional records retained.', ['target_user' => $user]);
+        });
+    }
+
+    public function delete()
+    {
+        return DB::transaction(function () {
+            $current = static::withTrashed()->whereKey($this->getKey())->lockForUpdate()->first();
+            if (! $current || $current->trashed()) {
+                return false;
+            }
+            return parent::delete();
+        }, 3);
     }
 
     protected $fillable = [

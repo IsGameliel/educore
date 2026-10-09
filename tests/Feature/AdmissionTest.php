@@ -15,6 +15,7 @@ beforeEach(function () {
     Http::fake(['api.paystack.co/transaction/initialize' => fn ($request) => Http::response([
         'status' => true, 'data' => ['reference' => $request['reference'], 'authorization_url' => 'https://checkout.paystack.com/test-checkout'],
     ])]);
+    Storage::fake('local');
     Storage::fake('public');
     $this->applicant = User::factory()->create(['usertype' => 'applicant']);
     $faculty = Faculty::create(['name' => 'Science', 'code' => 'SCI']);
@@ -72,7 +73,8 @@ it('submits each applicant type with academic records and documents', function (
         expect($application->olevel_results)->toBeNull();
     }
     foreach (['jamb_result_path', 'diploma_result_path', 'transcript_path'] as $column) {
-        Storage::disk('public')->assertExists($application->{$column});
+        Storage::disk('local')->assertExists($application->{$column});
+        Storage::disk('public')->assertMissing($application->{$column});
     }
 })->with([['fresh', 'Olevel'], ['direct_entry', 'ND'], ['transfer', 'Diploma'], ['foreign', 'Olevel']]);
 
@@ -121,4 +123,18 @@ it('rejects unsupported and oversized uploads', function () {
         'transcript' => UploadedFile::fake()->create('transcript.txt', 1, 'text/plain'),
     ]))->assertSessionHasErrors(['jamb_result', 'transcript']);
     expect(AdmissionApplication::count())->toBe(0);
+});
+
+it('records a pending admission payment after deactivation without restoring access', function () {
+    $this->actingAs($this->applicant)->post(route('admissions.store'), $this->payload)->assertRedirect();
+    $payment = Payment::sole();
+    $this->applicant->delete();
+    Http::fake(['api.paystack.co/transaction/verify/*' => Http::response([
+        'status' => true, 'data' => ['id' => 654321, 'reference' => $payment->reference, 'status' => 'success',
+            'amount' => $payment->amount, 'currency' => 'NGN', 'domain' => 'test', 'customer' => ['email' => $payment->email]],
+    ])]);
+    expect(app(\App\Services\PaystackPayments::class)->verify($payment)->status)->toBe('success')
+        ->and(AdmissionApplication::sole()->status)->toBe('completed')
+        ->and(User::find($this->applicant->id))->toBeNull()
+        ->and(User::withTrashed()->findOrFail($this->applicant->id)->trashed())->toBeTrue();
 });

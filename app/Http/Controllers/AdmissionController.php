@@ -163,10 +163,11 @@ class AdmissionController extends Controller
             }
 
             if ($application?->{$column}) {
-                Storage::disk('public')->delete($application->{$column});
+                $oldPath = $application->{$column};
+                DB::afterCommit(fn () => Storage::disk('local')->delete($oldPath));
             }
 
-            $documents[$column] = $request->file($input)->store('admission-documents', 'public');
+            $documents[$column] = $request->file($input)->store('admission-documents', 'local');
         }
 
         return $documents;

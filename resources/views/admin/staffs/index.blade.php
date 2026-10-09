@@ -116,7 +116,7 @@
                                             <form action="{{ route('admin.staffs.destroy', $staff->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                                                <button type="submit" class="btn btn-danger" onclick="return confirm('Deactivate this staff account? Institutional records will be retained.')">Deactivate</button>
                                             </form>
                                         </td>
                                     </tr>

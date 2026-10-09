@@ -13,6 +13,11 @@ class Tests extends Model
         return $this->hasMany(Questions::class);
     }
 
+    public function responses()
+    {
+        return $this->hasMany(Responses::class, 'test_id');
+    }
+
     public function department()
     {
         return $this->belongsTo(Department::class);
