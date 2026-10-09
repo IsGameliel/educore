@@ -14,11 +14,11 @@ class Responses extends Model
 
     public function test()
     {
-        return $this->belongsTo(Test::class);
+        return $this->belongsTo(Tests::class);
     }
 
     public function student()
     {
-        return $this->belongsTo(User::class, 'student_id');
+        return $this->belongsTo(User::class, 'student_id')->withTrashed();
     }
 }

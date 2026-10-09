@@ -5,14 +5,15 @@ use Laravel\Jetstream\Features;
 use Laravel\Jetstream\Http\Livewire\DeleteUserForm;
 use Livewire\Livewire;
 
-test('user accounts can be deleted', function () {
+test('user accounts can be deactivated without removing their identity', function () {
     $this->actingAs($user = User::factory()->create());
 
     Livewire::test(DeleteUserForm::class)
         ->set('password', 'password')
         ->call('deleteUser');
 
-    expect($user->fresh())->toBeNull();
+    expect(User::find($user->id))->toBeNull();
+    expect(User::withTrashed()->findOrFail($user->id)->trashed())->toBeTrue();
 })->skip(function () {
     return ! Features::hasAccountDeletionFeatures();
 }, 'Account deletion is not enabled.');

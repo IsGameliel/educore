@@ -191,8 +191,9 @@ Route::middleware([
         Route::get('schedule', [StudentScheduleController::class, 'index'])->name('schedule');
         Route::get('/course-materials', [StudentController::class, 'courseMaterial'])->name('course-materials');
 
-        Route::prefix('tests')->name('tests.')->middleware('prevent.retake')->group(function () {
+        Route::prefix('tests')->name('tests.')->middleware('usertype:student')->group(function () {
             Route::get('/', [TestController::class, 'index'])->name('index');
+            Route::get('/{testId}/result', [TestController::class, 'studentResult'])->name('result');
             Route::get('/{testId}/{questionIndex?}', [TestController::class, 'startTest'])->name('start');
             Route::post('/{testId}/submit', [TestController::class, 'submitTest'])->name('submit');
             Route::post('/{testId}/{questionIndex?}', [TestController::class, 'storeAnswer'])->name('storeAnswer');

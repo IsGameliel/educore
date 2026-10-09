@@ -38,7 +38,7 @@ class ClassSchedule extends Model
     // ClassSchedule Model
     public function lecturer()
     {
-        return $this->belongsTo(User::class, 'lecturer_id', 'id') // Correct foreign key and related field
+        return $this->belongsTo(User::class, 'lecturer_id', 'id')->withTrashed() // Correct foreign key and related field
             ->where('usertype', 'lecturer');  // Filter users with 'lecturer' usertype
     }
 

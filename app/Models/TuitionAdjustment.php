@@ -8,5 +8,5 @@ class TuitionAdjustment extends Model
 {
     protected $guarded = ['id'];
     protected $casts = ['amount' => 'integer'];
-    public function recorder() { return $this->belongsTo(User::class, 'recorded_by'); }
+    public function recorder() { return $this->belongsTo(User::class, 'recorded_by')->withTrashed(); }
 }

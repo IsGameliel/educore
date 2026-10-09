@@ -13,6 +13,6 @@ class TranscriptDocument extends Model
 
     public function issuer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'issued_by');
+        return $this->belongsTo(User::class, 'issued_by')->withTrashed();
     }
 }

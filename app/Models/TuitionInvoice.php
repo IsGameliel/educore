@@ -9,7 +9,7 @@ class TuitionInvoice extends Model
     protected $guarded = ['id'];
     protected $casts = ['items' => 'array', 'amount' => 'integer', 'first_percent' => 'integer', 'due_date' => 'date', 'second_due_date' => 'date', 'cancelled_at'=>'datetime', 'resumed_at'=>'datetime', 'withdrawal_reviewed_at'=>'datetime'];
 
-    public function user() { return $this->belongsTo(User::class); }
+    public function user() { return $this->belongsTo(User::class)->withTrashed(); }
     public function schedule() { return $this->belongsTo(TuitionSchedule::class, 'tuition_schedule_id'); }
     public function scopeCurrent($query) { return $query->whereNull('cancelled_at'); }
     public function scopeActive($query) { return $query->current()->where(fn ($q) => $q->whereHas('schedule')->orWhereNotNull('resumed_at')); }

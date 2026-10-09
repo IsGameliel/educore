@@ -84,12 +84,12 @@ class CourseRegistration extends Model
     // Define relationship with Users (students)
     public function student()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id')->withTrashed();
     }
 
     public function actor()
     {
-        return $this->belongsTo(User::class, 'acted_by');
+        return $this->belongsTo(User::class, 'acted_by')->withTrashed();
     }
 
     // Check if the registration is for a specific semester
