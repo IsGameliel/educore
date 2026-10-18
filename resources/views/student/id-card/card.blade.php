@@ -5,7 +5,7 @@
     <rect y="180" width="1050" height="8" fill="#caaa55"/>
     <image x="42" y="24" width="128" height="128" xlink:href="{{ $logo }}"/>
     <g font-family="Arial, sans-serif">
-        <text x="195" y="83" fill="#ffffff" font-size="38" font-weight="bold">MUDIAME UNIVERSITY</text>
+        <text x="195" y="83" fill="#ffffff" font-size="{{ max(10, min(38, 1200 / max(1, mb_strlen(config('institution.branding.name', 'MUDIAME UNIVERSITY'))))) }}" font-weight="bold">{{ config('institution.branding.name', 'MUDIAME UNIVERSITY') }}</text>
         <text x="197" y="124" fill="#d5e3ec" font-size="21" letter-spacing="3">TEMPORARY STUDENT ID CARD</text>
         <rect x="55" y="223" width="230" height="280" rx="10" fill="#edf2f6"/>
         @if($photo)

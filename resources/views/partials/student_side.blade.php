@@ -1,6 +1,7 @@
 @php
     $routeName = request()->route()?->getName() ?? '';
     $link = static fn ($label, $route, $patterns, $icon = null) => [
+        'feature' => app(\App\Services\Tenancy\FeaturePermissions::class)->forRoute($route),
         'label' => $label,
         'url' => route($route),
         'active' => collect($patterns)->contains(fn ($pattern) => \Illuminate\Support\Str::is($pattern, $routeName)),
@@ -40,6 +41,17 @@
             $link('My Profile', 'profile.show', ['profile.*', 'student.profile.*'], 'mdi-account-circle'),
         ],
     ];
+    $permissions = app(\App\Services\Tenancy\FeaturePermissions::class);
+    foreach ($sections as &$items) {
+        foreach ($items as &$item) {
+            if (isset($item['children'])) {
+                $item['children'] = array_values(array_filter($item['children'], fn ($child) => empty($child['feature']) || $permissions->allows($child['feature'])));
+            }
+        }
+        unset($item);
+        $items = array_values(array_filter($items, fn ($item) => isset($item['children']) ? count($item['children']) > 0 : (empty($item['feature']) || $permissions->allows($item['feature']))));
+    }
+    unset($items);
 @endphp
 <style>
     #sidebar .nav .student-section-heading {

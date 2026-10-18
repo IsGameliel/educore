@@ -103,8 +103,8 @@
                 <a class="text-slate-600 transition-colors hover:text-blue-900 dark:text-slate-400 dark:hover:text-white" href="{{ url('/support') }}">Support</a>
             </div>
             <div class="flex items-center gap-4">
-                <a class="px-4 py-2 font-headline text-sm font-semibold text-slate-600 transition-colors hover:text-blue-900 dark:text-slate-400 dark:hover:text-white" href="{{ url('/login') }}">Login</a>
-                <a class="rounded-lg bg-primary px-6 py-2.5 font-headline text-sm font-semibold text-on-primary shadow-lg shadow-primary/10 transition-transform hover:-translate-y-[2px]" href="{{ url('/register') }}">Get Started</a>
+                <a class="px-4 py-2 font-headline text-sm font-semibold text-slate-600 transition-colors hover:text-blue-900 dark:text-slate-400 dark:hover:text-white" href="{{ rtrim(config('tenancy.platform_url'), '/') }}/subscribe/login">Institution Login</a>
+                <a class="rounded-lg bg-primary px-6 py-2.5 font-headline text-sm font-semibold text-on-primary shadow-lg shadow-primary/10 transition-transform hover:-translate-y-[2px]" href="#plans">Get Started</a>
             </div>
         </div>
         <div class="h-px bg-slate-200/20 dark:bg-slate-800/20"></div>
@@ -116,145 +116,39 @@
                 Invest in the future of Scholarship
             </h1>
             <p class="mx-auto max-w-2xl text-xl leading-relaxed text-on-surface-variant">
-                Experience institutional excellence with transparent, performance-driven pricing. No hidden fees, no complex tiers. Just clarity.
+                Choose Silver, Gold, or Platinum. Simple naira pricing per enrolled student per semester, with a promotional rate for your first semester.
             </p>
         </section>
 
-        <section class="mx-auto mb-32 max-w-screen-xl px-6 lg:px-12">
+        <section id="plans" class="mx-auto mb-20 max-w-screen-xl px-6 lg:px-12">
             <div class="grid grid-cols-1 items-stretch gap-8 md:grid-cols-3">
-                <div class="editorial-shadow flex h-full flex-col rounded-xl bg-surface-container-lowest p-10 transition-transform hover:-translate-y-[4px]">
-                    <div class="mb-8">
-                        <h3 class="mb-2 font-headline text-lg font-bold text-on-surface">Essential</h3>
-                        <div class="flex items-baseline gap-1">
-                            <span class="text-4xl font-extrabold text-primary">$49</span>
-                            <span class="font-medium text-on-surface-variant">/mo</span>
-                        </div>
-                        <p class="mt-4 text-sm text-on-surface-variant">For individual educators and small private tutors.</p>
-                    </div>
-                    <ul class="mb-10 flex-grow space-y-4">
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary">check_circle</span> Smart Attendance
-                        </li>
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary">check_circle</span> Basic Gradebook
-                        </li>
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary">check_circle</span> 256-bit Encryption
-                        </li>
+                @foreach($plans as $plan)
+                <article class="editorial-shadow flex h-full flex-col rounded-xl bg-white p-8 border border-slate-200 {{ $plan->code === 'gold' ? 'ring-2 ring-primary' : '' }}">
+                    <h2 class="font-headline text-2xl font-extrabold text-primary uppercase">{{ $plan->name }}</h2>
+                    <p class="mt-4 text-slate-500">Standard: <span class="line-through">₦{{ number_format($plan->standard_rate_minor / 100, 2) }}</span></p>
+                    <p class="mt-2 text-4xl font-extrabold text-primary">₦{{ number_format($plan->promotional_rate_minor / 100, 2) }}</p>
+                    <p class="mt-2 text-sm text-slate-600">Promotional price per student per semester — first semester only.</p>
+                    <p class="my-5 text-sm font-semibold">{{ ['silver'=>'Essential academic and administrative functionality', 'gold'=>'Everything in Silver, plus results, appeals and transcripts', 'platinum'=>'Everything in Gold, plus course materials, CBT and attendance'][$plan->code] ?? 'Academic and administrative functionality for your institution' }}</p>
+                    <ul class="mb-8 flex-grow space-y-3">
+                        @foreach($plan->features->where('implementation_status', '!=', 'not_found')->sortBy('name') as $feature)
+                        <li class="flex gap-2 text-sm"><span class="text-secondary" aria-hidden="true">✓</span><span>{{ $feature->name }}@if($feature->implementation_status === 'not_found')<small class="block text-slate-500">Coming soon</small>@elseif($feature->implementation_status === 'partial')<small class="block text-slate-500">{{ $feature->notes }}</small>@endif</span></li>
+                        @endforeach
                     </ul>
-                    <button class="w-full rounded-xl bg-surface-container-high py-4 font-headline font-bold text-on-surface transition-transform hover:-translate-y-[2px]">Choose Essential</button>
-                </div>
-
-                <div class="editorial-shadow relative z-10 flex h-full scale-100 flex-col overflow-hidden rounded-xl bg-primary p-10 text-on-primary shadow-2xl shadow-primary/20 transition-transform hover:-translate-y-[4px] md:scale-105">
-                    <div class="absolute right-0 top-0 rounded-bl-xl bg-secondary-container px-6 py-1 font-headline text-xs font-bold uppercase tracking-widest text-on-secondary-container">Most Popular</div>
-                    <div class="mb-8">
-                        <h3 class="mb-2 font-headline text-lg font-bold">Professional</h3>
-                        <div class="flex items-baseline gap-1">
-                            <span class="text-4xl font-extrabold">$199</span>
-                            <span class="font-medium opacity-80">/mo</span>
-                        </div>
-                        <p class="mt-4 text-sm opacity-80">For K-12 schools seeking total administrative control.</p>
-                    </div>
-                    <ul class="mb-10 flex-grow space-y-4">
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span> Unlimited Attendance
-                        </li>
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span> Full Gradebook Plus
-                        </li>
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span> Institutional Encryption
-                        </li>
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span> Parent Portal
-                        </li>
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span> 24/7 Support
-                        </li>
-                    </ul>
-                    <button class="w-full rounded-xl bg-secondary py-4 font-headline font-bold text-on-secondary transition-transform hover:-translate-y-[2px]">Upgrade Now</button>
-                </div>
-
-                <div class="editorial-shadow flex h-full flex-col rounded-xl bg-surface-container-lowest p-10 transition-transform hover:-translate-y-[4px]">
-                    <div class="mb-8">
-                        <h3 class="mb-2 font-headline text-lg font-bold text-on-surface">Institutional</h3>
-                        <div class="flex items-baseline gap-1">
-                            <span class="text-4xl font-extrabold text-primary">Custom</span>
-                        </div>
-                        <p class="mt-4 text-sm text-on-surface-variant">For large districts and prestigious universities.</p>
-                    </div>
-                    <ul class="mb-10 flex-grow space-y-4">
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary">check_circle</span> District-Wide API
-                        </li>
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary">check_circle</span> Compliance Audit Logs
-                        </li>
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary">check_circle</span> Dedicated Success Manager
-                        </li>
-                        <li class="flex items-center gap-3 text-sm font-medium">
-                            <span class="material-symbols-outlined text-xl text-secondary">check_circle</span> White-Label Experience
-                        </li>
-                    </ul>
-                    <button class="w-full rounded-xl bg-surface-container-high py-4 font-headline font-bold text-on-surface transition-transform hover:-translate-y-[2px]">Contact Sales</button>
-                </div>
+                    @if($plan->features->where('implementation_status','not_found')->isNotEmpty())
+                    <details class="mb-6 text-sm text-slate-600"><summary>Deferred — excluded from this release</summary><ul class="mt-2">@foreach($plan->features->where('implementation_status','not_found') as $feature)<li>{{ $feature->name }}</li>@endforeach</ul><p>No delivery date is promised.</p></details>
+                    @endif
+                    @if($plan->signup_enabled)
+                    <a class="block text-center rounded-xl bg-primary py-4 font-bold text-white" href="{{ rtrim(config('tenancy.platform_url'), '/') }}/subscribe/{{ $plan->code }}">Choose {{ $plan->name }}</a>
+                    @else
+                    <span class="block text-center rounded-xl bg-slate-100 py-4 font-bold text-slate-500">Signup currently closed</span>
+                    @endif
+                </article>
+                @endforeach
             </div>
-        </section>
-
-        <section class="mx-auto mb-32 max-w-screen-xl px-6 lg:px-12">
-            <div class="mb-16">
-                <h2 class="font-headline text-4xl font-bold tracking-tight text-primary">Uncompromising Quality as Standard</h2>
-                <p class="mt-2 font-body text-on-surface-variant">Every feature is crafted for academic rigor and digital fluidity.</p>
-            </div>
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <div class="rounded-xl bg-surface-container-low p-8 transition-all hover:bg-surface-container">
-                    <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-primary-container">
-                        <span class="material-symbols-outlined text-on-primary-container">qr_code_scanner</span>
-                    </div>
-                    <h4 class="mb-3 font-headline font-bold text-primary">Smart Attendance</h4>
-                    <p class="text-sm leading-relaxed text-on-surface-variant">AI-driven patterns that predict absences before they occur. Seamless automation for the modern classroom.</p>
-                </div>
-
-                <div class="rounded-xl bg-surface-container-low p-8 transition-all hover:bg-surface-container">
-                    <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-secondary-container">
-                        <span class="material-symbols-outlined text-on-secondary-container">verified_user</span>
-                    </div>
-                    <h4 class="mb-3 font-headline font-bold text-primary">256-bit Encryption</h4>
-                    <p class="text-sm leading-relaxed text-on-surface-variant">Security is not a feature; it's our foundation. Student data is protected by military-grade security protocols.</p>
-                </div>
-
-                <div class="rounded-xl bg-surface-container-low p-8 transition-all hover:bg-surface-container">
-                    <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-tertiary-fixed-dim">
-                        <span class="material-symbols-outlined text-on-tertiary-fixed-variant">auto_graph</span>
-                    </div>
-                    <h4 class="mb-3 font-headline font-bold text-primary">Gradebook Mastery</h4>
-                    <p class="text-sm leading-relaxed text-on-surface-variant">Dynamic weighted grading and intuitive progress trackers. View student evolution across semesters instantly.</p>
-                </div>
-
-                <div class="rounded-xl bg-surface-container-low p-8 transition-all hover:bg-surface-container">
-                    <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-surface-container-highest">
-                        <span class="material-symbols-outlined text-primary">auto_stories</span>
-                    </div>
-                    <h4 class="mb-3 font-headline font-bold text-primary">The Editorial Experience</h4>
-                    <p class="text-sm leading-relaxed text-on-surface-variant">Premium UI that feels like a curated journal. We prioritize legibility and focus to reduce administrative fatigue.</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="mx-auto max-w-screen-xl px-6 lg:px-12">
-            <div class="relative overflow-hidden rounded-3xl bg-primary-container p-10 md:p-16">
-                <div class="absolute inset-0 opacity-10" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBiASzdp3k_a7Ao1bmCsogvLa4wV9JDAdkaqou3nli0iSwbiKRKocM90l9dnDKVgiPbM4XTArRA5WOhgnOpx8oX4Po7kybjrJjH9Itjy-9WiSJLfabi6uQmfD1bv9OR3ltJQZ6JIm355pkay-_G5bqn-TQP8nnsza31_MrW83cIHt4ahvSGvAm3eETCf2bdNK0vYJbx1CsNQ9hCW-CkMb8mmNWQrKmqO0gPu0e2YThsc0eV0WzBeMVu1SAmv_SmM9Xt2WasVjKjfxY0');"></div>
-                <div class="relative z-10 flex flex-col items-center justify-between gap-12 md:flex-row">
-                    <div class="max-w-xl text-center md:text-left">
-                        <h2 class="mb-6 font-headline text-4xl font-extrabold text-white md:text-5xl">Ready to elevate your institution?</h2>
-                        <p class="font-body text-lg leading-relaxed text-on-primary-container">Join 500+ forward-thinking schools that have already modernized their administrative ecosystem.</p>
-                    </div>
-                    <div class="flex shrink-0 flex-col gap-4 sm:flex-row">
-                        <a class="rounded-xl bg-secondary px-8 py-4 font-headline text-lg font-bold text-on-secondary shadow-xl shadow-secondary/20 transition-transform hover:-translate-y-[2px]" href="{{ url('/register') }}">Get Started Today</a>
-                        <a class="rounded-xl border border-white/20 bg-white/10 px-8 py-4 font-headline text-lg font-bold text-white backdrop-blur-md transition-all hover:bg-white/20" href="{{ url('/request-demo') }}">Request a Demo</a>
-                    </div>
-                </div>
+            <p class="mt-8 text-center text-slate-600">Billing uses enrolled students counted at semester start. Your first-semester invoice fixes the selected rate and student count.</p>
+            <div class="mt-8 flex flex-wrap justify-center gap-6">
+                <a class="font-semibold text-primary underline" href="{{ rtrim(config('tenancy.platform_url'), '/') }}/subscribe/login">Already registered? Institution account login</a>
+                <a class="font-semibold text-primary underline" href="{{ rtrim(config('tenancy.platform_url'), '/') }}/dashboard/login">Platform administrator login</a>
             </div>
         </section>
     </main>

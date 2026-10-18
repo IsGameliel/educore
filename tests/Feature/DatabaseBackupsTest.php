@@ -131,6 +131,20 @@ class RestoreSequenceBackups extends DatabaseBackups
     }
 }
 
+it('rehearses a snapshot without invoking live restore or maintenance commands', function () {
+    $manager = new RestoreSequenceBackups;
+    Artisan::shouldReceive('call')->never();
+    $manager->verifySnapshot($this->backup);
+    expect($manager->steps)->toBe(['preflight']);
+});
+
+it('rejects incomplete snapshots before attempting a rehearsal', function () {
+    File::put($this->backup['path'], '-- Host: localhost    Database: :memory:');
+    $manager = new RestoreSequenceBackups;
+    expect(fn () => $manager->verifySnapshot($this->backup))->toThrow(RuntimeException::class)
+        ->and($manager->steps)->toBe([]);
+});
+
 it('takes a safety backup before clearing tables and importing and upgrades the restored schema', function () {
     $manager = new RestoreSequenceBackups;
     Artisan::shouldReceive('call')->with('down', ['--retry' => 60])->once()->andReturn(0);

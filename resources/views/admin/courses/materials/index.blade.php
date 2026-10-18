@@ -104,11 +104,11 @@
                                     <tr>
                                         <td>
                                             @if($course->cover_photo && $course->file_path)
-                                            <a href="{{ asset('storage/' . $course->file_path) }}" target="_blank">
-                                                <img src="{{ asset('storage/' . $course->cover_photo) }}" alt="Course Cover Photo" style="width: 50px; height: 50px; object-fit: cover;">
+                                            <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($course->file_path) }}" target="_blank">
+                                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($course->cover_photo) }}" alt="Course Cover Photo" style="width: 50px; height: 50px; object-fit: cover;">
                                             </a>
                                             @elseif($course->cover_photo)
-                                                <img src="{{ asset('storage/' . $course->cover_photo) }}" alt="Course Cover Photo" style="width: 50px; height: 50px; object-fit: cover;">
+                                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($course->cover_photo) }}" alt="Course Cover Photo" style="width: 50px; height: 50px; object-fit: cover;">
                                             @else
                                                 <span>No photo</span>
                                             @endif

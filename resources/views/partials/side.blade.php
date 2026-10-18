@@ -1,6 +1,7 @@
 @php
     $routeName = request()->route()?->getName() ?? '';
     $link = static fn ($label, $route, $patterns, $icon = null) => [
+        'feature' => app(\App\Services\Tenancy\FeaturePermissions::class)->forRoute($route),
         'label' => $label,
         'url' => route($route),
         'active' => collect($patterns)->contains(fn ($pattern) => \Illuminate\Support\Str::is($pattern, $routeName)),
@@ -62,6 +63,24 @@
             $link('My Profile', 'profile.show', ['profile.*'], 'mdi-account-circle'),
         ],
     ];
+    if(config('institution.branding.name')) {
+        foreach($sections as &$section) { $section = array_values(array_filter($section, fn($item) => ($item['label'] ?? '') !== 'Backup & Restore')); }
+        unset($section);
+        $sections['Administration'][] = $link('School Exports & Restore', 'institution.exports.index', ['institution.exports.*'], 'mdi-database');
+        $sections['Administration'][] = $link('Payment Integration', 'institution.integrations', ['institution.integrations*'], 'mdi-credit-card');
+        $sections['Administration'][] = $link('Institution Settings', 'institution.settings', ['institution.settings*'], 'mdi-cog');
+    }
+    $permissions = app(\App\Services\Tenancy\FeaturePermissions::class);
+    foreach ($sections as &$items) {
+        foreach ($items as &$item) {
+            if (isset($item['children'])) {
+                $item['children'] = array_values(array_filter($item['children'], fn ($child) => empty($child['feature']) || $permissions->allows($child['feature'])));
+            }
+        }
+        unset($item);
+        $items = array_values(array_filter($items, fn ($item) => isset($item['children']) ? count($item['children']) > 0 : (empty($item['feature']) || $permissions->allows($item['feature']))));
+    }
+    unset($items);
 @endphp
 
 <style>
@@ -169,6 +188,9 @@
             @endforeach
         @endforeach
 
+        @if(app(\App\Services\Tenancy\TenantState::class)->id())
+        <li class="nav-item"><a class="nav-link" href="{{ rtrim(config('tenancy.platform_url'), '/') }}/subscribe/login"><span class="menu-title">Plans &amp; Renewal</span><i class="mdi mdi-credit-card menu-icon"></i></a></li>
+        @endif
         <li class="nav-item mt-3">
             <a
                 class="nav-link"

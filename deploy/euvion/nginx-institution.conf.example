@@ -1,0 +1,26 @@
+# One independently verified institution hostname. Supply its own certificate;
+# euvion.com.ng's wildcard certificate does not cover this hostname.
+# The school must authorize this hostname and point its DNS to the Euvion ingress.
+server {
+    listen 80;
+    server_name academics.mudiameuniversity.edu.ng;
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name academics.mudiameuniversity.edu.ng;
+    ssl_certificate /etc/letsencrypt/live/academics.mudiameuniversity.edu.ng/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/academics.mudiameuniversity.edu.ng/privkey.pem;
+    root /srv/euvion/current/public;
+    index index.php;
+    client_max_body_size 64m;
+    location / { try_files $uri $uri/ /index.php?$query_string; }
+    location ^~ /storage/ { deny all; }
+    location ~ \.php$ {
+        try_files $uri =404;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+    }
+    location ~ /\.(?!well-known).* { deny all; }
+}

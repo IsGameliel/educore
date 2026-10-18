@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Tests extends Model
 {
+    use \App\Models\Concerns\BelongsToInstitution;
+
     protected $fillable = ['name', 'subject', 'duration', 'status', 'level', 'department_id'];
 
     public function questions()

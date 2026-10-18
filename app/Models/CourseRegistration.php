@@ -2,10 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
+use App\Services\Academic\ResultRegistration;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CourseRegistration extends Model
 {
+    use BelongsToInstitution;
+
     // Define the table name (optional)
     protected $table = 'course_registrations';
 
@@ -48,7 +54,7 @@ class CourseRegistration extends Model
     public function assertCanRemove(): void
     {
         if ($this->results()->withoutGlobalScopes()->exists()) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'course_registration' => 'This registration has result history and cannot be removed or withdrawn.',
             ]);
         }
@@ -56,21 +62,23 @@ class CourseRegistration extends Model
 
     public function save(array $options = [])
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($options) {
+        return DB::transaction(function () use ($options) {
             User::whereKey($this->user_id)->lockForUpdate()->first();
             if ($this->exists && ($this->isDirty(['user_id', 'course_id', 'session', 'semester'])
-                || ($this->isDirty('status') && ! in_array($this->status, \App\Services\Academic\ResultRegistration::ELIGIBLE_STATUSES, true)))) {
+                || ($this->isDirty('status') && ! in_array($this->status, ResultRegistration::ELIGIBLE_STATUSES, true)))) {
                 $this->assertCanRemove();
             }
+
             return parent::save($options);
         });
     }
 
     public function delete()
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () {
+        return DB::transaction(function () {
             User::whereKey($this->user_id)->lockForUpdate()->first();
             $this->assertCanRemove();
+
             return parent::delete();
         });
     }

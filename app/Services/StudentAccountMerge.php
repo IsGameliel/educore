@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\ActivityLog;
 use App\Models\User;
+use App\Services\Tenancy\TenantSchema;
+use App\Services\Tenancy\TenantState;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -11,11 +14,14 @@ class StudentAccountMerge
 {
     public const PROFILE_FIELDS = ['matric_number', 'department_id', 'level', 'entry_year', 'program', 'profile_photo_path'];
 
-    private const DEDUPLICATE = ['course_user', 'team_user', 'student_credit_limits', 'attendance_records', 'course_registrations'];
+    private const DEDUPLICATE = ['course_user', 'team_user', 'student_credit_limits', 'attendance_records', 'course_registrations', 'student_academic_sessions'];
 
     private ?array $schemaTables = null;
+
     private array $foreignKeys = [];
+
     private array $indexes = [];
+
     private array $referenceChecks = [];
 
     public function preview(array $ids, int $retainedId, bool $lock = false): array
@@ -27,7 +33,7 @@ class StudentAccountMerge
         sort($ids);
         $query = User::withoutGlobalScopes()->whereIn('id', $ids)->orderBy('id');
         $accounts = ($lock ? $query->lockForUpdate() : $query)->get();
-        if (count($ids) < 2 || count($ids) > 10 || !in_array($retainedId, $ids, true)
+        if (count($ids) < 2 || count($ids) > 10 || ! in_array($retainedId, $ids, true)
             || $accounts->count() !== count($ids)
             || $accounts->contains(fn ($user) => $user->usertype !== 'student' || $user->merged_into_id || $user->trashed())) {
             throw ValidationException::withMessages(['accounts' => 'Select between two and ten active student accounts, including the account to keep.']);
@@ -66,7 +72,7 @@ class StudentAccountMerge
             foreach ($keys as $key) {
                 $groups = [];
                 foreach ($rows as $row) {
-                    if ($table === 'results' && !empty($row['deleted_at'])) {
+                    if ($table === 'results' && ! empty($row['deleted_at'])) {
                         continue;
                     }
                     if ($table === 'tuition_invoices' && in_array('_billing_period', $key['columns'], true) && $row['active_slot'] === null) {
@@ -78,6 +84,7 @@ class StudentAccountMerge
                             '_billing_period' => in_array($row['academic_session_id'], $annualSessions) ? 'Annual overlap' : $row['period'],
                             default => $row[$field] ?? null,
                         };
+
                         // Match case-insensitive identifiers conservatively even on SQLite.
                         return is_string($value) ? mb_strtolower(trim($value)) : $value;
                     }, $key['columns']);
@@ -106,11 +113,12 @@ class StudentAccountMerge
                             // archived in full, including actor and registration date.
                             unset($row['acted_by'], $row['registration_date']);
                         }
+
                         return $row;
                     }, $group);
                     if (in_array($table, self::DEDUPLICATE, true) && count(array_unique(array_map('json_encode', $comparable))) === 1
-                        && !$this->hasIncomingReferences($table, $table === 'course_registrations')
-                        && ($table !== 'course_registrations' || !DB::table('results')
+                        && ! $this->hasIncomingReferences($table, $table === 'course_registrations')
+                        && ($table !== 'course_registrations' || ! DB::table('results')
                             ->whereIn('course_registration_id', $groupIds)->whereNotIn('user_id', $ids)->exists())) {
                         $duplicates[] = $entry;
                     } else {
@@ -122,6 +130,7 @@ class StudentAccountMerge
 
         $snapshots = $accounts->map(fn ($user) => $user->only(array_merge(['id', 'name', 'email', 'usertype', 'updated_at'], self::PROFILE_FIELDS)))->all();
         $digest = hash_hmac('sha256', json_encode([$retainedId, $snapshots, $records]), config('app.key'));
+
         return compact('accounts', 'records', 'conflicts', 'duplicates', 'snapshots', 'digest', 'retainedId');
     }
 
@@ -131,7 +140,7 @@ class StudentAccountMerge
             $actor = User::whereKey($actorId)->first();
             abort_unless($actor?->dashboardRole() === 'admin', 403);
             $preview = $this->preview($ids, $retainedId, true);
-            if (!hash_equals($preview['digest'], $digest)) {
+            if (! hash_equals($preview['digest'], $digest)) {
                 throw ValidationException::withMessages(['merge' => 'These accounts or records changed. Open a fresh preview before merging.']);
             }
             if ($preview['conflicts']) {
@@ -143,15 +152,15 @@ class StudentAccountMerge
             $profile = [];
             foreach (self::PROFILE_FIELDS as $field) {
                 $source = (int) ($profileSources[$field] ?? $retainedId);
-                if (!isset($accounts[$source])) {
+                if (! isset($accounts[$source])) {
                     throw ValidationException::withMessages(['profile' => 'Profile values must come from one of the selected accounts.']);
                 }
                 $profile[$field] = $accounts[$source]->getAttribute($field);
             }
             // Free a matric number held by an archived account before assigning it to the retained account.
-            if ($profile['matric_number'] && $profile['matric_number'] !== $retained->matric_number) {
-                DB::table('users')->whereIn('id', $sourceIds)->where('matric_number', $profile['matric_number'])->update(['matric_number' => null]);
-            }
+            // Originals remain in account_snapshots. Archived login identities must not
+            // retain live matric claims, including when both accounts already match.
+            DB::table('users')->whereIn('id', $sourceIds)->update(['matric_number' => null]);
             $changes = [];
             foreach ($preview['duplicates'] as $duplicate) {
                 $table = $duplicate['table'];
@@ -189,14 +198,14 @@ class StudentAccountMerge
             DB::table('users')->whereIn('id', $sourceIds)->update([
                 'merged_into_id' => $retainedId, 'merged_at' => now(), 'remember_token' => null, 'updated_at' => now(),
             ]);
-            DB::table('sessions')->whereIn('user_id', $sourceIds)->delete();
+            DB::table(config('session.table', 'sessions'))->whereIn('user_id', $sourceIds)->delete();
             DB::table('personal_access_tokens')->where('tokenable_type', $retained->getMorphClass())->whereIn('tokenable_id', $sourceIds)->delete();
-            DB::table('password_reset_tokens')->whereIn('email', $accounts->only($sourceIds)->pluck('email'))->delete();
+            DB::table(config('auth.passwords.users.table', 'password_reset_tokens'))->whereIn('email', $accounts->only($sourceIds)->pluck('email'))->delete();
             DB::table('student_account_merges')->insert([
                 'retained_user_id' => $retainedId, 'performed_by' => $actorId, 'reason' => $reason,
                 'account_snapshots' => json_encode($preview['snapshots']), 'record_changes' => json_encode($changes), 'created_at' => now(),
             ]);
-            \App\Models\ActivityLog::create([
+            ActivityLog::create([
                 'actor_id' => $actorId, 'target_user_id' => $retainedId, 'action' => 'student_accounts_merged',
                 'description' => 'Student accounts merged into account #'.$retainedId.'.',
                 'properties' => ['archived_account_ids' => $sourceIds, 'reason' => $reason, 'profile_sources' => $profileSources],
@@ -221,6 +230,7 @@ class StudentAccountMerge
             }
         }
         ksort($result);
+
         return $result;
     }
 
@@ -241,12 +251,15 @@ class StudentAccountMerge
                                 return $this->referenceChecks[$cacheKey] = true;
                             }
                         }
+
                         continue;
                     }
+
                     return $this->referenceChecks[$cacheKey] = true;
                 }
             }
         }
+
         return $this->referenceChecks[$cacheKey] = false;
     }
 
@@ -255,7 +268,8 @@ class StudentAccountMerge
         $connection = DB::connection();
         $schema = in_array($connection->getDriverName(), ['mysql', 'mariadb'], true)
             ? $connection->getDatabaseName() : null;
-        return $this->schemaTables ??= Schema::getTables($schema);
+
+        return $this->schemaTables ??= array_values(array_filter(Schema::getTables($schema), fn ($table) => ! app(TenantState::class)->id() || app(TenantSchema::class)->owned($table['name'])));
     }
 
     private function tableIndexes(string $table): array

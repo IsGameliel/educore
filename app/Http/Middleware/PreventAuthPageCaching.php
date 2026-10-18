@@ -29,6 +29,8 @@ class PreventAuthPageCaching
     private function isAuthPage(Request $request): bool
     {
         return $request->routeIs(
+            'platform.*',
+            'subscription.*',
             'login',
             'register',
             'password.request',

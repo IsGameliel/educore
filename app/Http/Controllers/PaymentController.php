@@ -114,8 +114,14 @@ class PaymentController extends Controller
 
     public function webhook(Request $request, PaystackPayments $gateway)
     {
-        $key = config('services.paystack.secret_key');
-        abort_unless($key && hash_equals(hash_hmac('sha512', $request->getContent(), $key), (string) $request->header('x-paystack-signature')), 401);
+        $integrations = app(\App\Services\Tenancy\InstitutionIntegrations::class);
+        abort_unless($integrations->signatureValid($request->getContent(), (string) $request->header('x-paystack-signature')), 401);
+
+        return $integrations->financialEvent(fn () => $this->processWebhook($request, $gateway));
+    }
+
+    private function processWebhook(Request $request, PaystackPayments $gateway)
+    {
         $event = $request->input('event');
         if (in_array($event, ['refund.pending', 'refund.processing', 'refund.processed', 'refund.failed',
             'charge.dispute.create', 'charge.dispute.remind', 'charge.dispute.resolve'], true)) {

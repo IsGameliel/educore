@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Model;
 
 class AttendanceSession extends Model
 {
+    use BelongsToInstitution;
+
     protected $fillable = [
         'class_schedule_id',
         'attendance_date',

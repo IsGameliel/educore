@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class TuitionInvoice extends Model
 {
+    use \App\Models\Concerns\BelongsToInstitution;
+
     protected $guarded = ['id'];
     protected $casts = ['items' => 'array', 'amount' => 'integer', 'first_percent' => 'integer', 'due_date' => 'date', 'second_due_date' => 'date', 'cancelled_at'=>'datetime', 'resumed_at'=>'datetime', 'withdrawal_reviewed_at'=>'datetime'];
 

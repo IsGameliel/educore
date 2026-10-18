@@ -265,7 +265,7 @@
 
     <!-- Logo Section -->
     <div class="logo">
-      <h1>Mudiame University Irrua</h1>
+      <h1>{{ config('institution.branding.name', 'Mudiame University Irrua') }}</h1>
       <p>Student Portal • Registered Courses</p>
     </div>
 

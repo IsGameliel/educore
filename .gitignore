@@ -25,3 +25,7 @@ yarn-error.log
 /storage/app/firebase/*.json
 .env.zip
 /mysql-recovery-*/
+/storage/app/deployment/
+/.cpanel-deploy.env
+*.pem
+*.key

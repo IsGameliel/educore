@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Model;
 
 class Questions extends Model
 {
+    use BelongsToInstitution;
+
     protected $fillable = ['test_id', 'question_text', 'options', 'correct_option', 'marks'];
 
     protected $casts = [

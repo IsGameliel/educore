@@ -16,6 +16,7 @@ use App\Models\ActivityLog;
 
 class User extends Authenticatable implements \Illuminate\Contracts\Auth\MustVerifyEmail
 {
+    use \App\Models\Concerns\BelongsToInstitution;
     use HasApiTokens, HasFactory, HasProfilePhoto, HasTeams, Notifiable, TwoFactorAuthenticatable, SoftDeletes;
 
     protected static function booted(): void

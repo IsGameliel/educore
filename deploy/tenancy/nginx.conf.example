@@ -1,0 +1,26 @@
+# Replace educore.example, certificate paths, root and PHP socket before installing.
+# Keep the existing legacy school on its separately configured host/database.
+server {
+    listen 80;
+    server_name educore.example *.educore.example;
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name educore.example *.educore.example;
+    ssl_certificate /etc/letsencrypt/live/educore.example/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/educore.example/privkey.pem;
+    root /srv/educore/current/public;
+    index index.php;
+    client_max_body_size 64m;
+    location / { try_files $uri $uri/ /index.php?$query_string; }
+    # School files are served through authenticated application routes only.
+    location ^~ /storage/ { deny all; }
+    location ~ \.php$ {
+        try_files $uri =404;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+    }
+    location ~ /\.(?!well-known).* { deny all; }
+}

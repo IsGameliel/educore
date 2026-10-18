@@ -4,8 +4,10 @@
 
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
     <ul class="nav">
+        @if(app(\App\Services\Tenancy\FeaturePermissions::class)->allows('attendance'))
         <li class="nav-item"><a class="nav-link" href="{{ route('academic.assistance') }}"><span class="menu-title">Academic Assistance</span><i class="mdi mdi-clipboard-check menu-icon"></i></a></li>
-        @if(in_array(auth()->user()->dashboardRole(), ['admin','exam_officer','lecturer','student']))
+        @endif
+        @if(app(\App\Services\Tenancy\FeaturePermissions::class)->allows('result_management') && in_array(auth()->user()->dashboardRole(), ['admin','exam_officer','lecturer','student']))
         <li class="nav-item"><a class="nav-link" href="{{ route('academic.index') }}"><span class="menu-title">Academic Records</span><i class="mdi mdi-school menu-icon"></i></a></li>
         @endif
 
@@ -35,12 +37,15 @@
                 <i class="mdi mdi-account-circle menu-icon"></i>
             </a>
         </li>
+        @if(app(\App\Services\Tenancy\FeaturePermissions::class)->allows('attendance'))
         <li class="nav-item">
             <a class="nav-link {{ str_starts_with($routeName, 'lecturer.attendance.') ? 'active' : '' }}" href="{{ route('lecturer.attendance.index') }}">
                 <span class="menu-title">Attendance</span>
                 <i class="mdi mdi-qrcode-scan menu-icon"></i>
             </a>
         </li>
+        @endif
+        @if(app(\App\Services\Tenancy\FeaturePermissions::class)->allows('cbt'))
         <li class="nav-item">
             <a class="nav-link" data-bs-toggle="collapse" href="#exams" aria-expanded="{{ str_starts_with($routeName, 'lecturer.tests.') ? 'true' : 'false' }}" aria-controls="auth">
                 <span class="menu-title">Test Maker</span>
@@ -61,6 +66,8 @@
                 </ul>
             </div>
         </li>
+        @endif
+        @if(app(\App\Services\Tenancy\FeaturePermissions::class)->allows('result_management'))
         <li class="nav-item">
             <a class="nav-link" data-bs-toggle="collapse" href="#assessments" aria-expanded="{{ str_starts_with($routeName, 'lecturer.results.') ? 'true' : 'false' }}" aria-controls="auth">
                 <span class="menu-title">Exams & Assessments</span>
@@ -82,6 +89,7 @@
                 </ul>
             </div>
         </li>
+        @endif
         <li class="nav-item">
             <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault();
                           document.getElementById('logout-form').submit();">

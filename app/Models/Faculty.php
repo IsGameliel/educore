@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Faculty extends Model
 {
+    use BelongsToInstitution;
+
     // Define the fillable attributes for mass assignment
     protected $fillable = [
         'name',         // The name of the faculty
@@ -17,7 +21,7 @@ class Faculty extends Model
     /**
      * Define the relationship with the Department model (one faculty has many departments).
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @return HasMany
      */
     public function departments()
     {

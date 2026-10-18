@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Euvion Student Account</title>
+    <title>{{ config('app.name', 'Euvion') }} Student Account</title>
 </head>
 <body style="font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.6;">
     <h2>Hello, {{ $student->name }}</h2>
 
-    <p>Your student account has been created on Euvion.</p>
+    <p>Your student account has been created on {{ config('app.name', 'Euvion') }}.</p>
 
     <p><strong>Login URL:</strong> <a href="{{ $loginUrl }}">{{ $loginUrl }}</a></p>
     <p><strong>Email:</strong> {{ $student->email }}</p>
@@ -16,6 +16,6 @@
 
     <p>Please log in and change your password after your first sign-in.</p>
 
-    <p>Regards,<br>Euvion Team</p>
+    <p>Regards,<br>{{ config('app.name', 'Euvion') }} Team</p>
 </body>
 </html>

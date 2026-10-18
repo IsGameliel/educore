@@ -1,0 +1,8 @@
+-- Operator template only. Replace database, user host and password placeholders.
+-- Provision databases/users with an administrator, never with the web identity.
+CREATE USER 'educore_runtime'@'localhost' IDENTIFIED BY 'REPLACE_RUNTIME_PASSWORD';
+GRANT SELECT, INSERT, UPDATE, DELETE ON educore_shared.* TO 'educore_runtime'@'localhost';
+CREATE USER 'educore_migrator'@'localhost' IDENTIFIED BY 'REPLACE_OPERATOR_PASSWORD';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, INDEX, REFERENCES ON educore_shared.* TO 'educore_migrator'@'localhost';
+-- The runtime must have NO grants on the legacy school's database.
+-- Keep the legacy connection under its separate identity until supervised cutover.

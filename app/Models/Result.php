@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use App\Services\Academic\Grading;
+use App\Services\Academic\ResultRegistration;
 use App\Services\Academic\ResultWorkflow;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class Result extends Model
 {
+    use BelongsToInstitution;
     use SoftDeletes;
 
     protected $fillable = [
@@ -55,8 +58,9 @@ class Result extends Model
                 throw ValidationException::withMessages(['course_registration' => 'A result must retain its original course registration.']);
             }
             if ($this->course_registration_id) {
-                \App\Services\Academic\ResultRegistration::validate($this);
+                ResultRegistration::validate($this);
             }
+
             return parent::save($options);
         });
     }

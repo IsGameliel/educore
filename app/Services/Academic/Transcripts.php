@@ -18,6 +18,7 @@ class Transcripts
 {
     public static function issue(User $student, int $departmentId, User $actor, ?string $session = null, ?string $semester = null, ?TranscriptRequest $request = null): TranscriptDocument
     {
+        app(\App\Services\Tenancy\FeaturePermissions::class)->authorize('result_management');
         abort_unless(ResultAccess::manager($actor) || ($actor->dashboardRole() === 'student' && $actor->id === $student->id && ! $request), 403);
         $path = null;
         try {
@@ -101,6 +102,7 @@ class Transcripts
 
     public static function download(TranscriptDocument $document, User $actor)
     {
+        app(\App\Services\Tenancy\FeaturePermissions::class)->authorize('result_management');
         abort_unless(ResultAccess::manager($actor) || ($actor->dashboardRole() === 'student' && $actor->id === $document->user_id), 403);
         abort_unless($document->status === 'valid', 410, 'This transcript has been revoked.');
         $current = Result::whereIn('id', array_keys($document->result_versions))->where('workflow_status', 'published')->pluck('version', 'id')->all();

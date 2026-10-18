@@ -329,3 +329,25 @@ it('consolidates matching enrollments with different actors and dates while pres
     expect($audit['deduplicated'][0]['archived_records'][0])->toBe($original);
     $this->assertDatabaseCount('course_registrations', 1);
 });
+
+
+it('consolidates matching academic session levels while preserving enrollment provenance',function(){
+    $session=\App\Models\AcademicSession::create(['name'=>'2030/2031','start_year'=>2030,'end_year'=>2031]);
+    foreach($this->ids as$id)DB::table('student_academic_sessions')->insert(['user_id'=>$id,'academic_session_id'=>$session->id,'level'=>'200','created_at'=>now(),'updated_at'=>now()]);
+    $preview=$this->service->preview($this->ids,$this->retained->id);
+    expect($preview['conflicts'])->toBeEmpty();
+    $this->service->merge($this->ids,$this->retained->id,['matric_number'=>$this->duplicate->id],'Owner requested duplicate identity cleanup with matching enrollment history.',$this->admin->id,$preview['digest']);
+    expect(DB::table('student_academic_sessions')->count())->toBe(1);
+    $audit=json_decode(DB::table('student_account_merges')->value('record_changes'),true);
+    expect(collect($audit['deduplicated'])->pluck('table')->all())->toContain('student_academic_sessions');
+    expect(User::withoutGlobalScopes()->find($this->duplicate->id)->matric_number)->toBeNull();
+});
+
+it('blocks different academic levels for the same session rather than choosing a level',function(){
+    $session=\App\Models\AcademicSession::create(['name'=>'2031/2032','start_year'=>2031,'end_year'=>2032]);
+    foreach([$this->retained->id=>'200',$this->duplicate->id=>'300']as$id=>$level)DB::table('student_academic_sessions')->insert(['user_id'=>$id,'academic_session_id'=>$session->id,'level'=>$level,'created_at'=>now(),'updated_at'=>now()]);
+    $preview=$this->service->preview($this->ids,$this->retained->id);
+    expect($preview['conflicts'])->not->toBeEmpty();
+    expect(fn()=>$this->service->merge($this->ids,$this->retained->id,[],'No authority to choose a contradictory academic level.',$this->admin->id,$preview['digest']))->toThrow(ValidationException::class);
+    expect(DB::table('student_academic_sessions')->count())->toBe(2);
+});

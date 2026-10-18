@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Model;
 
 class Department extends Model
 {
+    use BelongsToInstitution;
+
     // Define the fillable attributes for mass assignment
     protected $fillable = [
         'name', // Add the department's name or any other fields you want to mass-assign
@@ -35,6 +38,7 @@ class Department extends Model
     {
         return $this->hasMany(ClassSchedule::class);
     }
+
     public function courseMaterials()
     {
         return $this->hasMany(CourseMaterial::class, 'department_id');

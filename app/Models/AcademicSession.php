@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Model;
 
 class AcademicSession extends Model
 {
+    use BelongsToInstitution;
+
     protected $fillable = [
         'name',
         'start_year',

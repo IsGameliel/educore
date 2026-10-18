@@ -15,7 +15,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(\App\Services\Tenancy\TenantState::class);
+        $this->app->singleton(\App\Services\Tenancy\InstitutionMutex::class);
+        $this->app->singleton(\App\Services\Tenancy\TenantSchema::class);
+        $this->app->singleton(\App\Services\Tenancy\TenantQueueScope::class);
+        \Illuminate\Database\Connection::resolverFor('mysql', fn ($pdo, $database, $prefix, $config) =>
+            ($config['tenant_scoped'] ?? false)
+                ? new \App\Services\Tenancy\Database\TenantMySqlConnection($pdo, $database, $prefix, $config)
+                : new \Illuminate\Database\MySqlConnection($pdo, $database, $prefix, $config));
+        \Illuminate\Database\Connection::resolverFor('sqlite', fn ($pdo, $database, $prefix, $config) =>
+            ($config['tenant_scoped'] ?? false)
+                ? new \App\Services\Tenancy\Database\TenantSqliteConnection($pdo, $database, $prefix, $config)
+                : new \Illuminate\Database\SQLiteConnection($pdo, $database, $prefix, $config));
     }
 
     /**
@@ -23,6 +34,24 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        foreach (['firebase.auth', 'firebase.database', 'firebase.firestore', 'firebase.messaging', 'firebase.storage'] as $service) {
+            $this->app->beforeResolving($service, function () {
+                if (app(\App\Services\Tenancy\TenantState::class)->id()) { throw new \RuntimeException('Shared Firebase services are unavailable in an institution context.'); }
+            });
+        }
+        $cache = $this->app->make('cache');
+        $this->app->instance(\Illuminate\Cache\RateLimiter::class, new \App\Services\Tenancy\TenantRateLimiter($cache->store(config('cache.limiter'))));
+        \Illuminate\Support\Facades\Facade::clearResolvedInstance(\Illuminate\Cache\RateLimiter::class);
+        \Laravel\Sanctum\Sanctum::usePersonalAccessTokenModel(\App\Models\PersonalAccessToken::class);
+        $this->app['queue']->addConnector('institution_database', fn () => new \App\Services\Tenancy\InstitutionQueueConnector($this->app['db']));
+        \Illuminate\Queue\Queue::createPayloadUsing(function ($connection, $queue) {
+            $id=app(\App\Services\Tenancy\TenantState::class)->id();
+            if ($id && ! in_array($connection, ['institutions','sync'], true)) throw new \RuntimeException('Institution jobs must use the central institution queue connection.');
+            if (! $id && is_string($queue) && preg_match('/\Ainstitution_([a-f0-9-]{36})\z/D',$queue,$match)) $id=$match[1];
+            return $id ? ['institution_id'=>$id] : [];
+        });
+        $this->app['events']->listen(\Illuminate\Queue\Events\JobProcessing::class, fn ($event) => app(\App\Services\Tenancy\TenantQueueScope::class)->before($event));
+        $this->app['events']->listen(\Illuminate\Queue\Events\JobAttempted::class, fn ($event) => app(\App\Services\Tenancy\TenantQueueScope::class)->after($event));
         \App\Models\User::observe(\App\Observers\StudentBillingObserver::class);
         foreach ([\App\Models\ResultAppeal::class, \App\Models\TranscriptRequest::class, \App\Models\TranscriptDocument::class] as $model) {
             $model::observe(\App\Observers\StudentServiceObserver::class);

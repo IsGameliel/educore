@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 class Courses extends Model
 {
+    use BelongsToInstitution;
+
     protected $table = 'courses';
 
     // Define the fillable attributes for the course
@@ -36,7 +40,7 @@ class Courses extends Model
         return static::where($this->only(['code', 'title', 'credit_unit', 'semester', 'department_id', 'level', 'academic_session_id', 'pass_mark']))->pluck('id');
     }
 
-    public static function uniqueOptions(\Illuminate\Support\Collection $courses)
+    public static function uniqueOptions(Collection $courses)
     {
         return $courses->sortBy('id')->unique(fn ($course) => json_encode($course->only([
             'code', 'title', 'credit_unit', 'semester', 'department_id', 'level', 'academic_session_id', 'pass_mark',
@@ -98,5 +102,4 @@ class Courses extends Model
     {
         return $this->belongsToMany(User::class, 'course_user', 'course_id', 'user_id')->withTimestamps();
     }
-
 }

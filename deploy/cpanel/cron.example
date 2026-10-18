@@ -1,0 +1,5 @@
+# Replace CPANELUSER, PHP path, flock path and application path with verified values.
+# Enter each schedule/command in cPanel Cron Jobs. Do not install duplicate scheduler entries.
+* * * * * PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php /usr/bin/flock -n /home/CPANELUSER/euvion/storage/framework/cpanel-scheduler.lock /bin/sh /home/CPANELUSER/euvion/scripts/cpanel-scheduler.sh
+* * * * * PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php /usr/bin/flock -n /home/CPANELUSER/euvion/storage/framework/cpanel-institutions.lock /bin/sh /home/CPANELUSER/euvion/deploy/cpanel/worker.sh institutions >> /home/CPANELUSER/euvion/storage/logs/cpanel-institutions.log 2>&1
+* * * * * PHP_BIN=/opt/cpanel/ea-php83/root/usr/bin/php /usr/bin/flock -n /home/CPANELUSER/euvion/storage/framework/cpanel-central.lock /bin/sh /home/CPANELUSER/euvion/deploy/cpanel/worker.sh central >> /home/CPANELUSER/euvion/storage/logs/cpanel-central.log 2>&1

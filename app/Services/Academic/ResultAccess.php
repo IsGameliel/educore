@@ -24,6 +24,9 @@ class ResultAccess
 
     public static function scope($query, User $user)
     {
+        if (! app(\App\Services\Tenancy\FeaturePermissions::class)->allows('result_management')) {
+            return $query->whereRaw('1 = 0');
+        }
         if (self::manager($user)) {
             return $query;
         }

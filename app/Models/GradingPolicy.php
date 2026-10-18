@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Model;
 
 class GradingPolicy extends Model
 {
+    use BelongsToInstitution;
+
     protected $guarded = ['id'];
 
     protected $casts = ['bands' => 'array', 'required_courses' => 'array'];

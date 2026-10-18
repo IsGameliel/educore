@@ -1,0 +1,26 @@
+{
+  "domain": "euvion.com.ng",
+  "institutionDomain": "*.euvion.com.ng",
+  "institutionCustomDomains": true,
+  "exampleInstitutionDomain": "academics.mudiameuniversity.edu.ng",
+  "platformDashboardPath": "/dashboard",
+  "hostingStatus": "not_provisioned",
+  "productionStatus": "not_deployed",
+  "signupPolicy": "closed_until_acceptance",
+  "existingSchool": {
+    "suggestedSlug": "existing-school",
+    "plan": "silver",
+    "semesterName": "2026/2027 First Semester",
+    "semesterStart": "2026-10-01",
+    "semesterEnd": "2027-01-31",
+    "subscriptionPolicy": "agreed-migration-no-charge-v1",
+    "studentCount": "verify_at_cutover",
+    "ownerIdentity": "select_existing_active_administrator",
+    "activation": "after_source_data_review_and_release_acceptance"
+  },
+  "cutoverStatus": "blocked_pending_hosting_and_external_acceptance",
+  "legacyDataStatus": "resolved_with_audited_archival",
+  "reviewedUnavailableReferences": 31,
+  "unrecoveredOriginalFiles": 8,
+  "resolutionReport": "docs/legacy-data-resolution-2026-10-18.md"
+}

@@ -2,20 +2,27 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
+    use BelongsToInstitution;
+
     public const FEES = ['application' => 1000000, 'transcript' => 3000000, 'appeal' => 1500000, 'late_registration' => 500000];
+
     public const LABELS = ['application' => 'Application fee', 'transcript' => 'Transcript request', 'appeal' => 'Result appeal', 'tuition' => 'Tuition fee', 'late_registration' => 'Late course registration'];
 
     protected $guarded = ['id'];
 
     protected $casts = ['amount' => 'integer', 'paid_at' => 'datetime', 'verified_at' => 'datetime',
         'gateway_deduction' => 'integer', 'gateway_reversed' => 'boolean', 'dispute_open' => 'boolean',
-        'financial_checked_at' => 'datetime', 'financial_attempted_at' => 'datetime', 'reconciliation_attempted_at' => 'datetime', 'initialization_attempted_at'=>'datetime'];
+        'financial_checked_at' => 'datetime', 'financial_attempted_at' => 'datetime', 'reconciliation_attempted_at' => 'datetime', 'initialization_attempted_at' => 'datetime'];
 
-    public function gatewayChanges() { return $this->hasMany(PaymentGatewayChange::class); }
+    public function gatewayChanges()
+    {
+        return $this->hasMany(PaymentGatewayChange::class);
+    }
 
     public function user()
     {

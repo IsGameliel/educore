@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
+use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Jetstream\Events\TeamCreated;
 use Laravel\Jetstream\Events\TeamDeleted;
@@ -10,7 +12,9 @@ use Laravel\Jetstream\Team as JetstreamTeam;
 
 class Team extends JetstreamTeam
 {
-    /** @use HasFactory<\Database\Factories\TeamFactory> */
+    use BelongsToInstitution;
+
+    /** @use HasFactory<TeamFactory> */
     use HasFactory;
 
     public function owner()

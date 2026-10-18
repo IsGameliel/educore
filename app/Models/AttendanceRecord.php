@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Model;
 
 class AttendanceRecord extends Model
 {
+    use BelongsToInstitution;
+
     public const STATUSES = ['present', 'late', 'absent', 'excused'];
 
     protected $fillable = [

@@ -17,6 +17,7 @@ class DatabaseBackups
     protected ?array $configuredConnection = null;
     public function listing(): array
     {
+        if (app(\App\Services\Tenancy\TenantState::class)->id()) { throw new RuntimeException('Whole-database backups are platform operations.'); }
         $root = realpath(config('backups.directory'));
         if (! $root) {
             return [];
@@ -78,6 +79,7 @@ class DatabaseBackups
 
     protected function connection(): array
     {
+        if (app(\App\Services\Tenancy\TenantState::class)->id()) { throw new RuntimeException('Whole-database backups are platform operations.'); }
         $config = $this->configuredConnection ?? config('database.connections.'.config('database.default'));
         if (($config['driver'] ?? null) !== 'mysql' || empty($config['database'])) {
             throw new RuntimeException('Dashboard database backups and restores require a configured MySQL database.');
@@ -315,6 +317,23 @@ class DatabaseBackups
                 DB::statement('DROP DATABASE `'.$database.'`');
             }
         }
+    }
+
+    /** Read-only rehearsal against a disposable database; never invokes live restore. */
+    public function verifySnapshot(array $backup): void
+    {
+        $this->exclusive(function () use ($backup) {
+            $inspection = $this->inspect($backup);
+            if (! $inspection['complete'] || ! $inspection['compatible']) {
+                throw new RuntimeException('Backup is incomplete or incompatible.');
+            }
+            $input = $this->restoreInput($backup['path']);
+            try {
+                $this->preflight($input);
+            } finally {
+                fclose($input);
+            }
+        });
     }
 
     protected function clearTables(): void

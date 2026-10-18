@@ -36,6 +36,8 @@ return [
     */
 
     'guards' => [
+        'institution_account' => ['driver' => 'session', 'provider' => 'institution_accounts'],
+        'platform' => ['driver' => 'session', 'provider' => 'platform_administrators'],
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
@@ -60,6 +62,8 @@ return [
     */
 
     'providers' => [
+        'institution_accounts' => ['driver' => 'eloquent', 'model' => App\Models\Central\InstitutionAccount::class],
+        'platform_administrators' => ['driver' => 'eloquent', 'model' => App\Models\Central\PlatformAdministrator::class],
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),

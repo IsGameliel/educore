@@ -20,8 +20,8 @@ return new class extends Migration
             $table->index(['academic_session_id', 'department_id', 'level', 'semester'], 'courses_session_department_level_semester_index');
         });
 
-        $defaultSessionId = AcademicSession::current()?->id
-            ?? AcademicSession::query()->orderByDesc('start_year')->value('id');
+        $defaultSessionId = \Illuminate\Support\Facades\DB::table('academic_sessions')->where('is_active', true)->orderByDesc('start_year')->value('id')
+            ?? \Illuminate\Support\Facades\DB::table('academic_sessions')->orderByDesc('start_year')->value('id');
 
         if ($defaultSessionId) {
             DB::table('courses')

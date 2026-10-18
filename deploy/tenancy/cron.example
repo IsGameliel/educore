@@ -1,0 +1,3 @@
+# Install as the application user after replacing the release path.
+* * * * * cd /srv/educore/current && /usr/bin/php artisan schedule:run >> /var/log/educore/scheduler.log 2>&1
+# Stop this scheduler AND all institution/platform writers before shared upgrades.

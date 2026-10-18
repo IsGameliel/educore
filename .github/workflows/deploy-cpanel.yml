@@ -1,0 +1,61 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cpanel-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.CPANEL_AUTO_DEPLOY == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CPANEL_HOST: ${{ vars.CPANEL_HOST }}
+      CPANEL_USER: ${{ vars.CPANEL_USER }}
+      CPANEL_PORT: ${{ vars.CPANEL_PORT || '22' }}
+      CPANEL_REPO: ${{ vars.CPANEL_REPO }}
+      DEPLOY_SHA: ${{ github.sha }}
+      DEPLOY_KEY: ${{ secrets.CPANEL_SSH_PRIVATE_KEY }}
+      KNOWN_HOSTS: ${{ secrets.CPANEL_SSH_KNOWN_HOSTS }}
+    steps:
+      - name: Pull reviewed commit and deploy on hosting
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CPANEL_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$CPANEL_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "$CPANEL_PORT" =~ ^[0-9]+$ ]]
+          [[ "$CPANEL_REPO" =~ ^/home/[a-zA-Z0-9_./-]+$ ]]
+          [[ "$DEPLOY_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test -n "$DEPLOY_KEY"
+          test -n "$KNOWN_HOSTS"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/cpanel_deploy"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/cpanel_deploy" "$HOME/.ssh/known_hosts"
+          trap 'rm -f "$HOME/.ssh/cpanel_deploy"' EXIT
+          printf -v remote_command 'bash -s -- %q %q' "$CPANEL_REPO" "$DEPLOY_SHA"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes \
+            -i "$HOME/.ssh/cpanel_deploy" -p "$CPANEL_PORT" "$CPANEL_USER@$CPANEL_HOST" "$remote_command" <<'REMOTE'
+          set -euo pipefail
+          repo=$1
+          sha=$2
+          cd "$repo"
+          test -z "$(git status --porcelain)" || { echo 'Control repository has local changes; deployment refused.'; exit 1; }
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" != "$sha" ]; then
+            echo 'A newer main commit exists; its workflow will deploy it.'
+            exit 0
+          fi
+          git checkout main
+          git merge --ff-only "$sha"
+          bash deploy/cpanel/deploy.sh "$sha"
+          REMOTE

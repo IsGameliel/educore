@@ -17,13 +17,12 @@ class StudentAccountCreated extends Mailable implements ShouldQueue
     public function __construct(
         public User $student,
         public string $plainPassword
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Euvion Student Account Details',
+            subject: 'Your '.config('app.name', 'Euvion').' Student Account Details',
         );
     }
 

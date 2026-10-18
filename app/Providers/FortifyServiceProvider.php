@@ -30,19 +30,22 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('platform-sensitive', function (Request $request) {
+            return Limit::perMinute(5)->by('platform|'.$request->route()->getName().'|'.($request->session()->get('platform_pending_admin') ?? auth('platform')->id() ?? 'guest').'|'.$request->ip());
+        });
         Fortify::createUsersUsing(CreateNewUser::class);
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
 
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            $throttleKey = (app(\App\Services\Tenancy\TenantState::class)->id() ?? 'legacy').'|'.Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
 
             return Limit::perMinute(5)->by($throttleKey);
         });
 
         RateLimiter::for('two-factor', function (Request $request) {
-            return Limit::perMinute(5)->by($request->session()->get('login.id'));
+            return Limit::perMinute(5)->by((app(\App\Services\Tenancy\TenantState::class)->id() ?? 'legacy').'|'.$request->session()->get('login.id'));
         });
     }
 }

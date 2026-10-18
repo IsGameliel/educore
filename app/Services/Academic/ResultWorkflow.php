@@ -16,6 +16,7 @@ class ResultWorkflow
 {
     public static function record(Result $result, ?array $before, string $action, string $reason, ?int $approver = null, ?int $actorId = null): void
     {
+        app(\App\Services\Tenancy\FeaturePermissions::class)->authorize('result_management');
         ResultRevision::create([
             'result_id' => $result->id, 'user_id' => $result->user_id, 'department_id' => $result->department_id, 'version' => $result->version ?? 1, 'action' => $action,
             'actor_id' => $actorId ?? auth()->id() ?? $result->uploaded_by, 'approver_id' => $approver,
@@ -25,6 +26,7 @@ class ResultWorkflow
 
     public static function problems(Result $result): array
     {
+        app(\App\Services\Tenancy\FeaturePermissions::class)->authorize('result_management');
         $scope = Result::where('department_id', $result->department_id)->where('session', $result->session)
             ->where('semester', $result->semester)->where('course_code', $result->course_code);
         $results = $scope->get();
@@ -73,6 +75,7 @@ class ResultWorkflow
 
     public static function transition(Result $result, User $actor, string $action, string $reason): void
     {
+        app(\App\Services\Tenancy\FeaturePermissions::class)->authorize('result_management');
         DB::transaction(function () use ($result, $actor, $action, $reason) {
             User::whereKey($result->user_id)->lockForUpdate()->firstOrFail();
             $result = Result::lockForUpdate()->findOrFail($result->id);
@@ -134,6 +137,7 @@ class ResultWorkflow
 
     public static function requestCorrection(Result $result, User $actor, array $values, string $reason, bool $adoptPolicy = false): void
     {
+        app(\App\Services\Tenancy\FeaturePermissions::class)->authorize('result_management');
         DB::transaction(function () use ($result, $actor, $values, $reason, $adoptPolicy) {
             User::whereKey($result->user_id)->lockForUpdate()->firstOrFail();
             $result = Result::lockForUpdate()->findOrFail($result->id);
@@ -163,6 +167,7 @@ class ResultWorkflow
 
     public static function decideCorrection(ResultCorrection $correction, User $actor, string $decision, string $reason): void
     {
+        app(\App\Services\Tenancy\FeaturePermissions::class)->authorize('result_management');
         DB::transaction(function () use ($correction, $actor, $decision, $reason) {
             $source = Result::findOrFail($correction->result_id);
             User::whereKey($source->user_id)->lockForUpdate()->firstOrFail();

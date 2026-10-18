@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToInstitution;
 use Illuminate\Database\Eloquent\Model;
 
 class TestAttempt extends Model
 {
+    use BelongsToInstitution;
+
     protected $guarded = [];
 
     protected $hidden = ['questions', 'answers'];

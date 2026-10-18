@@ -1,7 +1,27 @@
 <?php
 
+use App\Services\Tenancy\PlanCatalogue;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+
+beforeEach(function () {
+    // Pricing reads the central catalogue independently of the legacy database.
+    $this->platformTestDatabase = storage_path('framework/testing/platform-health-'.Str::uuid().'.sqlite');
+    File::ensureDirectoryExists(dirname($this->platformTestDatabase));
+    touch($this->platformTestDatabase);
+    config(['database.connections.central' => [...config('database.connections.sqlite'), 'database' => $this->platformTestDatabase, 'url' => null]]);
+    DB::purge('central');
+    Artisan::call('migrate', ['--database' => 'central', '--path' => [config('tenancy.central_migrations')], '--realpath' => true, '--force' => true]);
+    app(PlanCatalogue::class)->seed();
+});
+
+afterEach(function () {
+    DB::purge('central');
+    File::delete($this->platformTestDatabase);
+});
 
 it('serves public get routes without dead responses', function () {
     $firebaseAuth = Mockery::mock();
@@ -21,7 +41,8 @@ it('serves public get routes without dead responses', function () {
                 return false;
             }
 
-            return ! $middleware->contains(fn (string $name) => Str::contains($name, ['auth', 'verified']));
+            // Institution/central-only public routes are exercised on their actual domains in tenancy tests.
+            return ! $middleware->contains(fn (string $name) => Str::contains($name, ['auth', 'verified', 'institution', 'platform.domain']));
         })
         ->map(fn ($route) => '/'.ltrim($route->uri(), '/'))
         ->unique()
@@ -75,6 +96,7 @@ it('does not expose dead internal links or missing assets on public pages', func
 
             if ($linkedStatus === 404 || $linkedStatus >= 500) {
                 $issues[] = sprintf('%s links to %s which returns HTTP %d', $page, $target, $linkedStatus);
+
                 continue;
             }
 

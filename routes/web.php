@@ -15,18 +15,95 @@ use App\Http\Controllers\{
 use App\Http\Controllers\AcademicPortalController;
 use App\Http\Controllers\PaymentController;
 
+Route::get('/dashboard/login', [\App\Http\Controllers\Platform\AuthController::class, 'login'])->middleware('platform.domain')->name('platform.login');
+Route::post('/dashboard/login', [\App\Http\Controllers\Platform\AuthController::class, 'authenticate'])->middleware(['platform.domain', 'throttle:platform-sensitive'])->name('platform.authenticate');
+Route::get('/dashboard', [\App\Http\Controllers\Platform\AuthController::class, 'index'])->middleware(['platform.domain', \App\Http\Middleware\PlatformAccess::class])->name('platform.index');
+Route::post('/dashboard/logout', [\App\Http\Controllers\Platform\AuthController::class, 'logout'])->middleware(['platform.domain', \App\Http\Middleware\PlatformAccess::class])->name('platform.logout');
+Route::middleware(['platform.domain', \App\Http\Middleware\PlatformAccess::class, \App\Http\Middleware\AuditPlatformChange::class])->group(function () {
+    Route::get('/dashboard/plans', [\App\Http\Controllers\Platform\PlanController::class, 'index'])->name('platform.plans.index');
+    Route::get('/dashboard/plans/create', [\App\Http\Controllers\Platform\PlanController::class, 'create'])->name('platform.plans.create');
+    Route::post('/dashboard/plans', [\App\Http\Controllers\Platform\PlanController::class, 'save'])->name('platform.plans.store');
+    Route::get('/dashboard/plans/{plan}/edit', [\App\Http\Controllers\Platform\PlanController::class, 'edit'])->name('platform.plans.edit');
+    Route::put('/dashboard/plans/{plan}', [\App\Http\Controllers\Platform\PlanController::class, 'save'])->name('platform.plans.update');
+    Route::get('/dashboard/institutions/{institution}', [\App\Http\Controllers\Platform\AuthController::class, 'show'])->name('platform.institutions.show');
+    Route::post('/dashboard/institutions/{institution}/features', [\App\Http\Controllers\Platform\AuthController::class, 'overrideFeature'])->name('platform.institutions.features');
+    Route::put('/dashboard/institutions/{institution}/domain', [\App\Http\Controllers\Platform\AuthController::class,'domain'])->name('platform.institutions.domain');
+    Route::patch('/dashboard/institutions/{institution}/status', [\App\Http\Controllers\Platform\AuthController::class, 'status'])->name('platform.institutions.status');
+});
+Route::middleware(['platform.domain', 'throttle:platform-sensitive'])->group(function () {
+    Route::get('/dashboard/two-factor-challenge', [\App\Http\Controllers\Platform\AccountController::class, 'challengeForm'])->name('platform.challenge.form');
+    Route::post('/dashboard/two-factor-challenge', [\App\Http\Controllers\Platform\AccountController::class, 'challenge'])->name('platform.challenge');
+    Route::get('/dashboard/forgot-password', [\App\Http\Controllers\Platform\AccountController::class, 'forgot'])->name('platform.forgot');
+    Route::post('/dashboard/forgot-password', [\App\Http\Controllers\Platform\AccountController::class, 'sendReset'])->name('platform.forgot.send');
+    Route::get('/dashboard/reset-password/{token}', [\App\Http\Controllers\Platform\AccountController::class, 'resetForm'])->name('platform.reset.form');
+    Route::post('/dashboard/reset-password', [\App\Http\Controllers\Platform\AccountController::class, 'reset'])->name('platform.reset');
+});
+Route::middleware(['platform.domain', \App\Http\Middleware\PlatformAccess::class, 'throttle:60,1,platform-navigation'])->prefix('dashboard')->name('platform.')->group(function () {
+    Route::get('/institutions', [\App\Http\Controllers\Platform\AuthController::class, 'index'])->name('institutions.index');
+    foreach (['billing' => 'Billing', 'operations' => 'Operations', 'reports' => 'Reports'] as $section => $title) {
+        Route::get('/'.$section, fn () => view('platform.section', ['section' => $section, 'title' => $title]))->name($section);
+    }
+    Route::get('/confirm-password', [\App\Http\Controllers\Platform\AccountController::class, 'confirmForm'])->name('confirm.form');
+    Route::post('/confirm-password', [\App\Http\Controllers\Platform\AccountController::class, 'confirm'])->middleware('throttle:platform-sensitive')->name('confirm');
+    Route::get('/account', [\App\Http\Controllers\Platform\AccountController::class, 'show'])->name('account.show');
+    Route::post('/account/password', [\App\Http\Controllers\Platform\AccountController::class, 'password'])->middleware('throttle:platform-sensitive')->name('account.password');
+    Route::delete('/account/sessions/{session}', [\App\Http\Controllers\Platform\AccountController::class, 'revoke'])->name('account.sessions.revoke');
+    Route::post('/account/two-factor/setup', [\App\Http\Controllers\Platform\AccountController::class, 'setup'])->middleware('throttle:platform-sensitive')->name('account.two-factor.setup');
+    Route::post('/account/two-factor/enable', [\App\Http\Controllers\Platform\AccountController::class, 'enable'])->middleware('throttle:platform-sensitive')->name('account.two-factor.enable');
+    Route::delete('/account/two-factor', [\App\Http\Controllers\Platform\AccountController::class, 'disable'])->middleware('throttle:platform-sensitive')->name('account.two-factor.disable');
+    Route::get('/administrators', [\App\Http\Controllers\Platform\AdministrationController::class, 'index'])->name('administrators.index');
+    Route::post('/administrators', [\App\Http\Controllers\Platform\AdministrationController::class, 'invite'])->middleware('throttle:platform-sensitive')->name('administrators.invite');
+    Route::patch('/administrators/{administrator}', [\App\Http\Controllers\Platform\AdministrationController::class, 'update'])->name('administrators.update');
+    Route::post('/administrators/{administrator}/resend', [\App\Http\Controllers\Platform\AdministrationController::class, 'resend'])->middleware('throttle:platform-sensitive')->name('administrators.resend');
+    Route::get('/audit-log', [\App\Http\Controllers\Platform\AdministrationController::class, 'audit'])->name('audit');
+});
+Route::any('/platform/{path?}', function (\Illuminate\Http\Request $request, ?string $path = null) {
+    $target = '/dashboard'.($path ? '/'.$path : '');
+    return redirect($target.($request->getQueryString() ? '?'.$request->getQueryString() : ''), 307);
+})->where('path', '.*')->middleware('platform.domain');
+Route::middleware('platform.domain')->prefix('subscribe')->group(function () {
+    Route::get('/onboarding', [\App\Http\Controllers\InstitutionOnboardingController::class, 'show'])->name('subscription.onboarding');
+    Route::post('/onboarding', [\App\Http\Controllers\InstitutionOnboardingController::class, 'store'])->middleware('throttle:10,1,onboarding')->name('subscription.onboarding.store');
+    Route::post('/portal', [\App\Http\Controllers\InstitutionOnboardingController::class, 'enter'])->middleware('throttle:10,1,portal')->name('subscription.portal');
+    Route::get('/login', [\App\Http\Controllers\Platform\SignupController::class, 'login'])->name('subscription.login');
+    Route::post('/login', [\App\Http\Controllers\Platform\SignupController::class, 'authenticate'])->middleware('throttle:5,1');
+    Route::post('/logout', [\App\Http\Controllers\Platform\SignupController::class, 'logout'])->name('subscription.logout');
+    Route::get('/', [\App\Http\Controllers\Platform\SignupController::class, 'show'])->name('subscription.show');
+    Route::post('/renew', [\App\Http\Controllers\Platform\SignupController::class, 'renew'])->middleware('throttle:5,1')->name('subscription.renew');
+    Route::post('/checkout', [\App\Http\Controllers\Platform\SignupController::class, 'checkout'])->middleware('throttle:10,1')->name('subscription.checkout');
+    Route::get('/callback', [\App\Http\Controllers\Platform\SignupController::class, 'callback'])->middleware('throttle:30,1')->name('subscription.callback');
+    Route::post('/refresh', [\App\Http\Controllers\Platform\SignupController::class, 'refresh'])->middleware('throttle:10,1')->name('subscription.refresh');
+    Route::post('/provision', [\App\Http\Controllers\Platform\SignupController::class, 'provision'])->middleware('throttle:5,1')->name('subscription.provision');
+    Route::post('/webhook', [\App\Http\Controllers\Platform\SignupController::class, 'webhook'])->name('subscription.webhook');
+    Route::get('/{plan}', [\App\Http\Controllers\Platform\SignupController::class, 'create'])->name('subscription.create');
+    Route::post('/{plan}', [\App\Http\Controllers\Platform\SignupController::class, 'store'])->middleware('throttle:5,1')->name('subscription.store');
+});
+Route::get('/institution/logo', [\App\Http\Controllers\InstitutionSettingsController::class, 'logo'])->middleware('institution')->name('institution.logo');
+Route::post('/institution/enter', [\App\Http\Controllers\InstitutionOnboardingController::class, 'accept'])->middleware(['institution', 'throttle:10,1,portal-entry'])->name('institution.enter');
+Route::get('/tenant-assets/{path}', [\App\Http\Controllers\InstitutionSettingsController::class, 'asset'])->where('path', '.*')->middleware(['institution', 'auth'])->name('institution.asset');
+Route::middleware(['institution','auth','usertype:admin'])->prefix('institution/exports')->name('institution.exports.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\InstitutionExportController::class,'index'])->name('index');
+    Route::post('/', [\App\Http\Controllers\InstitutionExportController::class,'store'])->middleware('throttle:3,60')->name('store');
+    Route::get('/{export}/download', [\App\Http\Controllers\InstitutionExportController::class,'download'])->name('download');
+    Route::post('/{export}/restore', [\App\Http\Controllers\InstitutionExportController::class,'restore'])->middleware('throttle:3,60')->name('restore');
+    Route::delete('/{export}', [\App\Http\Controllers\InstitutionExportController::class,'destroy'])->middleware('throttle:5,60')->name('destroy');
+});
+Route::get('/institution/integrations', [\App\Http\Controllers\InstitutionIntegrationController::class, 'edit'])->middleware(['institution','auth','usertype:admin'])->name('institution.integrations');
+Route::put('/institution/integrations', [\App\Http\Controllers\InstitutionIntegrationController::class, 'update'])->middleware(['institution','auth','usertype:admin','throttle:5,1'])->name('institution.integrations.update');
+Route::get('/institution/settings', [\App\Http\Controllers\InstitutionSettingsController::class, 'edit'])->middleware(['institution', 'auth', 'usertype:admin'])->name('institution.settings');
+Route::put('/institution/settings', [\App\Http\Controllers\InstitutionSettingsController::class, 'update'])->middleware(['institution', 'auth', 'usertype:admin'])->name('institution.settings.update');
+
 Route::post('/payments/paystack/webhook', [PaymentController::class, 'webhook'])->name('payments.webhook');
 
 Route::get('/verify-transcript/{code}', [AcademicPortalController::class, 'verify'])->whereUuid('code')->middleware('throttle:30,1')->name('academic.verify');
 
 // Public Routes
 Route::get('/', function () {
+    if (app(\App\Services\Tenancy\TenantState::class)->id()) { return redirect()->route(auth()->check() ? 'dashboard' : 'login'); }
     return view('welcome');
 });
 
-Route::get('/pricing', function () {
-    return view('pricing');
-});
+Route::get('/pricing', [\App\Http\Controllers\Platform\SignupController::class, 'pricing'])->name('pricing');
 
 Route::get('/faq', function () {
     return view('faq');

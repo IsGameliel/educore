@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
-use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 class StudentIdCardController extends Controller
 {
@@ -28,12 +28,22 @@ class StudentIdCardController extends Controller
             }
         }
         $missing = [];
-        if (! trim((string) $student->name)) { $missing[] = 'student name'; }
-        if (! trim((string) $student->matric_number)) { $missing[] = 'matric number'; }
-        if (! $photo) { $missing[] = 'profile photo (JPG or PNG)'; }
-        if (! $student->department) { $missing[] = 'department'; }
+        if (! trim((string) $student->name)) {
+            $missing[] = 'student name';
+        }
+        if (! trim((string) $student->matric_number)) {
+            $missing[] = 'matric number';
+        }
+        if (! $photo) {
+            $missing[] = 'profile photo (JPG or PNG)';
+        }
+        if (! $student->department) {
+            $missing[] = 'department';
+        }
         $validityYears = ['100' => 6, '200' => 4, '300' => 3, '400' => 2, '500' => 1, '600' => 1][(string) $student->level] ?? null;
-        if (! $validityYears) { $missing[] = 'valid student level'; }
+        if (! $validityYears) {
+            $missing[] = 'valid student level';
+        }
         if ($issue && ! count($missing)) {
             // Lock first issuance so simultaneous PDF and image requests share one expiry.
             $student = DB::transaction(function () use ($student, $validityYears) {
@@ -45,15 +55,32 @@ class StudentIdCardController extends Controller
                         'temporary_id_expires_at' => $issued->copy()->addYearsNoOverflow($validityYears),
                     ])->save();
                 }
+
                 return $locked->load('department');
             });
         }
         $expiresAt = $student->temporary_id_expires_at ?? ($validityYears ? today()->addYearsNoOverflow($validityYears) : null);
         $expired = $expiresAt && $expiresAt->lt(today());
 
+        $logo = 'data:image/png;base64,'.base64_encode(file_get_contents(public_path('asset/images/euvion.png')));
+        $stampSvg = file_get_contents(public_path('asset/images/student-id-verified.svg'));
+        if (config('institution.branding.name')) {
+            $initials = htmlspecialchars(mb_strtoupper(mb_substr(config('app.name'), 0, 2)), ENT_QUOTES | ENT_XML1, 'UTF-8');
+            $logo = 'data:image/svg+xml;base64,'.base64_encode('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="160" height="160" rx="20" fill="#174c85"/><text x="80" y="104" text-anchor="middle" font-family="Arial" font-size="64" fill="white">'.$initials.'</text></svg>');
+            $stampSvg = str_replace(['MUDIAME', 'UNIVERSITY'], ['ACADEMIC', 'RECORDS'], $stampSvg);
+        }
+        $brandLogo = config('institution.branding.logo_path');
+        if ($brandLogo && str_starts_with($brandLogo, 'branding/') && Storage::disk('public')->exists($brandLogo)) {
+            $bytes = Storage::disk('public')->get($brandLogo);
+            $type = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
+            if (in_array($type, ['image/png', 'image/jpeg', 'image/webp'], true)) {
+                $logo = 'data:'.$type.';base64,'.base64_encode($bytes);
+            }
+        }
+
         return compact('student', 'photo', 'missing', 'expiresAt', 'expired') + [
-            'logo' => 'data:image/png;base64,'.base64_encode(file_get_contents(public_path('asset/images/euvion.png'))),
-            'stamp' => 'data:image/svg+xml;base64,'.base64_encode(file_get_contents(public_path('asset/images/student-id-verified.svg'))),
+            'logo' => $logo,
+            'stamp' => 'data:image/svg+xml;base64,'.base64_encode($stampSvg),
             'filename' => 'temporary-student-id-'.$student->id,
         ];
     }

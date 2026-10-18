@@ -27,11 +27,11 @@
                             <div class="col-md-3">
                                 <div class="cover_photo">
                                     @if($courseMaterial->cover_photo && $courseMaterial->file_path)
-                                    <a href="{{ asset('storage/' . $courseMaterial->file_path) }}" target="_blank">
-                                        <img src="{{ asset('storage/' . $courseMaterial->cover_photo) }}" alt="Course Cover Photo" style="width: 100%; object-fit: cover;">
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($courseMaterial->file_path) }}" target="_blank">
+                                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($courseMaterial->cover_photo) }}" alt="Course Cover Photo" style="width: 100%; object-fit: cover;">
                                     </a>
                                     @elseif($courseMaterial->cover_photo)
-                                        <img src="{{ asset('storage/' . $courseMaterial->cover_photo) }}" alt="Course Cover Photo" style="width: 100%; object-fit: cover;">
+                                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($courseMaterial->cover_photo) }}" alt="Course Cover Photo" style="width: 100%; object-fit: cover;">
                                     @else
                                         <span>No photo</span>
                                     @endif

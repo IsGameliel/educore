@@ -13,11 +13,16 @@ class SendTuitionReminder implements ShouldQueue
     use Queueable;
     public int $tries = 3;
     public int $timeout = 60;
-    public function __construct(public int $reminderId) {}
+    public ?string $institutionId = null;
+    public function __construct(public int $reminderId) {
+        $this->institutionId = app(\App\Services\Tenancy\TenantState::class)->id();
+        if ($this->institutionId) $this->onConnection('institutions')->onQueue('institution_'.$this->institutionId);
+    }
     public function backoff(): array { return [60, 300, 900]; }
 
     public function handle(): void
     {
+        if ($this->institutionId !== app(\App\Services\Tenancy\TenantState::class)->id()) throw new \RuntimeException('Reminder institution context mismatch.');
         $record = TuitionReminder::find($this->reminderId);
         if (! $record) { return; }
         DB::transaction(function () use ($record) {
@@ -37,6 +42,7 @@ class SendTuitionReminder implements ShouldQueue
 
     public function failed(?\Throwable $exception): void
     {
+        if ($this->institutionId !== app(\App\Services\Tenancy\TenantState::class)->id()) return;
         TuitionReminder::whereKey($this->reminderId)->where('status','!=','sent')->update(['status'=>'failed']);
         OperationsHealth::record('reminders', 'warning', 'A reminder email failed. Review queued jobs and mail configuration.');
     }

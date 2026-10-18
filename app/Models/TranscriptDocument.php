@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TranscriptDocument extends Model
 {
+    use \App\Models\Concerns\BelongsToInstitution;
+
     protected $guarded = ['id'];
 
     protected $casts = ['result_versions' => 'array', 'official' => 'boolean'];

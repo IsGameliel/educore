@@ -16,18 +16,27 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->validateCsrfTokens(except: ['payments/paystack/webhook']);
+        // The global stack runs before sessions/authentication, after trusted-proxy normalization.
+        $middleware->append(\App\Http\Middleware\ResolveInstitution::class);
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->routeIs('platform.*') || $request->is('platform', 'platform/*') ? route('platform.login') : route('login'));
+        $middleware->validateCsrfTokens(except: ['payments/paystack/webhook', 'subscribe/webhook', 'institution/enter']);
         $middleware->web(append: [
             \App\Http\Middleware\PreventAuthPageCaching::class,
+            \App\Http\Middleware\RequirePlanFeature::class,
+            \App\Http\Middleware\RequireInstitutionOnboarding::class,
         ]);
+        $middleware->api(append: [\App\Http\Middleware\RequirePlanFeature::class]);
 
         $middleware->alias([
+            'institution' => \App\Http\Middleware\RequireInstitution::class,
+            'platform.domain' => \App\Http\Middleware\RequirePlatformDomain::class,
             'verified' => \App\Http\Middleware\EnsureApplicantEmailIsVerified::class,
             'prevent.retake' => \App\Http\Middleware\PreventTestRetake::class,
             'usertype' => \App\Http\Middleware\UsertypeMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->dontFlash(['current_password', 'paystack_secret_key', 'code', 'token', 'recovery_code']);
         $isDatabaseConnectionException = static function (\Throwable $exception): bool {
             if ($exception instanceof QueryException) {
                 $message = strtolower($exception->getMessage());

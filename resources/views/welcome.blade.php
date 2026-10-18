@@ -110,7 +110,7 @@
                 <div class="flex items-center gap-3 lg:gap-4">
                     <span class="material-symbols-outlined cursor-pointer text-[#1A4175] transition-transform hover:scale-110">notifications</span>
                     <span class="material-symbols-outlined cursor-pointer text-[#1A4175] transition-transform hover:scale-110">account_circle</span>
-                    <a class="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold tracking-tight text-on-primary shadow-lg shadow-primary/10 transition-all hover:-translate-y-[2px] lg:px-5" href="{{ url('/register') }}">
+                    <a class="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold tracking-tight text-on-primary shadow-lg shadow-primary/10 transition-all hover:-translate-y-[2px] lg:px-5" href="{{ url(in_array(request()->getHost(), config('tenancy.central_domains'), true) ? '/pricing' : '/register') }}">
                         Get Started
                     </a>
                 </div>
@@ -132,7 +132,7 @@
                     Euvion provides an integrated ecosystem designed for high-performance institutions. We bridge the gap between administrative precision and educational fluidity.
                 </p>
                 <div class="flex flex-wrap gap-4">
-                    <a class="flex items-center gap-3 rounded-xl bg-primary px-8 py-4 text-lg font-bold text-on-primary transition-all hover:-translate-y-[2px]" href="{{ url('/request-demo') }}">
+                    <a class="flex items-center gap-3 rounded-xl bg-primary px-8 py-4 text-lg font-bold text-on-primary transition-all hover:-translate-y-[2px]" href="{{ url('/support') }}">
                         Request a Demo
                         <span class="material-symbols-outlined">arrow_forward</span>
                     </a>
@@ -255,7 +255,7 @@
                         <p class="text-lg text-on-primary/70">Join 500+ elite academies redefining the educational experience with Euvion's fluid management system.</p>
                     </div>
                     <div class="flex w-full flex-col gap-4 sm:w-auto sm:flex-row">
-                        <a class="rounded-xl bg-secondary-container px-10 py-5 text-lg font-black text-on-secondary-container shadow-xl transition-transform hover:scale-105" href="{{ url('/register') }}">
+                        <a class="rounded-xl bg-secondary-container px-10 py-5 text-lg font-black text-on-secondary-container shadow-xl transition-transform hover:scale-105" href="{{ url(in_array(request()->getHost(), config('tenancy.central_domains'), true) ? '/pricing' : '/register') }}">
                             Get Started Now
                         </a>
                         <button class="rounded-xl border border-white/20 bg-white/10 px-10 py-5 text-lg font-black text-white backdrop-blur-md transition-all hover:bg-white/20">

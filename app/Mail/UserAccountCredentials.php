@@ -9,20 +9,18 @@ use Illuminate\Mail\Mailables\Envelope;
 
 class UserAccountCredentials extends Mailable
 {
-
     public function __construct(
         public User $user,
         public ?string $plainPassword,
         public string $action = 'created'
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
             subject: $this->action === 'updated'
-                ? 'Your Euvion Account Details Were Updated'
-                : 'Your Euvion Account Login Details',
+                ? 'Your '.config('app.name', 'Euvion').' Account Details Were Updated'
+                : 'Your '.config('app.name', 'Euvion').' Account Login Details',
         );
     }
 

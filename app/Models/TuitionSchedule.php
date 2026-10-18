@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TuitionSchedule extends Model
 {
+    use \App\Models\Concerns\BelongsToInstitution;
+
     use SoftDeletes;
 
     public function invoices() { return $this->hasMany(TuitionInvoice::class); }

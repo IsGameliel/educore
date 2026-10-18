@@ -1,0 +1,16 @@
+# Run on Linux with pcntl; restart periodically to discover newly provisioned queues.
+[program:educore-institutions]
+directory=/srv/educore/current
+command=/usr/bin/php artisan tenancy:work --max-jobs=100
+user=www-data
+numprocs=1
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+stopwaitsecs=180
+redirect_stderr=true
+stdout_logfile=/var/log/educore/institutions.log
+
+# Central subscription jobs and legacy jobs need separately supervised workers
+# if their own connections are configured asynchronously.
