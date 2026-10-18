@@ -175,6 +175,12 @@ body {
   transform: translateX(2px) scale(0.985);
 }
 
+/* Bootstrap controls collapse with display/height. Tailwind's visibility utility
+   otherwise hides the panel again when its opening transition completes. */
+.page-body-wrapper .collapse {
+  visibility: visible;
+}
+
 .sidebar .nav.sub-menu {
   background: #f8fafc;
   border: 1px solid var(--euvion-border);
