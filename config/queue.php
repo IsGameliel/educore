@@ -29,6 +29,7 @@ return [
     */
 
     'connections' => [
+        'institution_copies' => ['driver' => 'database', 'connection' => 'central', 'table' => 'jobs', 'queue' => 'default', 'retry_after' => 180, 'after_commit' => true],
         'institutions' => ['driver' => 'institution_database', 'connection' => 'central', 'table' => 'jobs', 'queue' => 'default', 'retry_after' => 180, 'after_commit' => true],
 
         'sync' => [

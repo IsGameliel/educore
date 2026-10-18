@@ -47,6 +47,83 @@ function platformTestSession($test, PlatformAdministrator $admin, bool $confirme
     return $key;
 }
 
+function databaseCopySchool(string $slug): \App\Models\Central\Institution
+{
+    $service = app(\App\Services\Tenancy\InstitutionProvisioner::class);
+    return $service->provision($service->register(['slug' => $slug, 'name' => $slug, 'domain' => $slug.'.educore.test',
+        'owner_name' => 'School Owner', 'owner_email' => 'owner@example.test', 'plan_code' => 'silver', 'timezone' => 'Africa/Lagos']), 'School-password-123');
+}
+
+it('configures encrypted database copies only for owners without leaking credentials', function () {
+    $school = databaseCopySchool('copy-school');
+    platformTestSession($this, $this->owner->fresh());
+    $url = 'http://educore.test/dashboard/institutions/'.$school->id.'/database-copy';
+    $data = ['database_name' => 'school_copy', 'username' => 'copy_runtime', 'password' => 'Private-copy-password-123',
+        'reason' => 'Configure a dedicated institution database copy', 'confirm_copy' => 1];
+    $this->post($url, $data)->assertRedirect();
+    $this->post($url, [...$data, 'password' => ''])->assertRedirect();
+    DB::connection('central')->table('institution_database_copies')->update(['password' => 'damaged-ciphertext']);
+    $this->post($url, $data)->assertRedirect();
+    $copy = \App\Models\Central\InstitutionDatabaseCopy::firstOrFail();
+    expect($copy->password)->toBe($data['password'])->and($copy->enabled)->toBeTrue()
+        ->and(\App\Models\Central\InstitutionDatabaseCopy::count())->toBe(1)
+        ->and(DB::connection('central')->getSchemaBuilder()->hasColumn('institution_database_copies', 'tenant_id'))->toBeFalse();
+    expect(DB::connection('central')->table('institution_database_copies')->value('password'))->not->toBe($data['password']);
+    expect(json_encode($copy))->not->toContain($data['password']);
+    $this->get('http://educore.test/dashboard/institutions/'.$school->id)->assertOk()->assertSee('Institution database copy')->assertDontSee($data['password']);
+    expect(DB::connection('central')->table('platform_audit_events')->pluck('details')->implode(''))->not->toContain($data['password']);
+    foreach (['support', 'finance', 'read_only'] as $role) {
+        $this->owner->forceFill(['role' => $role])->save();
+        platformTestSession($this, $this->owner->fresh());
+        $this->withCredentials()->postJson($url, $data)->assertForbidden();
+        $this->withCredentials()->postJson($url.'/sync', [])->assertForbidden();
+        $this->withCredentials()->postJson($url.'/pause', ['reason' => 'Pause for security review'])->assertForbidden();
+        $this->get('http://educore.test/dashboard/institutions/'.$school->id)->assertOk()->assertDontSee('Institution database copy');
+    }
+    $this->get('http://copy-school.educore.test/dashboard/institutions/'.$school->id)->assertForbidden();
+});
+
+it('rejects unsafe shared duplicate and incomplete database copy configuration', function () {
+    $school = databaseCopySchool('copy-one');
+    $other = databaseCopySchool('copy-two');
+    platformTestSession($this, $this->owner->fresh());
+    $url = 'http://educore.test/dashboard/institutions/'.$school->id.'/database-copy';
+    $data = ['database_name' => 'dedicated_copy', 'username' => 'copy_user', 'password' => 'Private-copy-password-123',
+        'reason' => 'Configure a dedicated institution database copy', 'confirm_copy' => 1];
+    foreach (['mysql', 'bad/name', config('database.connections.central.database')] as $database) {
+        $this->withCredentials()->postJson($url, [...$data, 'database_name' => $database])->assertUnprocessable()->assertJsonValidationErrors('database_name');
+    }
+    $this->withCredentials()->postJson($url, [...$data, 'password' => '', 'confirm_copy' => 0])->assertUnprocessable()->assertJsonValidationErrors(['password', 'confirm_copy']);
+    $this->post($url, $data)->assertRedirect();
+    $this->withCredentials()->postJson('http://educore.test/dashboard/institutions/'.$other->id.'/database-copy', $data)->assertUnprocessable()->assertJsonValidationErrors('database_name');
+    $this->withCredentials()->postJson('http://educore.test/dashboard/institutions/'.$other->id.'/database-copy', [...$data, 'database_name' => 'another_database'])->assertUnprocessable()->assertJsonValidationErrors('username');
+    $this->withCredentials()->postJson($url, [...$data, 'database_name' => 'new_copy', 'password' => ''])->assertUnprocessable()->assertJsonValidationErrors('password');
+    expect(\App\Models\Central\InstitutionDatabaseCopy::count())->toBe(1);
+    platformTestSession($this, $this->owner->fresh(), false);
+    $this->post($url, $data)->assertRedirect('http://educore.test/dashboard/confirm-password');
+});
+
+it('deduplicates database copy jobs recovers stale claims and pauses future synchronization', function () {
+    \Illuminate\Support\Facades\Queue::fake();
+    $school = databaseCopySchool('copy-jobs');
+    platformTestSession($this, $this->owner->fresh());
+    $url = 'http://educore.test/dashboard/institutions/'.$school->id.'/database-copy';
+    $this->post($url, ['database_name' => 'job_copy', 'username' => 'copy_user', 'password' => 'Private-copy-password-123',
+        'reason' => 'Configure a dedicated institution database copy', 'confirm_copy' => 1])->assertRedirect();
+    $this->post($url.'/sync')->assertRedirect();
+    $this->post($url.'/sync')->assertRedirect();
+    Artisan::call('tenancy:copies-dispatch');
+    \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SynchronizeInstitutionDatabase::class, 1);
+    DB::connection('central')->table('institution_database_copies')->update(['queued_at' => now()->subMinutes(11)]);
+    Artisan::call('tenancy:copies-dispatch');
+    \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SynchronizeInstitutionDatabase::class, 2);
+    $this->post($url.'/pause', ['reason' => 'Pause synchronization during review'])->assertRedirect();
+    expect(\App\Models\Central\InstitutionDatabaseCopy::firstOrFail()->enabled)->toBeFalse();
+    (new \App\Jobs\SynchronizeInstitutionDatabase($school->id))->handle(app(\App\Services\Tenancy\InstitutionDatabaseCopies::class));
+    Artisan::call('tenancy:copies-dispatch');
+    \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SynchronizeInstitutionDatabase::class, 2);
+});
+
 it('enforces the role matrix on navigation and direct URLs', function () {
     foreach (['owner', 'finance', 'support', 'read_only'] as $role) {
         $admin = PlatformAdministrator::create(['name' => $role, 'email' => $role.'@roles.test', 'password' => 'Platform-password-123']);

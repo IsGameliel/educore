@@ -19,6 +19,7 @@ Schedule::command('backup:database')
 
 Schedule::command('tenancy:prune-exports')->dailyAt('03:00')->timezone('UTC')->withoutOverlapping();
 Schedule::command('tenancy:dispatch')->everyMinute()->withoutOverlapping();
+Schedule::command('tenancy:copies-dispatch')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('backup:database', ['--connection'=>'central','--path'=>storage_path('app/backups/shared-platform')])->sundays()->at('02:00')->timezone('UTC')->withoutOverlapping();
 
 Schedule::command('payments:reconcile')->everyTenMinutes()->withoutOverlapping();
