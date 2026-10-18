@@ -40,6 +40,12 @@ if [ ! -f "$release/.prepared" ]; then
   touch "$release/.prepared"
 fi
 cd "$release"
+# Shared hosting may serve static assets as a different user from PHP. Allow
+# traversal to public files while keeping application files and shared storage
+# private. find does not follow public/storage or other symbolic links.
+chmod o+x "$APP_ROOT" "$APP_ROOT/releases" "$release"
+find "$release/public" -type d -exec chmod 755 {} +
+find "$release/public" -type f -exec chmod 644 {} +
 if [ "$mode" = --prepare ]; then
   echo "Prepared release: $release"
   echo 'Complete the one-time database bootstrap here, then rerun without --prepare.'
