@@ -9,7 +9,7 @@ return new class extends Migration
 {
     private const INFRASTRUCTURE = ['migrations', 'tenancy_schema', 'platform_administrators', 'plans', 'features',
         'plan_features', 'institutions', 'institution_domains', 'provisioning_attempts',
-        'platform_account_tokens', 'platform_login_sessions', 'platform_audit_events', 'institution_portal_handoffs', 'institution_database_copies',
+        'platform_account_tokens', 'platform_login_sessions', 'platform_audit_events', 'institution_portal_handoffs', 'institution_database_copies', 'institution_record_snapshots',
         'institution_accounts', 'subscription_invoices', 'subscription_payments', 'subscription_events', 'institution_feature_overrides',
         'institution_integrations', 'institution_events', 'institution_exports', 'institution_restore_runs', 'institution_task_runs', 'platform_runtime', 'platform_schema_rollouts',
         'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs', 'sessions', 'password_reset_tokens', 'personal_access_tokens'];

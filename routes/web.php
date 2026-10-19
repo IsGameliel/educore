@@ -28,6 +28,7 @@ Route::middleware(['platform.domain', \App\Http\Middleware\PlatformAccess::class
     Route::get('/dashboard/institutions/{institution}', [\App\Http\Controllers\Platform\AuthController::class, 'show'])->name('platform.institutions.show');
     Route::post('/dashboard/institutions/{institution}/database-copy', [\App\Http\Controllers\Platform\InstitutionDatabaseCopyController::class, 'save'])->name('platform.institutions.copy.save');
     Route::post('/dashboard/institutions/{institution}/database-copy/sync', [\App\Http\Controllers\Platform\InstitutionDatabaseCopyController::class, 'sync'])->name('platform.institutions.copy.sync');
+    Route::post('/dashboard/institutions/{institution}/database-copy/resume', [\App\Http\Controllers\Platform\InstitutionDatabaseCopyController::class, 'resume'])->name('platform.institutions.copy.resume');
     Route::post('/dashboard/institutions/{institution}/database-copy/pause', [\App\Http\Controllers\Platform\InstitutionDatabaseCopyController::class, 'pause'])->name('platform.institutions.copy.pause');
     Route::post('/dashboard/institutions/{institution}/features', [\App\Http\Controllers\Platform\AuthController::class, 'overrideFeature'])->name('platform.institutions.features');
     Route::put('/dashboard/institutions/{institution}/domain', [\App\Http\Controllers\Platform\AuthController::class,'domain'])->name('platform.institutions.domain');

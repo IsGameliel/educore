@@ -19,6 +19,7 @@ class InstitutionDatabaseCopyController extends Controller
     {
         Institution::whereKey($institution)->lockForUpdate()->firstOrFail();
         $copy = InstitutionDatabaseCopy::whereKey($institution)->lockForUpdate()->first();
+        abort_if($copy?->direction === 'inbound', 409, 'An active primary connection can only be changed by a supervised operator procedure.');
         $data = $request->validate(['database_name' => ['required', 'string', 'max:64',
             Rule::unique(config('tenancy.central_connection').'.institution_database_copies', 'database_name')->ignore($institution, 'institution_id')],
             'username' => ['required', 'string', 'max:80', Rule::unique(config('tenancy.central_connection').'.institution_database_copies', 'username')->ignore($institution, 'institution_id')], 'password' => [$copy ? 'nullable' : 'required', 'string', 'max:255'],
@@ -57,6 +58,16 @@ class InstitutionDatabaseCopyController extends Controller
         SynchronizeInstitutionDatabase::dispatch($institution);
 
         return redirect()->route('platform.institutions.show', $institution)->with('status', 'Database synchronization queued.');
+    }
+
+    public function resume(Request $request, string $institution)
+    {
+        $data = $request->validate(['reason' => 'required|string|min:10|max:2000']);
+        $copy = InstitutionDatabaseCopy::whereKey($institution)->where('direction', 'inbound')->lockForUpdate()->firstOrFail();
+        $copy->forceFill(['enabled' => true, 'status' => 'configured', 'queued_at' => null, 'configuration_version' => (string) Str::uuid()])->save();
+        PlatformAudit::record('institution_copy.resumed', $institution, ['reason' => $data['reason']]);
+
+        return redirect()->route('platform.institutions.show', $institution)->with('status', 'Central synchronization resumed.');
     }
 
     public function pause(Request $request, string $institution)

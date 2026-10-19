@@ -48,7 +48,7 @@ find "$release/public" -type d -exec chmod 755 {} +
 find "$release/public" -type f -exec chmod 644 {} +
 if [ "$mode" = --prepare ]; then
   echo "Prepared release: $release"
-  echo 'Complete the one-time database bootstrap here, then rerun without --prepare.'
+  echo 'For an existing installation, run the supervised schema upgrade if needed. Bootstrap only a fresh empty installation; then rerun without --prepare.'
   exit 0
 fi
 "$PHP_BIN" artisan config:cache
@@ -58,6 +58,7 @@ fi
 "$PHP_BIN" artisan migrate:status --database=central --path=database/migrations \
   --path=database/central-migrations --path=database/tenant-migrations --pending=1
 "$PHP_BIN" artisan tenancy:status
+"$PHP_BIN" artisan tenancy:databases-check
 test ! -e "$APP_ROOT/current" || test -L "$APP_ROOT/current" || { echo 'current must be a release symlink.'; exit 1; }
 test ! -e "$APP_ROOT/current-next" && test ! -L "$APP_ROOT/current-next"
 ln -s "$release" "$APP_ROOT/current-next"

@@ -18,7 +18,7 @@ class InstitutionDatabaseCopy extends CentralModel
 
     protected function casts(): array
     {
-        return ['password' => 'encrypted', 'enabled' => 'boolean', 'manifest' => 'array',
+        return ['password' => 'encrypted', 'enabled' => 'boolean', 'manifest' => 'array', 'statistics' => 'array', 'primary_activated_at' => 'datetime',
             'queued_at' => 'datetime', 'last_attempt_at' => 'datetime', 'last_synced_at' => 'datetime'];
     }
 }

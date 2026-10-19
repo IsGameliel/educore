@@ -1,10 +1,11 @@
 <?php
 
+use App\Services\OperationsHealth;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::call(fn () => \App\Services\OperationsHealth::record('scheduler', 'success', 'Scheduler heartbeat received.'))
+Schedule::call(fn () => OperationsHealth::record('scheduler', 'success', 'Scheduler heartbeat received.'))
     ->name('operations-heartbeat')->everyMinute();
 
 Artisan::command('inspire', function () {
@@ -20,9 +21,11 @@ Schedule::command('backup:database')
 Schedule::command('tenancy:prune-exports')->dailyAt('03:00')->timezone('UTC')->withoutOverlapping();
 Schedule::command('tenancy:dispatch')->everyMinute()->withoutOverlapping();
 Schedule::command('tenancy:copies-dispatch')->everyFiveMinutes()->withoutOverlapping();
-Schedule::command('backup:database', ['--connection'=>'central','--path'=>storage_path('app/backups/shared-platform')])->sundays()->at('02:00')->timezone('UTC')->withoutOverlapping();
+Schedule::command('backup:database', ['--connection' => 'central', '--path' => storage_path('app/backups/shared-platform')])->sundays()->at('02:00')->timezone('UTC')->withoutOverlapping();
 
 Schedule::command('payments:reconcile')->everyTenMinutes()->withoutOverlapping();
 Schedule::command('payments:settlements')->dailyAt('06:00')->withoutOverlapping();
 Schedule::command('tuition:generate')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('tuition:remind')->dailyAt('08:00')->withoutOverlapping();
+Schedule::command('tenancy:databases-dispatch')->everyMinute()->withoutOverlapping();
+Schedule::command('tenancy:databases-backup')->dailyAt('03:30')->timezone('UTC')->withoutOverlapping();

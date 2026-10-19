@@ -19,6 +19,10 @@ class InstitutionOnboarding
 
     public function available(Institution $institution): bool
     {
+        if (($institution->settings['dedicated_database_required'] ?? false) && ! app(InstitutionDatabases::class)->primary($institution->id)) {
+            return false;
+        }
+
         return $institution->status === 'ready' && $institution->subscription_status !== 'awaiting_payment'
             && app(SemesterBilling::class)->accessible($institution);
     }
@@ -50,7 +54,7 @@ class InstitutionOnboarding
                         $settings['logo_path'] = $newLogo;
                     }
                     $school->forceFill(['name' => $data['name'], 'settings' => $settings])->save();
-                    DB::connection(config('tenancy.central_connection'))->table('institution_profiles')->where('tenant_id', $school->id)
+                    app(InstitutionDatabases::class)->connection($school->id)->table('institution_profiles')->where('tenant_id', $school->id)
                         ->update(['name' => $data['name'], 'updated_at' => now()]);
                     InstitutionAudit::record($school->id, 'onboarding_completed', 'billing:'.$actor,
                         ['name' => $data['name'], 'primary_color' => $data['primary_color']]);

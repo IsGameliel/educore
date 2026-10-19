@@ -32,7 +32,7 @@ class InstitutionArchives
 
     public function tables(): array
     {
-        $db = $this->db();
+        $db = app(TenantState::class)->id() ? app(InstitutionDatabases::class)->connection(app(TenantState::class)->id()) : $this->db();
         $schema = $db->getDriverName() === 'sqlite' ? 'main' : $db->getDatabaseName();
         $tables = [];
         foreach ($db->getSchemaBuilder()->getTableListing($schema, schemaQualified: false) as $table) {
@@ -56,7 +56,7 @@ class InstitutionArchives
         $count = 0;
         $bytes = 0;
         foreach ($tables as $table => $columns) {
-            $query = $this->db()->table($table)->where('tenant_id', $id);
+            $query = app(InstitutionDatabases::class)->connection($id)->table($table)->where('tenant_id', $id);
             if ($count + (clone $query)->count() > config('tenancy.exports.max_rows')) {
                 throw new RuntimeException('Institution export exceeds the configured row quota.');
             }
@@ -273,6 +273,9 @@ class InstitutionArchives
     public function restore(Institution $school, InstitutionExport $export, int $actor): InstitutionExport
     {
         $this->assertOwner($school);
+        if (app(InstitutionDatabases::class)->primary($school->id)) {
+            throw new RuntimeException('Dedicated database restores require supervised operator recovery.');
+        }
 
         return app(InstitutionMutex::class)->run($school->id, function () use ($school, $export, $actor) {
             $school = $school->fresh();
@@ -339,7 +342,7 @@ class InstitutionArchives
                     chmod($target, 0600);
                 }
                 $zip->close();
-                $db = $this->db();
+                $db = app(TenantState::class)->id() ? app(InstitutionDatabases::class)->connection(app(TenantState::class)->id()) : $this->db();
                 $mysql = $db->getDriverName() === 'mysql';
                 if ($mysql) {
                     $db->statement('SET FOREIGN_KEY_CHECKS=0');

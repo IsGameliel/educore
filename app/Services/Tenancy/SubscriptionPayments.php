@@ -2,11 +2,13 @@
 
 namespace App\Services\Tenancy;
 
+use App\Jobs\ProvisionInstitutionDatabase;
 use App\Models\Central\Institution;
 use App\Models\Central\SubscriptionInvoice;
 use App\Models\Central\SubscriptionPayment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -103,6 +105,18 @@ class SubscriptionPayments
                 app(SemesterBilling::class)->record($invoice->institution_id, 'payment_verified', ['invoice_id' => $invoice->id, 'payment_id' => $payment->id]);
                 Institution::whereKey($invoice->institution_id)->update(['subscription_status' => 'active']);
             }
+
+            DB::connection(config('tenancy.central_connection'))->afterCommit(function () use ($invoice) {
+                try {
+                    $school = Institution::find($invoice->institution_id);
+                    if (($school?->settings['dedicated_database_required'] ?? false) && ! app(InstitutionDatabases::class)->primary($school->id)) {
+                        ProvisionInstitutionDatabase::dispatch($school->id);
+                    }
+                } catch (\Throwable) {
+                    // Payment stays verified; the scheduler recovers a missed provisioning dispatch.
+                    Log::warning('Institution database provisioning dispatch deferred.', ['institution_id' => $invoice->institution_id]);
+                }
+            });
 
             return $invoice;
         });

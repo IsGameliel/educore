@@ -45,6 +45,9 @@ class TenantContext
         if (! $provisioning && $institution->status !== 'ready' && ! ($financial && in_array($institution->status, ['suspended', 'archived'], true))) {
             throw new RuntimeException('Institution is not ready.');
         }
+        if (! $provisioning && ($institution->settings['dedicated_database_required'] ?? false) && ! app(InstitutionDatabases::class)->primary($institution->id)) {
+            abort(503, 'Your institution database is being prepared. Please return to your institution account shortly.');
+        }
         $name = config('tenancy.tenant_connection');
         if (DB::getDefaultConnection() === $name || $name === config('tenancy.central_connection')) {
             throw new RuntimeException('Nested or ambiguous tenant context is not allowed.');
@@ -74,7 +77,9 @@ class TenantContext
         };
         try {
             DB::purge($name);
-            config(['database.connections.'.$name => [...config('database.connections.'.config('tenancy.central_connection')), 'url' => null, 'tenant_scoped' => true]]);
+            $configuration = app(InstitutionDatabases::class)->connection($institution->id)->getConfig();
+            unset($configuration['name']);
+            config(['database.connections.'.$name => [...$configuration, 'url' => null, 'tenant_scoped' => true]]);
             DB::setDefaultConnection($name);
             $resourcesEntered = true;
             $resources->enter($institution);

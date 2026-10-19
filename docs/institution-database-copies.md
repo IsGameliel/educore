@@ -70,3 +70,5 @@ Ownership errors require operator investigation, not bypassing the marker. Never
 ## Acceptance
 
 Use two disposable schools/databases. Verify school A never receives B's records, platform/security/queue tables are absent, credentials are encrypted and never flashed, non-owner routes are rejected, repeated submissions/jobs do not create duplicates, edits/deletions/schema changes appear on retry, bad target credentials/foreign tables/ownership mismatches are refused, and an interrupted or over-limit run preserves the last verified copy. Also verify the dedicated target user cannot query the shared database. Do not activate real copies until this rehearsal and the production schema upgrade have passed.
+
+For dedicated primary databases and central snapshots, see [Dedicated institution databases](dedicated-institution-databases.md). The outbound copy configuration described above remains available for schools that have not been switched.

@@ -42,7 +42,7 @@ class PlatformAccess
                 $return = match ($name) {
                     'platform.plans.store' => route('platform.plans.create'),
                     'platform.plans.update' => route('platform.plans.edit', $request->route('plan')),
-                    'platform.institutions.status', 'platform.institutions.domain', 'platform.institutions.features', 'platform.institutions.copy.save', 'platform.institutions.copy.sync', 'platform.institutions.copy.pause' => route('platform.institutions.show', $request->route('institution')),
+                    'platform.institutions.status', 'platform.institutions.domain', 'platform.institutions.features', 'platform.institutions.copy.save', 'platform.institutions.copy.sync', 'platform.institutions.copy.pause', 'platform.institutions.copy.resume' => route('platform.institutions.show', $request->route('institution')),
                     'platform.administrators.invite', 'platform.administrators.update', 'platform.administrators.resend' => route('platform.administrators.index'),
                     default => route('platform.account.show'),
                 };

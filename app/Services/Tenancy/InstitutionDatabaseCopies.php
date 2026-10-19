@@ -78,6 +78,22 @@ class InstitutionDatabaseCopies
 
     public function synchronize(InstitutionDatabaseCopy $copy): void
     {
+        if (($copy->direction ?? 'outbound') === 'inbound') {
+            app(InstitutionCentralMirror::class)->synchronize($copy);
+
+            return;
+        }
+        app(InstitutionMutex::class)->run($copy->institution_id, function () use ($copy) {
+            $current = $copy->fresh();
+            if (! $current || $current->configuration_version !== $copy->configuration_version || $current->direction === 'inbound') {
+                return;
+            }
+            $this->synchronizeOutbound($copy);
+        });
+    }
+
+    private function synchronizeOutbound(InstitutionDatabaseCopy $copy): void
+    {
         if (app(TenantState::class)->id()) {
             throw new RuntimeException('Database copies must run outside institution request contexts.');
         }

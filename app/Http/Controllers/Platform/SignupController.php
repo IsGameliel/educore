@@ -5,16 +5,21 @@ namespace App\Http\Controllers\Platform;
 use App\Http\Controllers\Controller;
 use App\Models\Central\Institution;
 use App\Models\Central\InstitutionAccount;
+use App\Models\Central\InstitutionDomain;
 use App\Models\Central\Plan;
 use App\Models\Central\SubscriptionInvoice;
 use App\Models\Central\SubscriptionPayment;
+use App\Services\Tenancy\InstitutionDomains;
+use App\Services\Tenancy\InstitutionOnboarding;
 use App\Services\Tenancy\InstitutionProvisioner;
+use App\Services\Tenancy\SemesterBilling;
 use App\Services\Tenancy\SubscriptionPayments;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 class SignupController extends Controller
@@ -42,13 +47,13 @@ class SignupController extends Controller
             'semester_end' => 'required|date_format:Y-m-d|after:semester_start',
             'confirm_census' => 'accepted',
         ]);
-        $domain = \App\Services\Tenancy\InstitutionDomains::normalize($request->input('domain'));
+        $domain = InstitutionDomains::normalize($request->input('domain'));
         $base = strtolower(config('tenancy.institution_domain'));
         if (str_ends_with($domain, '.'.$base)) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['domain' => 'Use an address on your institution\'s own domain, such as portal.rivers-college.gov.ng.']);
+            throw ValidationException::withMessages(['domain' => 'Use an address on your institution\'s own domain, such as portal.rivers-college.gov.ng.']);
         }
-        if (\App\Models\Central\InstitutionDomain::where('domain', $domain)->exists()) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['domain' => 'This portal address is already assigned to an institution.']);
+        if (InstitutionDomain::where('domain', $domain)->exists()) {
+            throw ValidationException::withMessages(['domain' => 'This portal address is already assigned to an institution.']);
         }
         $institution = DB::connection(config('tenancy.central_connection'))->transaction(function () use ($request, $plan, $provisioner, $domain) {
             $plan = Plan::with('features')->where('signup_enabled', true)->lockForUpdate()->findOrFail($plan);
@@ -57,11 +62,11 @@ class SignupController extends Controller
                 'domain' => $domain,
                 'plan_code' => $plan->code, 'timezone' => 'Africa/Lagos',
             ]);
-            $institution->forceFill(['subscription_status' => 'awaiting_payment', 'settings' => ['domain_pending_verification' => true]])->save();
+            $institution->forceFill(['subscription_status' => 'awaiting_payment', 'settings' => ['domain_pending_verification' => true, 'dedicated_database_required' => (bool) config('tenancy.directadmin.enabled')]])->save();
             // Commit central records before the tenant connection writes school records.
             InstitutionAccount::create(['institution_id' => $institution->id, 'name' => $request->owner_name,
                 'email' => $institution->owner_email, 'password' => $request->password]);
-            app(\App\Services\Tenancy\SemesterBilling::class)->issue($institution, $plan, $request->only(['semester_name', 'semester_start', 'semester_end', 'student_count']));
+            app(SemesterBilling::class)->issue($institution, $plan, $request->only(['semester_name', 'semester_start', 'semester_end', 'student_count']));
 
             return $institution;
         });
@@ -112,7 +117,7 @@ class SignupController extends Controller
         }
         $institution = $this->institution();
 
-        $onboarding = app(\App\Services\Tenancy\InstitutionOnboarding::class);
+        $onboarding = app(InstitutionOnboarding::class);
         if ($onboarding->available($institution) && $onboarding->required($institution)) {
             return redirect()->route('subscription.onboarding');
         }
@@ -121,11 +126,10 @@ class SignupController extends Controller
             'invoice' => SubscriptionInvoice::where('institution_id', $institution->id)->orderByDesc('semester_start')->firstOrFail(),
             'invoices' => SubscriptionInvoice::where('institution_id', $institution->id)->orderByDesc('semester_start')->get(),
             'plans' => Plan::with('features')->where('signup_enabled', true)->orderBy('standard_rate_minor')->get(),
-            'portalAvailable' => $institution->status === 'ready' && app(\App\Services\Tenancy\SemesterBilling::class)->accessible($institution)]);
+            'portalAvailable' => app(InstitutionOnboarding::class)->available($institution)]);
     }
 
-
-    public function renew(Request $request, \App\Services\Tenancy\SemesterBilling $billing)
+    public function renew(Request $request, SemesterBilling $billing)
     {
         $institution = $this->institution();
         abort_unless($institution->status === 'ready', 403, 'School setup must be complete and suspension lifted before renewal.');
@@ -205,7 +209,7 @@ class SignupController extends Controller
     private function afterPayment(Institution $institution)
     {
         $institution->refresh();
-        if (app(\App\Services\Tenancy\InstitutionOnboarding::class)->available($institution)) {
+        if (app(InstitutionOnboarding::class)->available($institution)) {
             return redirect()->route('subscription.onboarding');
         }
 

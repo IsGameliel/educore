@@ -1168,3 +1168,23 @@ it('launch capability API binds bearer authentication and feature permissions to
     $this->withToken($tokens[$silver->id])->getJson('http://api-platinum.educore.test/api/institution/features')->assertUnauthorized();
     $this->withToken($tokens[$platinum->id])->getJson('http://api-platinum.educore.test/api/institution/features')->assertOk()->assertJsonPath('features.cbt',true)->assertJsonPath('features.result_management',true)->assertJsonPath('features.wallet',false)->assertJsonPath('features.mailing',false);
 });
+
+it('queues dedicated database creation only after verified payment and keeps academic entry closed during setup', function () {
+    config(['tenancy.directadmin.enabled'=>true,'tenancy.paystack_secret_key'=>'sk_test_fixture']);
+    Bus::fake([\App\Jobs\ProvisionInstitutionDatabase::class]);
+    Plan::whereKey('silver')->update(['signup_enabled'=>true]);
+    $this->post('http://educore.test/subscribe/silver',institutionSignupInput('dedicated-signup'))->assertRedirect();
+    $school=Institution::where('slug','dedicated-signup')->firstOrFail();
+    expect($school->settings['dedicated_database_required'])->toBeTrue();
+    Artisan::call('tenancy:databases-dispatch');
+    Bus::assertNotDispatched(\App\Jobs\ProvisionInstitutionDatabase::class);
+    $invoice=SubscriptionInvoice::firstOrFail();
+    $payment=SubscriptionPayment::create(['invoice_id'=>$invoice->id,'reference'=>'dedicated-verified-payment','email'=>'owner@example.test']);
+    Http::fake(['api.paystack.co/*'=>Http::response(['status'=>true,'data'=>['reference'=>$payment->reference,'id'=>99881,'status'=>'success',
+        'amount'=>2000000,'currency'=>'NGN','domain'=>'test','customer'=>['email'=>'owner@example.test']]])]);
+    app(SubscriptionPayments::class)->verify($payment);
+    Bus::assertDispatched(\App\Jobs\ProvisionInstitutionDatabase::class,fn($job)=>$job->institutionId===$school->id);
+    expect($invoice->fresh()->status)->toBe('paid')->and($school->fresh()->subscription_status)->toBe('active')
+        ->and(app(\App\Services\Tenancy\InstitutionOnboarding::class)->available($school->fresh()))->toBeFalse();
+    expect(\App\Models\Central\InstitutionDatabaseCopy::count())->toBe(0);
+});

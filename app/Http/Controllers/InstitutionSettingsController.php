@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Central\Institution;
+use App\Services\Tenancy\FeaturePermissions;
+use App\Services\Tenancy\InstitutionDatabases;
 use App\Services\Tenancy\TenantState;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +36,7 @@ class InstitutionSettingsController extends Controller
         try {
             DB::connection(config('tenancy.central_connection'))->transaction(function () use ($institution, $data, $settings) {
                 $institution->forceFill(['name' => $data['name'], 'timezone' => $data['timezone'], 'settings' => $settings])->save();
-                DB::connection(config('tenancy.central_connection'))->table('institution_profiles')->where('tenant_id', $institution->id)
+                app(InstitutionDatabases::class)->connection($institution->id)->table('institution_profiles')->where('tenant_id', $institution->id)
                     ->update(['name' => $data['name'], 'timezone' => $data['timezone'], 'updated_at' => now()]);
             });
         } catch (\Throwable $exception) {
@@ -58,7 +60,7 @@ class InstitutionSettingsController extends Controller
     {
         abort_if(str_contains($path, '..') || str_contains($path, '\\') || str_starts_with($path, '/'), 404);
         if (str_starts_with($path, 'course_materials/') || str_starts_with($path, 'course_material_covers/')) {
-            app(\App\Services\Tenancy\FeaturePermissions::class)->authorize('e_learning');
+            app(FeaturePermissions::class)->authorize('e_learning');
         }
         abort_unless(Storage::disk('public')->exists($path), 404);
 

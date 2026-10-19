@@ -20,7 +20,13 @@ return [
     'maintenance_file' => storage_path('framework/tenancy-maintenance.json'),
     'exports' => ['directory' => storage_path('app/private/institution-exports'), 'retention_days' => 7, 'max_bytes' => 64 * 1024 * 1024, 'max_rows' => 100000, 'max_ready' => 5],
     'operations' => ['max_jobs' => 1000, 'task_timeout' => 120, 'retry_after' => 180],
-    'database_copies' => ['max_rows' => 100000],
+    'database_copies' => ['max_rows' => 100000, 'max_bytes' => 64 * 1024 * 1024],
+    'directadmin' => [
+        'enabled' => env('DIRECTADMIN_DATABASES_ENABLED', false),
+        'url' => env('DIRECTADMIN_URL'),
+        'username' => env('DIRECTADMIN_USERNAME'),
+        'key' => env('DIRECTADMIN_LOGIN_KEY'),
+    ],
     'billing' => [
         'rules_status' => 'confirmed_semester_fixed_v1',
         'billable_student_basis' => 'enrolled',

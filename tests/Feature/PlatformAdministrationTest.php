@@ -1,16 +1,27 @@
 <?php
 
+use App\Jobs\SynchronizeInstitutionDatabase;
+use App\Models\Central\Institution;
+use App\Models\Central\InstitutionDatabaseCopy;
 use App\Models\Central\PlatformAdministrator;
+use App\Services\Tenancy\DirectAdminDatabases;
+use App\Services\Tenancy\InstitutionDatabaseCopies;
+use App\Services\Tenancy\InstitutionOnboarding;
+use App\Services\Tenancy\InstitutionProvisioner;
 use App\Services\Tenancy\PlatformSecurity;
+use App\Services\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use PragmaRX\Google2FA\Google2FA;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 beforeEach(function () {
     $this->platformRoot = storage_path('framework/testing/dashboard-'.Str::uuid());
@@ -47,9 +58,10 @@ function platformTestSession($test, PlatformAdministrator $admin, bool $confirme
     return $key;
 }
 
-function databaseCopySchool(string $slug): \App\Models\Central\Institution
+function databaseCopySchool(string $slug): Institution
 {
-    $service = app(\App\Services\Tenancy\InstitutionProvisioner::class);
+    $service = app(InstitutionProvisioner::class);
+
     return $service->provision($service->register(['slug' => $slug, 'name' => $slug, 'domain' => $slug.'.educore.test',
         'owner_name' => 'School Owner', 'owner_email' => 'owner@example.test', 'plan_code' => 'silver', 'timezone' => 'Africa/Lagos']), 'School-password-123');
 }
@@ -64,9 +76,9 @@ it('configures encrypted database copies only for owners without leaking credent
     $this->post($url, [...$data, 'password' => ''])->assertRedirect();
     DB::connection('central')->table('institution_database_copies')->update(['password' => 'damaged-ciphertext']);
     $this->post($url, $data)->assertRedirect();
-    $copy = \App\Models\Central\InstitutionDatabaseCopy::firstOrFail();
+    $copy = InstitutionDatabaseCopy::firstOrFail();
     expect($copy->password)->toBe($data['password'])->and($copy->enabled)->toBeTrue()
-        ->and(\App\Models\Central\InstitutionDatabaseCopy::count())->toBe(1)
+        ->and(InstitutionDatabaseCopy::count())->toBe(1)
         ->and(DB::connection('central')->getSchemaBuilder()->hasColumn('institution_database_copies', 'tenant_id'))->toBeFalse();
     expect(DB::connection('central')->table('institution_database_copies')->value('password'))->not->toBe($data['password']);
     expect(json_encode($copy))->not->toContain($data['password']);
@@ -98,13 +110,13 @@ it('rejects unsafe shared duplicate and incomplete database copy configuration',
     $this->withCredentials()->postJson('http://educore.test/dashboard/institutions/'.$other->id.'/database-copy', $data)->assertUnprocessable()->assertJsonValidationErrors('database_name');
     $this->withCredentials()->postJson('http://educore.test/dashboard/institutions/'.$other->id.'/database-copy', [...$data, 'database_name' => 'another_database'])->assertUnprocessable()->assertJsonValidationErrors('username');
     $this->withCredentials()->postJson($url, [...$data, 'database_name' => 'new_copy', 'password' => ''])->assertUnprocessable()->assertJsonValidationErrors('password');
-    expect(\App\Models\Central\InstitutionDatabaseCopy::count())->toBe(1);
+    expect(InstitutionDatabaseCopy::count())->toBe(1);
     platformTestSession($this, $this->owner->fresh(), false);
     $this->post($url, $data)->assertRedirect('http://educore.test/dashboard/confirm-password');
 });
 
 it('deduplicates database copy jobs recovers stale claims and pauses future synchronization', function () {
-    \Illuminate\Support\Facades\Queue::fake();
+    Queue::fake();
     $school = databaseCopySchool('copy-jobs');
     platformTestSession($this, $this->owner->fresh());
     $url = 'http://educore.test/dashboard/institutions/'.$school->id.'/database-copy';
@@ -113,15 +125,15 @@ it('deduplicates database copy jobs recovers stale claims and pauses future sync
     $this->post($url.'/sync')->assertRedirect();
     $this->post($url.'/sync')->assertRedirect();
     Artisan::call('tenancy:copies-dispatch');
-    \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SynchronizeInstitutionDatabase::class, 1);
+    Queue::assertPushed(SynchronizeInstitutionDatabase::class, 1);
     DB::connection('central')->table('institution_database_copies')->update(['queued_at' => now()->subMinutes(11)]);
     Artisan::call('tenancy:copies-dispatch');
-    \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SynchronizeInstitutionDatabase::class, 2);
+    Queue::assertPushed(SynchronizeInstitutionDatabase::class, 2);
     $this->post($url.'/pause', ['reason' => 'Pause synchronization during review'])->assertRedirect();
-    expect(\App\Models\Central\InstitutionDatabaseCopy::firstOrFail()->enabled)->toBeFalse();
-    (new \App\Jobs\SynchronizeInstitutionDatabase($school->id))->handle(app(\App\Services\Tenancy\InstitutionDatabaseCopies::class));
+    expect(InstitutionDatabaseCopy::firstOrFail()->enabled)->toBeFalse();
+    (new SynchronizeInstitutionDatabase($school->id))->handle(app(InstitutionDatabaseCopies::class));
     Artisan::call('tenancy:copies-dispatch');
-    \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SynchronizeInstitutionDatabase::class, 2);
+    Queue::assertPushed(SynchronizeInstitutionDatabase::class, 2);
 });
 
 it('enforces the role matrix on navigation and direct URLs', function () {
@@ -285,4 +297,47 @@ it('accepts real authenticator codes once and requires a factor to disable prote
     expect($this->owner->fresh()->two_factor_confirmed_at)->toBeNull()
         ->and($this->owner->fresh()->two_factor_secret)->toBeNull()
         ->and($this->owner->fresh()->security_version)->toBe(2);
+});
+
+it('protects dedicated primary connections and allows only owners to pause and resume central copies', function () {
+    $school = databaseCopySchool('primary-school');
+    $copy = InstitutionDatabaseCopy::create(['institution_id' => $school->id, 'database_name' => 'dedicated_school', 'username' => 'dedicated_user',
+        'password' => 'Private-primary-password-123', 'configuration_version' => (string) Str::uuid(), 'enabled' => true, 'direction' => 'inbound',
+        'primary_activated_at' => now(), 'statistics' => ['students' => 7, 'staff' => 2]]);
+    platformTestSession($this, $this->owner->fresh());
+    $url = 'http://educore.test/dashboard/institutions/'.$school->id.'/database-copy';
+    $this->get('http://educore.test/dashboard/institutions/'.$school->id)->assertOk()->assertSee('Dedicated primary database')->assertDontSee('Private-primary-password-123');
+    $this->post($url, ['database_name' => 'replacement', 'username' => 'replacement', 'password' => 'New-private-password', 'reason' => 'Attempt unsafe primary replacement', 'confirm_copy' => 1])->assertStatus(409);
+    $this->post($url.'/pause', ['reason' => 'Pause central copies for maintenance'])->assertRedirect();
+    expect($copy->fresh()->enabled)->toBeFalse()->and($copy->fresh()->direction)->toBe('inbound');
+    $this->get('http://educore.test/dashboard/institutions/'.$school->id)->assertOk()->assertSee('Resume central synchronization');
+    $this->post($url.'/resume', ['reason' => 'Resume verified central database copies'])->assertRedirect();
+    expect($copy->fresh()->enabled)->toBeTrue();
+    foreach (['support', 'finance', 'read_only'] as $role) {
+        $this->owner->forceFill(['role' => $role])->save();
+        platformTestSession($this, $this->owner->fresh());
+        $this->post($url.'/resume', ['reason' => 'Unauthorized central synchronization'])->assertForbidden();
+    }
+});
+
+it('blocks new dedicated school access until its primary database has been prepared', function () {
+    $school = databaseCopySchool('waiting-primary');
+    $school->forceFill(['settings' => ['dedicated_database_required' => true]])->save();
+    expect(app(InstitutionOnboarding::class)->available($school))->toBeFalse();
+    try {
+        app(TenantContext::class)->open($school);
+        $this->fail('Expected setup access to be blocked.');
+    } catch (HttpException $exception) {
+        expect($exception->getStatusCode())->toBe(503);
+    }
+    expect(InstitutionDatabaseCopy::count())->toBe(0);
+});
+
+it('keeps DirectAdmin provisioning disabled without a private server configuration', function () {
+    $school = databaseCopySchool('disabled-hosting');
+    config(['tenancy.directadmin.enabled' => false]);
+    Http::fake();
+    expect(fn () => app(DirectAdminDatabases::class)->create($school))->toThrow(RuntimeException::class);
+    Http::assertNothingSent();
+    expect(InstitutionDatabaseCopy::count())->toBe(0);
 });
