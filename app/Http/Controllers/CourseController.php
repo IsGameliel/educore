@@ -72,6 +72,7 @@ class CourseController extends Controller
             'code' => 'required|string|max:10',
             'title' => 'required|string|max:255',
             'credit_unit' => 'required|integer|min:1|max:10',
+            'course_status' => 'sometimes|required|in:Elective,Required,Compulsory',
             'semester' => 'required|string|in:First,Second',
             'department_ids' => 'required|array|min:1',
             'department_ids.*' => 'exists:departments,id',
@@ -94,6 +95,7 @@ class CourseController extends Controller
                     [
                         'title' => $validated['title'],
                         'credit_unit' => $validated['credit_unit'],
+                        'course_status' => $validated['course_status'] ?? 'Elective',
                     ]
                 );
 
@@ -179,6 +181,7 @@ class CourseController extends Controller
             'code' => 'required|string|max:10',
             'title' => 'required|string|max:255',
             'credit_unit' => 'required|integer|min:1|max:10',
+            'course_status' => 'sometimes|required|in:Elective,Required,Compulsory',
             'semester' => 'required|string|in:First,Second',
             'department_ids' => 'required|array|min:1',
             'department_ids.*' => 'exists:departments,id',
@@ -216,6 +219,7 @@ class CourseController extends Controller
                     'code' => $validated['code'],
                     'title' => $validated['title'],
                     'credit_unit' => $validated['credit_unit'],
+                    'course_status' => $validated['course_status'] ?? $course->course_status,
                     'semester' => $validated['semester'],
                     'department_id' => $departmentId,
                     'level' => $validated['level'],

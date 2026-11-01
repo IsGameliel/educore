@@ -364,6 +364,7 @@ class AcademicPortalController extends Controller
         $problems = [];
         $counts = collect();
         $broadsheet = collect();
+        $broadsheetRows = [];
         $performance = null;
         if (! empty($data['department_id']) && ! empty($data['session'])) {
             $departmentId = (int) $data['department_id'];
@@ -374,16 +375,25 @@ class AcademicPortalController extends Controller
             $published = $results->where('workflow_status', 'published');
             $broadsheetResults = $results->whereIn('workflow_status', ['reviewed', 'approved', 'published']);
             if ($request->boolean('export_broadsheet')) {
-                $request->validate(['include_unpublished' => 'nullable|boolean']);
+                $request->validate(['include_unpublished' => 'nullable|boolean', 'all_sessions' => 'nullable|boolean']);
                 $includeUnpublished = $request->boolean('include_unpublished');
+                $allSessions = $request->boolean('all_sessions');
+                if ($allSessions) {
+                    $selectedSession = AcademicSession::where('name', $session)->firstOrFail();
+                    $sessions = AcademicSession::where('start_year', '<=', $selectedSession->start_year)->pluck('name');
+                    $results = Result::with('user')->where('department_id', $departmentId)->whereIn('session', $sessions)
+                        ->when($data['semester'] ?? null, fn ($q, $semester) => $q->where('semester', $semester))->get();
+                    $broadsheetResults = $results->whereIn('workflow_status', ['reviewed', 'approved', 'published']);
+                }
                 $exportResults = $includeUnpublished ? $results : $broadsheetResults;
                 if ($exportResults->isEmpty()) {
                     return back()->withErrors(['broadsheet' => $results->isNotEmpty()
                         ? 'No reviewed, approved or published results match these filters. Use Export review copy (includes drafts) to review unpublished results.'
                         : 'No results match the selected department, session and semester.']);
                 }
+                $department = Department::with('faculty')->findOrFail($departmentId);
                 return \Maatwebsite\Excel\Facades\Excel::download(
-                    new DepartmentalBroadsheetExport($exportResults, Department::findOrFail($departmentId)->name, $session, $data['semester'] ?? null, $includeUnpublished),
+                    new DepartmentalBroadsheetExport($exportResults, $department->name, $session, $data['semester'] ?? null, $includeUnpublished, $allSessions, $department->faculty?->name),
                     $includeUnpublished ? 'departmental-broadsheet-review.xlsx' : 'departmental-broadsheet.xlsx',
                     \Maatwebsite\Excel\Excel::XLSX,
                     ['Cache-Control' => 'private, no-store'],
@@ -394,6 +404,10 @@ class AcademicPortalController extends Controller
             $performance = ['graded' => $graded->count(), 'passed' => $passedCount, 'failed' => $graded->count() - $passedCount, 'pass_rate' => $graded->isEmpty() ? null : round(100 * $passedCount / $graded->count(), 1)];
             $distribution = $published->map(fn ($r) => $r->outcome_status === 'graded' ? $r->grade : $r->outcome_status)->countBy();
             $broadsheet = $broadsheetResults->groupBy('user_id');
+            if ($broadsheetResults->isNotEmpty()) {
+                $department = Department::with('faculty')->findOrFail($departmentId);
+                $broadsheetRows = (new DepartmentalBroadsheetExport($broadsheetResults, $department->name, $session, $data['semester'] ?? null, false, false, $department->faculty?->name))->array();
+            }
             $rows = User::where('usertype', 'student')->where('department_id', $departmentId)->orderBy('name')->get()
                 ->map(fn ($student) => ['student' => $student, 'report' => AcademicStanding::report($student, $departmentId, $session, $data['semester'] ?? null)]);
             foreach ($results->unique(fn ($r) => $r->course_code.'-'.$r->semester) as $result) {
@@ -425,6 +439,6 @@ class AcademicPortalController extends Controller
             }, 'academic-standing.csv', ['Content-Type' => 'text/csv']);
         }
 
-        return view('academic.reports', compact('rows', 'distribution', 'problems', 'counts', 'broadsheet', 'performance') + $this->options());
+        return view('academic.reports', compact('rows', 'distribution', 'problems', 'counts', 'broadsheet', 'broadsheetRows', 'performance') + $this->options());
     }
 }

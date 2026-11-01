@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Resources | Modern Scholar Admin</title>
+    <meta name="description" content="Euvion guides for course registration, results, departmental broadsheets, tuition payments and school administration." />
+    <title>Euvion Resources | Guides for Students &amp; School Teams</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
@@ -111,204 +112,182 @@
                 <a class="cursor-pointer text-[#191b22]/70 transition-colors transition-transform duration-200 hover:-translate-y-[2px] hover:text-[#1A4175] dark:text-[#f2f3fd]/70" href="{{ url('/support') }}">Support</a>
             </nav>
             <div class="flex items-center gap-4">
-                <div class="mr-4 hidden items-center gap-2 sm:flex">
-                    <span class="material-symbols-outlined cursor-pointer text-[#1A4175]">help_outline</span>
-                    <span class="material-symbols-outlined cursor-pointer text-[#1A4175]">notifications</span>
-                </div>
                 <a class="text-sm font-semibold text-primary transition-colors hover:text-primary-container" href="{{ url('/login') }}">Sign In</a>
                 <a class="rounded-xl bg-gradient-to-br from-primary to-primary-container px-6 py-2 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-[2px] active:scale-95" href="{{ url('/register') }}">Get Started</a>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow pt-24">
-        <section class="mx-auto max-w-[1440px] px-6 py-16 lg:px-8">
-            <div class="flex max-w-4xl flex-col items-start gap-8">
-                <h1 class="text-5xl font-extrabold leading-tight tracking-tighter text-primary md:text-6xl">
-                    Knowledge Base <span class="text-primary/40">&amp;</span> Insights
-                </h1>
-                <p class="max-w-2xl text-lg leading-relaxed text-on-surface-variant">
-                    Access our comprehensive library of research, guides, and technical mastery tools designed to elevate academic administration.
-                </p>
-                <div class="relative mt-4 w-full">
-                    <div class="pointer-events-none absolute inset-y-0 left-4 flex items-center">
-                        <span class="material-symbols-outlined text-outline">search</span>
-                    </div>
-                    <input class="w-full rounded-xl border-none bg-surface-container-highest py-5 pl-12 pr-6 text-on-surface transition-all focus:ring-2 focus:ring-primary/20" placeholder="Search guides, case studies, or webinars..." type="text" />
+    <main class="flex-grow pt-24" id="main-content">
+        <section class="mx-auto max-w-[1280px] px-6 pb-12 pt-14 lg:px-8">
+            <div class="max-w-3xl">
+                <p class="mb-4 text-xs font-bold uppercase tracking-widest text-secondary">The Euvion resource centre</p>
+                <h1 class="text-4xl font-extrabold leading-tight tracking-tight text-primary md:text-6xl">Make everyday campus work simpler.</h1>
+                <p class="mt-6 text-lg leading-relaxed text-on-surface-variant">Practical guides for students, lecturers, exam officers and administrators using Euvion. Find your next step, from course registration to published results and tuition payments.</p>
+                <div class="mt-8 flex flex-wrap gap-3">
+                    <a href="#guides" class="rounded-xl bg-primary px-6 py-3 font-semibold text-white hover:bg-primary-container">Explore the guides</a>
+                    <a href="{{ url('/login') }}" class="rounded-xl border border-outline-variant px-6 py-3 font-semibold text-primary hover:bg-surface-container-low">Sign in to your portal</a>
                 </div>
-                <div class="mt-4 flex flex-wrap gap-3">
-                    <button class="rounded-full bg-primary px-5 py-2 text-sm font-medium text-on-primary transition-all hover:-translate-y-[2px]">All Resources</button>
-                    <button class="rounded-full bg-surface-container-high px-5 py-2 text-sm font-medium text-on-surface transition-all hover:-translate-y-[2px]">Case Studies</button>
-                    <button class="rounded-full bg-surface-container-high px-5 py-2 text-sm font-medium text-on-surface transition-all hover:-translate-y-[2px]">Product Guides</button>
-                    <button class="rounded-full bg-surface-container-high px-5 py-2 text-sm font-medium text-on-surface transition-all hover:-translate-y-[2px]">Webinars</button>
-                    <button class="rounded-full bg-surface-container-high px-5 py-2 text-sm font-medium text-on-surface transition-all hover:-translate-y-[2px]">Whitepapers</button>
-                </div>
+            </div>
+            <div class="mt-10 grid gap-4 sm:grid-cols-3">
+                @foreach([
+                    ['01', 'New to Euvion?', 'Start with your school portal and the account provided by your institution.', '#guide-getting-started'],
+                    ['02', 'Managing academic records?', 'Follow the result workflow and prepare departmental broadsheets.', '#guide-broadsheets'],
+                    ['03', 'Need help with an issue?', 'Find the right information to share with your school or Euvion support.', '#getting-help'],
+                ] as [$number, $title, $description, $link])
+                <a href="{{ $link }}" class="rounded-xl border border-outline-variant/50 bg-white p-6 transition-colors hover:border-primary">
+                    <span class="text-xs font-bold text-secondary">{{ $number }}</span>
+                    <h2 class="mb-2 mt-3 text-lg font-bold text-primary">{{ $title }}</h2>
+                    <p class="text-sm leading-relaxed text-on-surface-variant">{{ $description }}</p>
+                </a>
+                @endforeach
             </div>
         </section>
 
-        <section class="bg-surface-container-low py-24">
-            <div class="mx-auto max-w-[1440px] px-6 lg:px-8">
-                <div class="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-                    <div>
-                        <span class="mb-2 block text-xs font-bold uppercase tracking-widest text-primary">Global Excellence</span>
-                        <h2 class="text-4xl font-bold tracking-tight text-primary">Success Stories</h2>
-                    </div>
-                    <button class="group flex items-center gap-2 font-semibold text-primary">
-                        View all stories <span class="material-symbols-outlined transition-transform group-hover:translate-x-1">arrow_forward</span>
-                    </button>
+        @php
+            $guides = [
+                ['id' => 'getting-started', 'category' => 'Getting started', 'icon' => 'explore', 'audience' => 'Everyone', 'title' => 'Access your Euvion school portal',
+                    'description' => 'Get into the right school portal and find the tools available to your role.',
+                    'steps' => ['Open the portal address shared by your institution and sign in with your school account.', 'Complete email verification if prompted, then check your profile details and department.', 'Use the dashboard menu to access your available services. Menus depend on your role and the features enabled for your school.'],
+                    'note' => 'If your account, role or school details are incorrect, contact your institution administrator.'],
+                ['id' => 'registration', 'category' => 'Students', 'icon' => 'how_to_reg', 'audience' => 'Students and administrators', 'title' => 'Register courses for the right session',
+                    'description' => 'Check your academic session, semester and level before submitting course registration.',
+                    'steps' => ['Open course registration from your student dashboard and check the displayed session, semester and level.', 'Select the courses available to you. Check course units, prerequisites and the credit limit shown by the portal.', 'Submit your registration and review its status. Download your registration form where available.'],
+                    'note' => 'For a missing course, incorrect level or historical registration, ask your department or school administrator to review the record.'],
+                ['id' => 'student-results', 'category' => 'Students', 'icon' => 'school', 'audience' => 'Students', 'title' => 'View results, appeals and transcripts',
+                    'description' => 'Find published grades and use the academic records services available to your account.',
+                    'steps' => ['Open Results and select the session and semester you want to view. Only published results are visible to students.', 'If a published mark needs review, open Appeals and provide the course details and a clear explanation.', 'Open Transcripts to submit a request and track its decision. Follow any instructions provided by your institution.'],
+                    'note' => 'Missing or unpublished results should be raised with your department. An appeal or transcript request is subject to institutional review.'],
+                ['id' => 'result-workflow', 'category' => 'Academic records', 'icon' => 'fact_check', 'audience' => 'Lecturers, exam officers and administrators', 'title' => 'Enter, review and publish results',
+                    'description' => 'Move marks from draft entry through review, approval and publication.',
+                    'steps' => ['Use Enter Results or Upload Results for the appropriate course, session and semester. For bulk uploads, use the template supplied in Euvion.', 'Check student registrations, marks and validation messages before submitting the draft results.', 'Authorized exam officers or administrators review, approve and publish results through Review & Publish. Students see marks after publication.'],
+                    'note' => 'Submitted marks are locked for editing. Use the permitted return-to-draft or correction workflow when a change is required.'],
+                ['id' => 'broadsheets', 'category' => 'Academic records', 'icon' => 'table_chart', 'audience' => 'Exam officers and administrators', 'title' => 'Export departmental broadsheets',
+                    'description' => 'Prepare scores, letter grades and grade points for one session or all available sessions.',
+                    'steps' => ['Open Academic Reports and select a department and academic session. Choose a semester or leave it open for both semesters.', 'Choose Export broadsheet (Excel) for the selected session, or Export all available sessions (Excel) for earlier sessions through the selected session. A student in 200L can therefore have available 100L and 200L results in the same workbook.', 'Review the separate Scores, Letter Grade and Grade Point tables. Results are grouped by recorded level, session and semester, with student details, course units, TCC, TCE, TGP, GPA and carryovers.'],
+                    'note' => 'The standard export includes reviewed, approved and published results. Review copies also include drafts. Unpublished marks are labelled; summaries and GPA use published results only.'],
+                ['id' => 'payments', 'category' => 'Payments', 'icon' => 'payments', 'audience' => 'Students and finance staff', 'title' => 'Check tuition invoices and payment status',
+                    'description' => 'Review the amount due, follow checkout and keep a record of confirmed payments.',
+                    'steps' => ['Open My Payments or the tuition services available in your school portal. Review your invoice, fee breakdown and balance.', 'Use the payment option provided by your institution and follow the checkout instructions.', 'Return to Euvion to check the payment status. Where available, refresh a pending payment and download the receipt after confirmation.'],
+                    'note' => 'For an unresolved payment, share the transaction reference, amount and date with your school finance office. Never share your password, card PIN or one-time code.'],
+                ['id' => 'teaching', 'category' => 'Teaching', 'icon' => 'menu_book', 'audience' => 'Students and lecturers', 'title' => 'Find course materials, schedules and tests',
+                    'description' => 'Keep teaching resources and scheduled academic activities in view.',
+                    'steps' => ['Students can open course materials and filter for the course they need, then download available files.', 'Lecturers can use their authorized course-material tools to upload and manage files for their courses.', 'Check your class schedule and available tests in the dashboard. Follow the instructions and timing displayed for each activity.'],
+                    'note' => 'If a material, class or test is missing, confirm the course and session with the lecturer or department. Access depends on your school setup.'],
+                ['id' => 'administration', 'category' => 'Getting started', 'icon' => 'settings', 'audience' => 'School administrators', 'title' => 'Prepare your school for a new session',
+                    'description' => 'Organize academic records and school settings before students begin registration.',
+                    'steps' => ['Review faculties, departments, staff accounts, courses and lecturer assignments.', 'Check academic sessions, student levels, registration settings, credit limits and the grading and promotion policies applicable to your school.', 'Review tuition schedules with finance staff and confirm the payment integration where enabled. Use the backup or school export tools available to your institution before major record changes.'],
+                    'note' => 'Confirm your school policies before changing session, registration or grading settings. Available modules depend on your institution plan and permissions.'],
+            ];
+        @endphp
+        <section id="guides" class="scroll-mt-28 bg-surface-container-low py-16">
+            <div class="mx-auto max-w-[1280px] px-6 lg:px-8">
+                <div class="mb-8 max-w-2xl">
+                    <h2 class="text-3xl font-bold tracking-tight text-primary">Find a guide for your task</h2>
+                    <p class="mt-3 text-on-surface-variant">Open any guide for step-by-step instructions. Your school determines which features and services you can access.</p>
                 </div>
-                <div class="grid grid-cols-12 gap-8">
-                    <div class="group col-span-12 cursor-pointer lg:col-span-8">
-                        <div class="relative h-[500px] overflow-hidden rounded-xl">
-                            <img alt="Featured Case Study" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxEBj-86kmNdOayx52sVxELEkrEgOd-Kdux7TL70KxzJfxwJZ-Q1e6iVWFYuHrorykLG5c3RXOm9bQ5HQbibpmzUwEPUQ6ccXtg1VEaGHgz7VUjmQwGbSkPAnrfSTFW5GLcEFH2eQPpFH_rSzZMGcepwHOfLLoyNeRofTzNjRq19_xU70rUxyNfUTqa6Jj5Zat5HnzQvPsb8XrmjXTMHA4h-z29zZz8QbLWEQWqrr9uinCKnuIUG5gE4IPf2jD-uxlryvRhGkCy30N" />
-                            <div class="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/40 to-transparent"></div>
-                            <div class="absolute bottom-0 p-8 text-white md:p-12">
-                                <span class="mb-4 inline-block rounded bg-secondary-container px-3 py-1 text-xs font-bold uppercase tracking-widest text-on-secondary-fixed-variant">Case Study</span>
-                                <h3 class="mb-4 text-3xl font-bold md:text-4xl">Stanford Global Scaled Remote Learning</h3>
-                                <p class="mb-6 max-w-xl text-lg text-on-primary-container">How one of the world's leading institutions transitioned 12,000+ students to a hybrid ecosystem within weeks using Euvion's unified dashboard.</p>
-                                <button class="rounded-xl bg-white px-8 py-3 font-bold text-primary transition-colors hover:bg-primary-fixed">Read Full Study</button>
-                            </div>
-                        </div>
+                <div id="resource-controls" hidden>
+                    <label for="resource-search" class="mb-2 block text-sm font-semibold text-primary">Search Euvion guides</label>
+                    <input id="resource-search" type="search" placeholder="Try course registration, broadsheet or payment..." class="w-full rounded-xl border border-outline-variant bg-white px-5 py-4 text-on-surface focus:ring-2 focus:ring-primary" aria-controls="resource-guides" />
+                    <div class="my-5 flex flex-wrap gap-2" role="group" aria-label="Filter guides by topic">
+                        @foreach(['All guides', 'Getting started', 'Students', 'Academic records', 'Payments', 'Teaching'] as $category)
+                        <button type="button" data-resource-filter="{{ $category }}" aria-pressed="{{ $loop->first ? 'true' : 'false' }}" class="rounded-full border border-outline-variant px-4 py-2 text-sm font-semibold transition-colors {{ $loop->first ? 'bg-primary text-white' : 'bg-white text-primary' }}">{{ $category }}</button>
+                        @endforeach
                     </div>
-
-                    <div class="col-span-12 flex flex-col gap-8 lg:col-span-4">
-                        <div class="cloud-shadow flex flex-col gap-4 rounded-xl border-l-4 border-primary bg-surface-container-lowest p-8">
-                            <span class="text-xs font-bold uppercase tracking-tighter text-tertiary-container">Research Lab</span>
-                            <h4 class="text-xl font-bold leading-tight">Optimizing Neural Network Training Infrastructure for PhD Candidates</h4>
-                            <a class="flex items-center gap-1 text-sm font-semibold text-primary-container" href="#">Download PDF <span class="material-symbols-outlined text-sm">download</span></a>
+                    <p id="resource-count" class="mb-6 text-sm text-on-surface-variant" role="status" aria-live="polite" aria-atomic="true"></p>
+                </div>
+                <div id="resource-guides" class="grid items-start gap-6 md:grid-cols-2">
+                    @foreach($guides as $guide)
+                    <article id="guide-{{ $guide['id'] }}" data-resource-card data-category="{{ $guide['category'] }}" class="scroll-mt-28 rounded-xl border border-outline-variant/50 bg-white p-6 cloud-shadow md:p-8">
+                        <div class="mb-5 flex items-center justify-between gap-3">
+                            <span class="material-symbols-outlined rounded-xl bg-surface-container-low p-3 text-primary" aria-hidden="true">{{ $guide['icon'] }}</span>
+                            <span class="text-xs font-bold uppercase tracking-wide text-secondary">{{ $guide['category'] }}</span>
                         </div>
-                        <div class="cloud-shadow flex flex-col gap-4 rounded-xl border-l-4 border-secondary bg-surface-container-lowest p-8">
-                            <span class="text-xs font-bold uppercase tracking-tighter text-secondary">K-12 Success</span>
-                            <h4 class="text-xl font-bold leading-tight">Bridging the Digital Divide: District-Wide Implementation in Rural Ohio</h4>
-                            <a class="flex items-center gap-1 text-sm font-semibold text-primary-container" href="#">Read Story <span class="material-symbols-outlined text-sm">open_in_new</span></a>
-                        </div>
-                        <div class="cloud-shadow flex flex-col gap-4 rounded-xl border-l-4 border-on-tertiary-container bg-surface-container-lowest p-8">
-                            <span class="text-xs font-bold uppercase tracking-tighter text-on-tertiary-container">Alumni Relations</span>
-                            <h4 class="text-xl font-bold leading-tight">Increasing Endowment Engagement by 40% via Data Personalization</h4>
-                            <a class="flex items-center gap-1 text-sm font-semibold text-primary-container" href="#">View Metrics <span class="material-symbols-outlined text-sm">trending_up</span></a>
-                        </div>
-                    </div>
+                        <p class="mb-2 text-xs text-on-surface-variant">{{ $guide['audience'] }}</p>
+                        <h3 class="text-xl font-bold leading-snug text-primary">{{ $guide['title'] }}</h3>
+                        <p class="mb-5 mt-3 text-sm leading-relaxed text-on-surface-variant">{{ $guide['description'] }}</p>
+                        <details class="border-t border-outline-variant/50 pt-4">
+                            <summary class="cursor-pointer font-semibold text-primary">Read guide<span class="sr-only">: {{ $guide['title'] }}</span></summary>
+                            <ol class="mt-5 list-decimal space-y-3 pl-5 text-sm leading-relaxed text-on-surface-variant">
+                                @foreach($guide['steps'] as $step)<li>{{ $step }}</li>@endforeach
+                            </ol>
+                            <p class="mt-5 rounded-lg bg-surface-container-low p-4 text-sm leading-relaxed text-on-surface-variant">{{ $guide['note'] }}</p>
+                        </details>
+                    </article>
+                    @endforeach
+                </div>
+                <div id="resource-empty" hidden class="rounded-xl border border-outline-variant bg-white p-10 text-center">
+                    <h3 class="text-xl font-bold text-primary">No guides match your search</h3>
+                    <p class="mb-5 mt-2 text-on-surface-variant">Try a different keyword or show all topics.</p>
+                    <button id="resource-reset" type="button" class="rounded-xl bg-primary px-6 py-3 font-semibold text-white">Show all guides</button>
                 </div>
             </div>
         </section>
-
-        <section class="mx-auto max-w-[1440px] px-6 py-24 lg:px-8">
-            <div class="mb-16">
-                <h2 class="mb-4 text-4xl font-bold tracking-tight text-primary">Technical Mastery</h2>
-                <p class="max-w-xl text-on-surface-variant">Deep-dive technical documentation and configuration guides for high-level administrative users.</p>
-            </div>
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <div class="group cursor-pointer rounded-xl border border-outline-variant/20 bg-surface p-8 transition-all hover:border-primary/40 hover:bg-surface-container-lowest hover:shadow-lg">
-                    <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-primary-fixed text-primary transition-transform group-hover:scale-110">
-                        <span class="material-symbols-outlined">settings_suggest</span>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold">Initial Setup</h3>
-                    <p class="mb-6 text-sm text-on-surface-variant">Step-by-step framework for deploying Euvion across multiple campus nodes.</p>
-                    <span class="text-xs font-bold uppercase tracking-widest text-primary">12 Chapters</span>
+        <section id="getting-help" class="mx-auto max-w-[1280px] scroll-mt-28 px-6 py-16 lg:px-8">
+            <div class="grid gap-10 rounded-2xl bg-primary p-8 text-white md:grid-cols-2 md:p-12">
+                <div>
+                    <p class="mb-3 text-xs font-bold uppercase tracking-widest text-secondary-container">Help with the next step</p>
+                    <h2 class="text-3xl font-bold">Need a hand with Euvion?</h2>
+                    <p class="mt-4 leading-relaxed text-white/80">For account access, course registration, marks or tuition records, start with your school administrator, department or finance office. They manage your institutional records.</p>
+                    <p class="mt-4 leading-relaxed text-white/80">For a technical issue, note the page, what you were trying to do and the error message. Include your school name when contacting support.</p>
+                    <a href="{{ url('/support') }}" class="mt-6 inline-block rounded-xl bg-white px-6 py-3 font-semibold text-primary">Visit Euvion support</a>
                 </div>
-                <div class="group cursor-pointer rounded-xl border border-outline-variant/20 bg-surface p-8 transition-all hover:border-primary/40 hover:bg-surface-container-lowest hover:shadow-lg">
-                    <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-secondary-fixed text-secondary transition-transform group-hover:scale-110">
-                        <span class="material-symbols-outlined">analytics</span>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold">Data Analytics</h3>
-                    <p class="mb-6 text-sm text-on-surface-variant">Advanced query building and predictive modeling for student performance.</p>
-                    <span class="text-xs font-bold uppercase tracking-widest text-primary">8 Modules</span>
+                <div class="flex flex-col justify-center gap-4">
+                    <a href="{{ url('/faq') }}" class="rounded-xl border border-white/20 p-5 hover:bg-white/10"><h3 class="font-bold">Frequently asked questions &rarr;</h3><p class="mt-1 text-sm text-white/80">Explore answers about the platform and getting started.</p></a>
+                    <a href="{{ url('/pricing') }}" class="rounded-xl border border-white/20 p-5 hover:bg-white/10"><h3 class="font-bold">Explore Euvion plans &rarr;</h3><p class="mt-1 text-sm text-white/80">Review the features available for your institution.</p></a>
+                    <a href="{{ url('/request-demo') }}" class="rounded-xl border border-white/20 p-5 hover:bg-white/10"><h3 class="font-bold">Request a demonstration &rarr;</h3><p class="mt-1 text-sm text-white/80">See how Euvion fits your school's academic workflows.</p></a>
                 </div>
-                <div class="group cursor-pointer rounded-xl border border-outline-variant/20 bg-surface p-8 transition-all hover:border-primary/40 hover:bg-surface-container-lowest hover:shadow-lg">
-                    <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-tertiary-fixed text-tertiary transition-transform group-hover:scale-110">
-                        <span class="material-symbols-outlined">shield_person</span>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold">Privacy &amp; Compliance</h3>
-                    <p class="mb-6 text-sm text-on-surface-variant">Ensuring FERPA, GDPR, and localized data residency requirements are met.</p>
-                    <span class="text-xs font-bold uppercase tracking-widest text-primary">Legal Review</span>
-                </div>
-                <div class="group cursor-pointer rounded-xl border border-outline-variant/20 bg-surface p-8 transition-all hover:border-primary/40 hover:bg-surface-container-lowest hover:shadow-lg">
-                    <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-on-primary-container/20 text-[#1A4175] transition-transform group-hover:scale-110">
-                        <span class="material-symbols-outlined">api</span>
-                    </div>
-                    <h3 class="mb-2 text-lg font-bold">API Integrations</h3>
-                    <p class="mb-6 text-sm text-on-surface-variant">Documentation for syncing SIS, LMS, and financial systems via our REST API.</p>
-                    <span class="text-xs font-bold uppercase tracking-widest text-primary">Developer SDK</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="relative overflow-hidden bg-primary py-24 text-white">
-            <div class="pointer-events-none absolute right-0 top-0 h-full w-1/3 opacity-10">
-                <svg class="h-full w-full" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M0,400 Q200,300 400,400 L400,0 L0,0 Z" fill="white"></path>
-                </svg>
-            </div>
-            <div class="relative z-10 mx-auto max-w-[1440px] px-6 lg:px-8">
-                <div class="mb-16 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <h2 class="mb-4 text-4xl font-bold">Interactive Webinars</h2>
-                        <p class="max-w-lg text-on-primary-container">Join live sessions with academic leaders or catch up on our extensive on-demand library.</p>
-                    </div>
-                    <div class="flex gap-4">
-                        <button class="rounded-lg bg-white/10 px-6 py-2 font-medium transition-all hover:bg-white/20">Browse On-Demand</button>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
-                    <div class="flex flex-col overflow-hidden rounded-2xl bg-primary-container shadow-2xl md:flex-row">
-                        <div class="relative h-48 md:h-auto md:w-1/3">
-                            <img alt="Webinar Host" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeOvCJtETxZS9pEIF3z4zCQn1bz6K2Rb3-_Etzef4-ex_jFCYEYHroleIx2wovuxI4TSt_tJaFy21GjMSOT6Ur0L8A3AayaRV1RH5XFU2ZRehlkPqxw8F7w51j6WQAmvVZDbBnWeMc78b-Y9IZhPJMXcpK1RnsedaxKbtP5VkeqG30kEKk9Ri_MjWefStSfbZAiLWZgati-QR_ScNVgZ1BPPGEjUGQaEqFFNFRFr6TDKPuFZMguwydtMLEeg9V49JmpBej5PL8SSFi" />
-                            <div class="absolute left-4 top-4 flex items-center gap-1 rounded bg-error px-2 py-1 text-[10px] font-bold uppercase">
-                                <span class="h-2 w-2 rounded-full bg-white"></span> Live Oct 24
-                            </div>
-                        </div>
-                        <div class="flex flex-col justify-center p-8 md:w-2/3">
-                            <h3 class="mb-2 text-2xl font-bold">The Future of AI in Curriculum Planning</h3>
-                            <p class="mb-6 text-sm italic text-on-primary-container">With Dr. Elena Vance, Head of Educational Technology at Oxford</p>
-                            <button class="self-start rounded-xl bg-secondary-container px-6 py-3 font-bold text-on-secondary-fixed-variant transition-all hover:scale-105">Register Now</button>
-                        </div>
-                    </div>
-                    <div class="flex flex-col overflow-hidden rounded-2xl bg-primary-container opacity-90 shadow-2xl md:flex-row">
-                        <div class="relative h-48 md:h-auto md:w-1/3">
-                            <img alt="Webinar Background" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaHa1JXjm6YQDrnSlB_4bk4cSVA7yXdkNSU98ULkCMmY819QSTrPs141Lt8eaem7OyIDyVkKhwULgPVktRnUH7p8dhscn94TdkoOGBHs1c4oN-_lRznFQhW6k9hejEoQA2_HhcitCG79SyB-d0Y2ZiMO3Jealt_S0ARlOVrfYJF75pa6MM_b0lr46haT49aKuGKyr4njq4BTV6rpCjs89nY3H-8l8f6jRpvgAT4pQy7mTSCwbgT3pq4um0juN20XNMYQmqVBU6vni3" />
-                            <div class="absolute inset-0 flex items-center justify-center">
-                                <span class="material-symbols-outlined text-6xl text-white/50">play_circle</span>
-                            </div>
-                        </div>
-                        <div class="flex flex-col justify-center p-8 md:w-2/3">
-                            <h3 class="mb-2 text-2xl font-bold">Data Security for Multi-Campus Districts</h3>
-                            <p class="mb-6 text-sm italic text-on-primary-container">Recorded Session: IT Governance Series</p>
-                            <button class="self-start rounded-xl border border-white/20 bg-white/10 px-6 py-3 font-bold text-white transition-all hover:bg-white/20">Watch Recording</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="mx-auto max-w-[1200px] px-6 py-24 lg:px-8">
-            <div class="flex flex-col items-center gap-8 rounded-[2rem] bg-surface-container-low p-10 text-center shadow-sm md:p-16">
-                <span class="material-symbols-outlined text-5xl text-primary">mail</span>
-                <div class="max-w-2xl">
-                    <h2 class="mb-4 text-4xl font-bold tracking-tight text-primary">Never miss an update</h2>
-                    <p class="text-on-surface-variant">Join 5,000+ academic leaders who receive our monthly digest of educational insights, product updates, and technical breakthroughs.</p>
-                </div>
-                <form class="flex w-full max-w-lg flex-col gap-4 md:flex-row">
-                    <input class="flex-grow rounded-xl border-none bg-white px-6 py-4 text-on-surface focus:ring-2 focus:ring-primary/20" placeholder="Your academic email" type="email" />
-                    <button class="whitespace-nowrap rounded-xl bg-primary px-8 py-4 font-bold text-white shadow-md transition-all hover:-translate-y-[2px]">Subscribe Now</button>
-                </form>
-                <p class="text-xs text-on-surface-variant opacity-60">We value your privacy. Unsubscribe at any time.</p>
             </div>
         </section>
     </main>
-
-    <footer class="mt-auto w-full bg-[#f2f3fd] py-12 dark:bg-[#12141a]">
-        <div class="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-8 px-6 md:flex-row lg:px-12">
-            <div class="flex flex-col gap-2">
-                <div class="font-['Manrope'] text-lg font-bold text-[#1A4175]">Euvion</div>
-                <div class="font-['Inter'] text-sm tracking-normal text-[#191b22]/60 dark:text-[#f2f3fd]/60">&copy; 2024 Euvion. Empowering Academic Authority.</div>
-            </div>
-            <nav class="flex flex-wrap gap-8 font-['Inter'] text-sm tracking-normal">
-                <a class="text-[#191b22]/60 transition-colors hover:text-[#1A4175] dark:text-[#f2f3fd]/60 dark:hover:text-white" href="#">Privacy Policy</a>
-                <a class="text-[#191b22]/60 transition-colors hover:text-[#1A4175] dark:text-[#f2f3fd]/60 dark:hover:text-white" href="#">Terms of Service</a>
-                <a class="text-[#191b22]/60 transition-colors hover:text-[#1A4175] dark:text-[#f2f3fd]/60 dark:hover:text-white" href="#">Support Hub</a>
-                <a class="text-[#191b22]/60 transition-colors hover:text-[#1A4175] dark:text-[#f2f3fd]/60 dark:hover:text-white" href="#">Contact Sales</a>
+    <footer class="mt-auto bg-surface-container-low py-10">
+        <div class="mx-auto flex max-w-[1280px] flex-col justify-between gap-6 px-6 md:flex-row lg:px-8">
+            <div><a href="{{ url('/') }}" class="text-lg font-bold text-primary">Euvion</a><p class="mt-2 text-sm text-on-surface-variant">Academic administration, connected.</p><p class="mt-3 text-xs text-on-surface-variant">&copy; {{ now()->year }} Euvion. All rights reserved.</p></div>
+            <nav aria-label="Footer" class="flex flex-wrap items-start gap-6 text-sm font-semibold text-primary">
+                <a href="{{ url('/pricing') }}">Pricing</a><a href="{{ url('/faq') }}">FAQ</a><a href="{{ url('/support') }}">Support</a><a href="{{ url('/request-demo') }}">Request a demo</a>
             </nav>
         </div>
     </footer>
+    <script>
+        (() => {
+            const search = document.getElementById('resource-search');
+            const cards = [...document.querySelectorAll('[data-resource-card]')];
+            const filters = [...document.querySelectorAll('[data-resource-filter]')];
+            let category = 'All guides';
+            const update = () => {
+                const terms = search.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+                let count = 0;
+                cards.forEach(card => {
+                    const text = card.textContent.toLowerCase();
+                    card.hidden = !(category === 'All guides' || card.dataset.category === category) || !terms.every(term => text.includes(term));
+                    if (!card.hidden) count++;
+                });
+                filters.forEach(button => {
+                    const active = button.dataset.resourceFilter === category;
+                    button.setAttribute('aria-pressed', String(active));
+                    button.classList.toggle('bg-primary', active);
+                    button.classList.toggle('text-white', active);
+                    button.classList.toggle('bg-white', !active);
+                    button.classList.toggle('text-primary', !active);
+                });
+                document.getElementById('resource-count').textContent = `${count} ${count === 1 ? 'guide' : 'guides'} found`;
+                document.getElementById('resource-empty').hidden = count !== 0;
+            };
+            filters.forEach(button => button.addEventListener('click', () => { category = button.dataset.resourceFilter; update(); }));
+            search.addEventListener('input', update);
+            document.getElementById('resource-reset').addEventListener('click', () => { search.value = ''; category = 'All guides'; update(); search.focus(); });
+            const followGuide = () => {
+                const card = cards.find(card => `#${card.id}` === window.location.hash);
+                if (!card) return;
+                search.value = ''; category = 'All guides'; update();
+                card.querySelector('details').open = true;
+                card.scrollIntoView({ block: 'start' });
+            };
+            document.getElementById('resource-controls').hidden = false;
+            window.addEventListener('hashchange', followGuide);
+            update();
+            followGuide();
+        })();
+    </script>
 </body>
 </html>

@@ -23,8 +23,7 @@
 </head>
 <body>
 <div class="header">
-    <img src="{{ public_path('asset/images/euvion.png') }}" alt="University Logo">
-    <h1>{{ config('app.name', 'University') }}</h1>
+    <h1>{{ config('institution.branding.name') ?: 'University' }}</h1>
     <h2>{{ $document->official ? 'Official Transcript' : 'Student Copy - Unofficial' }}</h2>
 </div>
 
@@ -54,7 +53,7 @@
                     <th>Course Code</th>
                     <th>Course Title</th>
                     <th>Unit</th>
-                    <th>Score</th>
+
                     <th>Grade Point</th>
                     <th>Grade Letter</th>
                     <th>Remark</th>
@@ -66,7 +65,7 @@
                     <td>{{ $result->course_code }}</td>
                     <td>{{ $result->course_title }}</td>
                     <td>{{ $result->credit_unit }}</td>
-                    <td>{{ $result->score ?? '—' }}</td>
+
                     <td>{{ $result->grade_point ?? '—' }}</td>
                     <td>{{ $result->grade ?? '—' }}</td>
                     <td>{{ strtoupper($result->grade ?? '') === 'F' ? 'Fail' : 'Pass' }}</td>

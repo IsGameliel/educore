@@ -33,6 +33,7 @@ class CourseImport implements ToCollection, WithHeadingRow
             $data = [
                 'code' => preg_replace('/([A-Za-z])(?=[0-9])/', '$1 ', trim((string) ($row['code'] ?? ''))),
                 'title' => trim((string) ($row['title'] ?? '')),
+                'course_status' => $this->normalizeStatus($row['status'] ?? $row['course_status'] ?? 'Elective'),
                 'credit_unit' => $row['credit_unit'] ?? null,
                 'semester' => trim((string) ($row['semester'] ?? '')),
                 'level' => trim((string) ($row['level'] ?? '')),
@@ -43,6 +44,7 @@ class CourseImport implements ToCollection, WithHeadingRow
             $validator = Validator::make($data, [
                 'code' => ['required', 'string', 'max:10'],
                 'title' => ['required', 'string', 'max:255'],
+                'course_status' => ['required', Rule::in(Courses::STATUSES)],
                 'credit_unit' => ['required', 'integer', 'min:1', 'max:10'],
                 'semester' => ['required', Rule::in(['First', 'Second'])],
                 'level' => ['required', Rule::in(['100', '200', '300', '400', '500', '600'])],
@@ -72,6 +74,7 @@ class CourseImport implements ToCollection, WithHeadingRow
                     [
                         'title' => $data['title'],
                         'credit_unit' => (int) $data['credit_unit'],
+                        'course_status' => $data['course_status'],
                     ]
                 );
 
@@ -81,11 +84,15 @@ class CourseImport implements ToCollection, WithHeadingRow
                     continue;
                 }
 
-                if ($course->title !== $data['title'] || (int) $course->credit_unit !== (int) $data['credit_unit']) {
+                $status = ! isset($row['status']) && ! isset($row['course_status'])
+                    ? $course->course_status : $data['course_status'];
+
+                if ($course->title !== $data['title'] || (int) $course->credit_unit !== (int) $data['credit_unit'] || $course->course_status !== $status) {
                     $oldCreditUnit = $course->credit_unit;
                     $course->update([
                         'title' => $data['title'],
                         'credit_unit' => (int) $data['credit_unit'],
+                        'course_status' => $status,
                     ]);
                     $this->logCourseUpdated($course->fresh(), $oldCreditUnit);
                 }
@@ -93,6 +100,12 @@ class CourseImport implements ToCollection, WithHeadingRow
                 $this->skipped++;
             }
         }
+    }
+
+    protected function normalizeStatus($value): string
+    {
+        $value = strtolower(trim((string) $value));
+        return ['e' => 'Elective', 'r' => 'Required', 'c' => 'Compulsory'][$value] ?? ucfirst($value);
     }
 
     protected function extractDepartmentIds($row): array

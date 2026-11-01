@@ -105,7 +105,14 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="credit_unit">Credit Unit</label>
+                        <div class="form-group">
+    <label for="course_status">Course Status</label>
+    <select name="course_status" id="course_status" class="form-control" required>
+        @foreach(\App\Models\Courses::STATUSES as $status)
+            <option value="{{ $status }}" @selected(old('course_status', $course->course_status ?? 'Compulsory') === $status)>{{ $status }}</option>
+        @endforeach
+    </select>
+</div><label for="credit_unit">Credit Unit</label>
                         <input type="number" name="credit_unit" id="credit_unit" class="form-control" value="{{$course->credit_unit}}" required>
                     </div>
 

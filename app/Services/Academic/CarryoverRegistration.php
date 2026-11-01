@@ -40,6 +40,7 @@ class CarryoverRegistration
                     ], [
                         'title' => $source?->title ?? $failure->course_title,
                         'credit_unit' => $source?->credit_unit ?? $failure->credit_unit,
+                        'course_status' => $source?->course_status ?? 'Elective',
                         'level' => $source?->level ?? $failure->level,
                     ]);
                     if ($offering->wasRecentlyCreated && $source) {

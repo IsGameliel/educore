@@ -37,3 +37,31 @@ it('blocks historical registration when the student has no confirmed level for t
     $this->post(route('student.courses.register'), ['session' => $session->name, 'semester' => 'First', 'course_ids' => []])->assertSessionHasErrors('session_level');
     expect(CourseRegistration::count())->toBe(0);
 });
+
+it('exports the registered session level without substituting the current profile level', function (?string $savedLevel, bool $active, string $expected) {
+    $faculty = Faculty::create(['name' => 'Science', 'code' => 'SCI']);
+    $department = Department::create(['name' => 'Computing', 'faculty_id' => $faculty->id]);
+    AcademicSession::create(['name' => '2025/2026', 'start_year' => 2025, 'end_year' => 2026, 'is_active' => !$active]);
+    $session = AcademicSession::create(['name' => '2021/2022', 'start_year' => 2021, 'end_year' => 2022, 'is_active' => $active]);
+    $student = User::factory()->create(['usertype' => 'student', 'department_id' => $department->id, 'level' => '500']);
+    if ($savedLevel !== null) {
+        StudentAcademicSession::create(['user_id' => $student->id, 'academic_session_id' => $session->id, 'level' => $savedLevel]);
+    }
+    $course = Courses::create(['code' => 'CSC 101', 'title' => 'Historical course', 'credit_unit' => 3, 'department_id' => $department->id, 'level' => '100', 'semester' => 'First', 'academic_session_id' => $session->id]);
+    CourseRegistration::create(['user_id' => $student->id, 'course_id' => $course->id, 'session' => $session->name, 'semester' => 'First', 'status' => 'registered', 'registration_date' => now()]);
+    $pdf = Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+    $pdf->shouldReceive('download')->once()->with('registered_courses_First.pdf')->andReturn(response('PDF preview'));
+    \Barryvdh\DomPDF\Facade\Pdf::shouldReceive('loadView')->once()
+        ->with('student.coursereg.pdf', Mockery::on(function ($data) use ($expected, $session) {
+            expect($data['level'])->toBe($expected)->and($data['session'])->toBe($session->name);
+            expect(view('student.coursereg.pdf', $data)->render())->toContain('<div class="label">Session level</div><div class="value">'.$expected.'</div>');
+            return true;
+        }))->andReturn($pdf);
+    $this->actingAs($student)->get(route('student.courses.download.pdf', ['session' => $session->name, 'semester' => 'First']))->assertOk();
+    expect($student->fresh()->level)->toBe('500');
+})->with([
+    'historical saved level' => ['100', false, '100'],
+    'missing historical level' => [null, false, 'Not set'],
+    'active session fallback' => [null, true, '500'],
+    'saved active session level' => ['400', true, '400'],
+]);

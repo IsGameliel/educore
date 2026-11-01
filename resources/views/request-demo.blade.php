@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Request a Demo | Euvion - The Modern Scholar</title>
+    <meta name="description" content="Request an Euvion demonstration for your institution. Explore student records, course registration, results, departmental broadsheets and tuition management." />
+    <title>Request an Euvion Demo | Academic Administration for Your School</title>
     <link href="https://fonts.googleapis.com" rel="preconnect" />
     <link crossorigin href="https://fonts.gstatic.com" rel="preconnect" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
@@ -106,162 +107,93 @@
                 <a class="cursor-pointer text-[#191b22]/70 transition-colors transition-transform duration-200 hover:-translate-y-[2px] hover:text-[#1A4175] dark:text-[#f2f3fd]/70" href="{{ url('/support') }}">Support</a>
             </nav>
             <div class="flex items-center gap-4">
-                <div class="mr-4 hidden items-center gap-2 sm:flex">
-                    <span class="material-symbols-outlined cursor-pointer text-[#1A4175]">help_outline</span>
-                    <span class="material-symbols-outlined cursor-pointer text-[#1A4175]">notifications</span>
-                </div>
                 <a class="text-sm font-semibold text-primary transition-colors hover:text-primary-container" href="{{ url('/login') }}">Login</a>
-                <a class="rounded-xl bg-gradient-to-br from-primary to-primary-container px-6 py-2 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-[2px] active:scale-95" href="{{ url('/request-demo') }}">Request Demo</a>
+                <a class="rounded-xl bg-gradient-to-br from-primary to-primary-container px-6 py-2 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-[2px] active:scale-95" href="#demo-form">Request Demo</a>
             </div>
         </div>
     </header>
 
-    <main class="pt-24">
-        <section class="mx-auto grid max-w-7xl grid-cols-1 items-start gap-16 px-6 py-16 lg:grid-cols-2 lg:px-8">
-            <div class="space-y-12">
-                <div class="space-y-6">
-                    <h1 class="text-balance font-headline text-5xl font-extrabold leading-tight tracking-tight text-primary md:text-6xl">
-                        See the Future of Academic Management.
-                    </h1>
-                    <p class="max-w-lg text-xl leading-relaxed text-on-surface-variant">
-                        Experience the platform designed for the modern scholar. Join elite institutions worldwide in transforming the educational journey.
-                    </p>
+    <main class="pt-24" id="main-content">
+        <section class="mx-auto grid max-w-[1280px] items-start gap-10 px-6 py-14 lg:grid-cols-2 lg:gap-16 lg:px-8">
+            <div>
+                <p class="mb-4 text-xs font-bold uppercase tracking-widest text-secondary">Euvion for your institution</p>
+                <h1 class="font-headline text-4xl font-extrabold leading-tight tracking-tight text-primary md:text-6xl">See your campus workflows come together.</h1>
+                <p class="mt-6 text-lg leading-relaxed text-on-surface-variant">Explore how Euvion connects student records, course registration, results and tuition payments. Tell us what your institution needs so we can focus the demonstration on the work your team does every day.</p>
+                <div class="mt-9 space-y-5">
+                    @foreach([
+                        ['how_to_reg', 'From student records to course registration', 'Review sessions, levels, course selections and registration controls.'],
+                        ['fact_check', 'From draft marks to published results', 'Follow result entry, review and publication, then explore departmental broadsheets.'],
+                        ['payments', 'From tuition invoices to payment records', 'See fee schedules, invoices, payment status and receipts in context.'],
+                    ] as [$icon, $title, $description])
+                    <div class="flex gap-4"><span class="material-symbols-outlined h-fit rounded-xl bg-surface-container-low p-3 text-primary" aria-hidden="true">{{ $icon }}</span><div><h2 class="font-headline font-bold text-primary">{{ $title }}</h2><p class="mt-1 text-sm leading-relaxed text-on-surface-variant">{{ $description }}</p></div></div>
+                    @endforeach
                 </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-2 rounded-xl bg-surface-container-low p-8">
-                        <span class="font-headline text-4xl font-bold text-secondary">98%</span>
-                        <p class="text-sm font-medium uppercase tracking-widest text-on-surface-variant">Satisfaction rate</p>
-                    </div>
-                    <div class="space-y-2 rounded-xl bg-surface-container-low p-8">
-                        <span class="font-headline text-4xl font-bold text-primary">24/7</span>
-                        <p class="text-sm font-medium uppercase tracking-widest text-on-surface-variant">Expert Support</p>
-                    </div>
+                <div class="mt-10 rounded-2xl bg-primary p-7 text-white">
+                    <h2 class="font-headline text-xl font-bold">A useful conversation for your whole team</h2>
+                    <p class="mt-3 text-sm leading-relaxed text-white/80">Bring your registry, examination, finance or IT questions. We can discuss academic workflows, school setup and which available features fit your institution.</p>
+                    <div class="mt-5 flex flex-wrap gap-4 text-sm font-semibold"><a href="{{ url('/pricing') }}" class="underline underline-offset-4">Explore plans</a><a href="{{ url('/resources') }}" class="underline underline-offset-4">Read Euvion guides</a></div>
                 </div>
-
-                <div class="group relative">
-                    <div class="gradient-hero absolute inset-0 rotate-1 rounded-xl opacity-10 transition-transform duration-500 group-hover:rotate-0"></div>
-                    <img alt="Educators in a meeting" class="relative z-10 h-[400px] w-full rounded-xl object-cover shadow-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0O8UepnLT0dLDRoF_3pVZe1xadIP9FEgb6HTcNZ7Z6uVmteCLU0XJKr6HFTOlpZBba5sOFAOWqwr2LGOQ_6nvCh8MLuds4KrIdqMcScENRvQ7zNy6fwV6_iRdTL6z4PyKynlqEOZooO0n_48_8CmL3FAZcyUNcl9iHbiyNSai0iwrBs_F1OV-1UtwSGRSI6WGj2oWaXlFRoQJRfq8ovHRStr0htY5n5DfvsFlgLY2V2aeA8QcYsKt2W1Sg55jToXy2PblIWu479l2" />
-                    <div class="absolute -bottom-6 -right-6 z-20 flex items-center gap-4 rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-6 shadow-xl">
-                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-container">
-                            <span class="material-symbols-outlined text-on-secondary-container">school</span>
-                        </div>
-                        <div>
-                            <p class="font-headline font-bold text-primary">Global Network</p>
-                            <p class="text-sm text-on-surface-variant">Used by 500+ Top Schools</p>
-                        </div>
-                    </div>
-                </div>
+                <p class="mt-6 text-sm text-on-surface-variant">Already using Euvion and need help? <a href="{{ url('/support') }}" class="font-semibold text-primary underline underline-offset-4">Visit the support centre.</a></p>
             </div>
 
-            <div class="sticky top-32">
-                <div class="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-10 shadow-2xl">
-                    <div class="mb-8">
-                        <h2 class="mb-2 font-headline text-2xl font-bold text-primary">Schedule Your Strategy Session</h2>
-                        <p class="text-on-surface-variant">Fill out the form below and an academic consultant will reach out within 4 hours.</p>
+            <div id="demo-form" class="scroll-mt-28 rounded-2xl border border-outline-variant/50 bg-white p-6 shadow-lg md:p-9">
+                @if(session('demo_sent'))
+                    <div role="status" aria-live="polite">
+                        <span class="material-symbols-outlined mb-5 rounded-xl bg-secondary-container p-3 text-secondary" aria-hidden="true">check_circle</span>
+                        <h2 class="font-headline text-2xl font-bold text-primary">Your demo request has been sent.</h2>
+                        <p class="mt-4 leading-relaxed text-on-surface-variant">Your details have been sent to the Euvion team at {{ config('euvion.demo_email') }}. We will use the email you provided to discuss your needs and arrange a suitable time.</p>
+                        <p class="mt-4 text-sm text-on-surface-variant">This is a request for a demonstration. A meeting time has not yet been confirmed.</p>
+                        <div class="mt-6 flex flex-wrap gap-4"><a href="{{ url('/resources') }}" class="rounded-xl bg-primary px-5 py-3 font-semibold text-white">Explore Euvion guides</a><a href="{{ route('demo.show') }}" class="self-center font-semibold text-primary underline underline-offset-4">Send another request</a></div>
                     </div>
-                    <form action="#" class="space-y-6">
-                        <div class="space-y-1.5">
-                            <label class="ml-1 font-label text-sm font-medium text-on-surface-variant">Full Name</label>
-                            <input class="w-full rounded-lg border-none border-b-2 bg-surface-container-highest px-4 py-3.5 transition-all focus:border-primary focus:ring-0" placeholder="Dr. Julian Reed" type="text" />
+                @else
+                    <h2 class="font-headline text-2xl font-bold text-primary">Request your Euvion demo</h2>
+                    <p class="mb-7 mt-3 text-sm leading-relaxed text-on-surface-variant">Share a few details about your institution. Fields marked with an asterisk (*) are required.</p>
+                    @if($errors->any())
+                    <div role="alert" class="mb-6 rounded-xl border border-error bg-error-container p-4 text-sm text-on-error-container"><p class="font-semibold">Please check your request:</p><ul class="mt-2 list-disc space-y-1 pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+                    @endif
+                    <form action="{{ route('demo.store') }}" method="POST" class="space-y-5">
+                        @csrf
+                        @foreach(['name' => ['Full name', 'Your full name', 'name', 120], 'email' => ['Email address', 'you@institution.edu', 'email', 254], 'institution' => ['Institution name', 'Your school or institution', 'organization', 200]] as $field => [$label, $placeholder, $autocomplete, $length])
+                        <div><label for="demo-{{ $field }}" class="mb-2 block text-sm font-semibold text-primary">{{ $label }} *</label><input id="demo-{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : 'text' }}" autocomplete="{{ $autocomplete }}" value="{{ old($field) }}" placeholder="{{ $placeholder }}" required maxlength="{{ $length }}" @error($field) aria-invalid="true" @enderror class="w-full rounded-lg border border-outline-variant bg-white px-4 py-3 text-on-surface focus:border-primary focus:ring-primary" /></div>
+                        @endforeach
+                        <div class="grid gap-5 sm:grid-cols-2">
+                            <div><label for="demo-role" class="mb-2 block text-sm font-semibold text-primary">Your role *</label><select id="demo-role" name="role" required @error('role') aria-invalid="true" @enderror class="w-full rounded-lg border border-outline-variant bg-white px-4 py-3 focus:border-primary focus:ring-primary"><option value="">Select your role</option>@foreach(['Administrator', 'Registrar', 'Exam officer', 'Finance officer', 'Department head', 'IT officer', 'Lecturer', 'Other'] as $role)<option value="{{ $role }}" @selected(old('role') === $role)>{{ $role }}</option>@endforeach</select></div>
+                            <div><label for="demo-size" class="mb-2 block text-sm font-semibold text-primary">Student population</label><select id="demo-size" name="student_count" class="w-full rounded-lg border border-outline-variant bg-white px-4 py-3 focus:border-primary focus:ring-primary"><option value="">Select a range (optional)</option>@foreach(['Under 500', '500-1999', '2000-4999', '5000+', 'Not sure yet'] as $size)<option value="{{ $size }}" @selected(old('student_count') === $size)>{{ $size }}</option>@endforeach</select></div>
                         </div>
-                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div class="space-y-1.5">
-                                <label class="ml-1 font-label text-sm font-medium text-on-surface-variant">Institutional Email</label>
-                                <input class="w-full rounded-lg border-none border-b-2 bg-surface-container-highest px-4 py-3.5 transition-all focus:border-primary focus:ring-0" placeholder="j.reed@university.edu" type="email" />
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="ml-1 font-label text-sm font-medium text-on-surface-variant">School/Institution Name</label>
-                                <input class="w-full rounded-lg border-none border-b-2 bg-surface-container-highest px-4 py-3.5 transition-all focus:border-primary focus:ring-0" placeholder="Global Academy" type="text" />
-                            </div>
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="ml-1 font-label text-sm font-medium text-on-surface-variant">Role</label>
-                            <select class="w-full appearance-none rounded-lg border-none border-b-2 bg-surface-container-highest px-4 py-3.5 transition-all focus:border-primary focus:ring-0">
-                                <option disabled selected value="">Select your position</option>
-                                <option>Administrator</option>
-                                <option>Department Head</option>
-                                <option>IT Director</option>
-                                <option>Registrar</option>
-                                <option>Faculty Member</option>
-                            </select>
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="ml-1 font-label text-sm font-medium text-on-surface-variant">Tell us about your needs</label>
-                            <textarea class="w-full resize-none rounded-lg border-none border-b-2 bg-surface-container-highest px-4 py-3.5 transition-all focus:border-primary focus:ring-0" placeholder="Briefly describe your current challenges or institutional goals..." rows="4"></textarea>
-                        </div>
-                        <button class="gradient-hero w-full rounded-lg py-4 font-headline text-lg font-bold text-on-primary shadow-lg shadow-primary/20 transition-transform hover:-translate-y-1" type="submit">
-                            Submit Request
-                        </button>
+                        <fieldset><legend class="mb-3 text-sm font-semibold text-primary">What would you like to explore? <span class="font-normal text-on-surface-variant">(optional)</span></legend><div class="grid gap-3 sm:grid-cols-2">@foreach($demoTopics as $key => $topic)<label class="flex items-start gap-2 text-sm leading-relaxed text-on-surface-variant"><input type="checkbox" name="topics[]" value="{{ $key }}" @checked(in_array($key, (array) old('topics', []))) class="mt-1 rounded border-outline-variant text-primary focus:ring-primary" /><span>{{ $topic }}</span></label>@endforeach</div></fieldset>
+                        <div><label for="demo-message" class="mb-2 block text-sm font-semibold text-primary">What would make this demo useful?</label><textarea id="demo-message" name="message" maxlength="2000" rows="4" placeholder="Tell us about your current process, priorities or questions. Please leave out student records and payment details." class="w-full rounded-lg border border-outline-variant bg-white px-4 py-3 focus:border-primary focus:ring-primary">{{ old('message') }}</textarea></div>
+                        <label for="demo-consent" class="flex items-start gap-3 text-sm leading-relaxed text-on-surface-variant"><input id="demo-consent" type="checkbox" name="consent" value="1" required @checked(old('consent')) class="mt-1 rounded border-outline-variant text-primary focus:ring-primary" /><span>I agree that Euvion may use these details to contact me about this demo request. *</span></label>
+                        <button class="gradient-hero w-full rounded-xl px-6 py-4 font-headline font-bold text-white transition-colors hover:opacity-90" type="submit">Send demo request</button>
+                        <p class="text-center text-xs leading-relaxed text-on-surface-variant">This sends an enquiry to Euvion; it does not create a school account, book a meeting or start a subscription.</p>
                     </form>
-                    <p class="mt-6 text-center text-xs text-on-surface-variant">
-                        By submitting, you agree to our <a class="underline" href="#">Terms of Service</a> and <a class="underline" href="#">Privacy Policy</a>.
-                    </p>
-                </div>
+                @endif
+                <p class="mt-7 border-t border-outline-variant/50 pt-5 text-sm text-on-surface-variant">Prefer email? <a href="mailto:{{ config('euvion.demo_email') }}" class="break-all font-semibold text-primary underline underline-offset-4">{{ config('euvion.demo_email') }}</a></p>
             </div>
         </section>
 
-        <section class="mt-16 bg-surface-container-low px-6 py-24 lg:px-8">
-            <div class="mx-auto max-w-7xl space-y-16">
-                <div class="mx-auto max-w-2xl space-y-4 text-center">
-                    <h2 class="font-headline text-4xl font-extrabold tracking-tight text-primary">Empowering Every Aspect of Modern Education</h2>
-                    <p class="text-on-surface-variant">The tools you need to foster excellence, from administrative efficiency to deep academic insights.</p>
+        <section class="bg-surface-container-low py-16">
+            <div class="mx-auto max-w-[1280px] px-6 lg:px-8">
+                <h2 class="font-headline text-3xl font-bold tracking-tight text-primary">What happens after you enquire?</h2>
+                <div class="mt-8 grid gap-6 md:grid-cols-3">
+                    @foreach([
+                        ['01', 'Share your priorities', 'Tell us who you are, the institution you represent and the workflows you would like to improve.'],
+                        ['02', 'Plan the walkthrough', 'The Euvion team can follow up by email to clarify your questions and agree on a suitable demo time.'],
+                        ['03', 'Explore your next steps', 'Discuss relevant features, plan options and the school information needed to prepare for onboarding.'],
+                    ] as [$number, $title, $description])
+                    <article class="rounded-xl border border-outline-variant/50 bg-white p-7"><span class="text-sm font-bold text-secondary">{{ $number }}</span><h3 class="mb-3 mt-4 font-headline text-xl font-bold text-primary">{{ $title }}</h3><p class="text-sm leading-relaxed text-on-surface-variant">{{ $description }}</p></article>
+                    @endforeach
                 </div>
-                <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
-                    <div class="group rounded-xl bg-surface-container-lowest p-10 shadow-sm transition-shadow hover:shadow-md">
-                        <div class="mb-8 flex h-14 w-14 items-center justify-center rounded-lg bg-primary-container transition-transform duration-300 group-hover:-translate-y-2">
-                            <span class="material-symbols-outlined text-3xl text-on-primary">view_module</span>
-                        </div>
-                        <h3 class="mb-4 font-headline text-xl font-bold text-primary">Modular Architecture</h3>
-                        <p class="leading-relaxed text-on-surface-variant">
-                            Scale your digital infrastructure with plug-and-play modules designed for specific institutional needs. No bloat, just performance.
-                        </p>
-                    </div>
-                    <div class="group rounded-xl bg-surface-container-lowest p-10 shadow-sm transition-shadow hover:shadow-md">
-                        <div class="mb-8 flex h-14 w-14 items-center justify-center rounded-lg bg-secondary-container transition-transform duration-300 group-hover:-translate-y-2">
-                            <span class="material-symbols-outlined text-3xl text-on-secondary-container">psychology</span>
-                        </div>
-                        <h3 class="mb-4 font-headline text-xl font-bold text-primary">AI-Driven Insights</h3>
-                        <p class="leading-relaxed text-on-surface-variant">
-                            Leverage predictive analytics to identify student trends, optimize resources, and improve learning outcomes with machine precision.
-                        </p>
-                    </div>
-                    <div class="group rounded-xl bg-surface-container-lowest p-10 shadow-sm transition-shadow hover:shadow-md">
-                        <div class="mb-8 flex h-14 w-14 items-center justify-center rounded-lg bg-tertiary-fixed transition-transform duration-300 group-hover:-translate-y-2">
-                            <span class="material-symbols-outlined text-3xl text-on-tertiary-fixed-variant">verified_user</span>
-                        </div>
-                        <h3 class="mb-4 font-headline text-xl font-bold text-primary">Enterprise Security</h3>
-                        <p class="leading-relaxed text-on-surface-variant">
-                            Rest easy with FERPA and GDPR compliant data management. Military-grade encryption ensures institutional records remain private.
-                        </p>
-                    </div>
-                </div>
+            </div>
+        </section>
+        <section class="mx-auto max-w-[1280px] px-6 py-14 lg:px-8">
+            <div class="grid gap-8 md:grid-cols-2">
+                <div><h2 class="font-headline text-2xl font-bold text-primary">Built around academic administration</h2><p class="mt-4 leading-relaxed text-on-surface-variant">Explore student and staff records, session and course setup, registration controls, result workflows, broadsheet exports, transcript requests and tuition management. Available modules depend on your institution's plan and configuration.</p></div>
+                <div class="space-y-3"><details class="rounded-xl border border-outline-variant/50 bg-white p-5"><summary class="cursor-pointer font-semibold text-primary">Who should attend a demonstration?</summary><p class="mt-3 text-sm leading-relaxed text-on-surface-variant">Invite the staff who handle the workflows you want to explore: registry, examinations, finance, department administrators or IT.</p></details><details class="rounded-xl border border-outline-variant/50 bg-white p-5"><summary class="cursor-pointer font-semibold text-primary">Do I need to share student data?</summary><p class="mt-3 text-sm leading-relaxed text-on-surface-variant">You can describe your processes and questions without sending student records, payment information or passwords. This enquiry only needs your institution and contact details.</p></details></div>
             </div>
         </section>
     </main>
-
-    <footer class="mt-auto w-full border-t border-slate-200/50 bg-slate-50 px-6 py-12 dark:bg-slate-950 lg:px-8">
-        <div class="mx-auto grid max-w-7xl grid-cols-1 items-center gap-8 md:grid-cols-2">
-            <div class="space-y-4">
-                <span class="font-headline text-xl font-bold text-slate-900 dark:text-white">Euvion</span>
-                <p class="font-body text-sm text-slate-500">&copy; 2024 Euvion Systems. All rights reserved.</p>
-                <div class="mt-4 flex gap-6">
-                    <a class="text-slate-400 transition-colors hover:text-blue-600" href="#"><span class="material-symbols-outlined">public</span></a>
-                    <a class="text-slate-400 transition-colors hover:text-blue-600" href="#"><span class="material-symbols-outlined">alternate_email</span></a>
-                    <a class="text-slate-400 transition-colors hover:text-blue-600" href="#"><span class="material-symbols-outlined">groups</span></a>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-3">
-                    <a class="block font-body text-sm text-slate-500 transition-all hover:text-blue-600" href="#">Privacy Policy</a>
-                    <a class="block font-body text-sm text-slate-500 transition-all hover:text-blue-600" href="#">Terms of Service</a>
-                </div>
-                <div class="space-y-3">
-                    <a class="block font-body text-sm text-slate-500 transition-all hover:text-blue-600" href="#">Security</a>
-                    <a class="block font-body text-sm text-slate-500 transition-all hover:text-blue-600" href="#">Contact Support</a>
-                </div>
-            </div>
-        </div>
+    <footer class="bg-surface-container-low py-10">
+        <div class="mx-auto flex max-w-[1280px] flex-col justify-between gap-6 px-6 md:flex-row lg:px-8"><div><a href="{{ url('/') }}" class="text-lg font-bold text-primary">Euvion</a><p class="mt-2 text-sm text-on-surface-variant">Academic administration, connected.</p><p class="mt-3 text-xs text-on-surface-variant">&copy; {{ now()->year }} Euvion. All rights reserved.</p></div><nav aria-label="Footer" class="flex flex-wrap items-start gap-6 text-sm font-semibold text-primary"><a href="{{ url('/pricing') }}">Pricing</a><a href="{{ url('/resources') }}">Resources</a><a href="{{ url('/support') }}">Support</a><a href="{{ url('/faq') }}">FAQ</a></nav></div>
     </footer>
 </body>
 </html>

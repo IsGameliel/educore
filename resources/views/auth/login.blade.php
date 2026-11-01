@@ -165,7 +165,7 @@
                 <div class="mt-10 border-t border-outline-variant/10 pt-8 text-center">
                     <a class="group inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant transition-colors hover:text-primary" href="{{ route('register') }}">
                         New to the {{ config('app.name', 'Euvion') }} ecosystem?
-                        <span class="font-bold text-primary decoration-2 underline-offset-4 transition-all group-hover:underline">{{ config('institution.branding.name') ? 'Create your account' : 'Register your institution' }}</span>
+                        <span class="font-bold text-primary decoration-2 underline-offset-4 transition-all group-hover:underline">{{ config('institution.branding.name') ? 'Create your account' : 'Create Account' }}</span>
                     </a>
                 </div>
             </div>

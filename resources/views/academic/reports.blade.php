@@ -16,7 +16,10 @@
 <a class="btn btn-outline-secondary mb-3" href="{{ route('academic.reports', array_merge(request()->only(['department_id', 'session', 'semester']), ['export_broadsheet' => 1, 'include_unpublished' => 1])) }}">Export review copy (includes drafts)</a>
 <p class="text-muted small">The Excel broadsheet includes reviewed, approved and published results. The review copy includes all workflow stages and labels unpublished marks.</p>
 <a class="btn btn-outline-primary mb-3" href="{{ route('academic.reports', array_merge(request()->only(['department_id', 'session', 'semester']), ['export_broadsheet' => 1])) }}">Export broadsheet (Excel)</a>
-<div class="table-responsive"><table class="table table-bordered"><thead><tr><th>Student</th><th>Reviewed, approved and published course results</th></tr></thead><tbody>@foreach($broadsheet as $group)<tr><td>{{ $group->first()->user?->name }}<br>{{ $group->first()->matric_number }}</td><td>@foreach($group as $result)<span class="d-inline-block me-3">{{ $result->course_code }} ({{ $result->semester }}, {{ $result->attempt_type }}): {{ $result->score ?? $result->outcome_status }} / {{ $result->grade ?? '—' }}</span>@endforeach</td></tr>@endforeach</tbody></table></div>
+<a class="btn btn-outline-primary mb-3" href="{{ route('academic.reports', array_merge(request()->only(['department_id', 'session', 'semester']), ['export_broadsheet' => 1, 'all_sessions' => 1])) }}">Export all available sessions (Excel)</a>
+<a class="btn btn-outline-secondary mb-3" href="{{ route('academic.reports', array_merge(request()->only(['department_id', 'session', 'semester']), ['export_broadsheet' => 1, 'all_sessions' => 1, 'include_unpublished' => 1])) }}">Export all sessions review copy (includes drafts)</a>
+<p class="text-muted small">All available sessions includes earlier sessions through the selected session for this department, using the selected semester filter. For a student in 200L, this includes their available 100L and 200L results. Results are grouped by recorded level, session and semester in separate scores, letter grade and grade point sections.</p>
+@include('academic.partials.broadsheet')
 <h3>Missing marks and completeness issues</h3><ul>@forelse(array_unique($problems) as $problem)<li>{{ $problem }}</li>@empty<li>No completeness issues found.</li>@endforelse</ul>
 @endif
 </div>

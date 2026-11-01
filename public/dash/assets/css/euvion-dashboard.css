@@ -175,6 +175,12 @@ body {
   transform: translateX(2px) scale(0.985);
 }
 
+/* Keep Bootstrap panels visible after the opening animation; Tailwind's
+   collapse utility otherwise hides their contents. */
+.page-body-wrapper .collapse {
+  visibility: visible;
+}
+
 .sidebar .nav.sub-menu {
   background: #f8fafc;
   border: 1px solid var(--euvion-border);

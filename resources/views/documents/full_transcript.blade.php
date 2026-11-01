@@ -22,8 +22,7 @@
 </head>
 <body>
 <div class="header">
-    <img src="{{ public_path('asset/images/euvion.png') }}" alt="University Logo">
-    <h1>{{ config('app.name', 'University') }}</h1>
+    <h1>{{ config('institution.branding.name') ?: 'University' }}</h1>
     <h2>Official Transcript</h2>
 </div>
 
@@ -55,9 +54,7 @@
                     <th>Course Code</th>
                     <th>Course Title</th>
                     <th>Credit Unit</th>
-                    {{-- <th>CA</th> --}}
-                    {{-- <th>Exam</th> --}}
-                    <th>Score</th>
+
                     <th>Grade</th>
                     <th>Grade Point</th>
                     <th>Remark</th>
@@ -69,9 +66,7 @@
                         <td>{{ $result->course_code }}</td>
                         <td>{{ $result->course_title }}</td>
                         <td>{{ $result->credit_unit }}</td>
-                        {{-- <td>{{ $result->ca_score ?? '-' }}</td> --}}
-                        {{-- <td>{{ $result->exam_score ?? '-' }}</td> --}}
-                        <td>{{ $result->score }}</td>
+
                         <td>{{ $result->grade }}</td>
                         <td>{{ $result->grade_point }}</td>
                         <td>{{ strtoupper($result->grade) === 'F' ? 'Fail' : 'Pass' }}</td>
@@ -80,7 +75,7 @@
                 <tr>
                     <th colspan="2">Total Credit Units</th>
                     <td>{{ $data['totalCreditUnits'] }}</td>
-                    <td colspan="3">GPA</td>
+                    <td colspan="2">GPA</td>
                     <td>{{ $data['gpa'] }}</td>
                 </tr>
             </tbody>
@@ -101,7 +96,7 @@
 </table>
 
 <div class="footer">
-        <p>Issued by the Office of the Registrar, {{ config('app.name', 'University') }}s</p>
+        <p>Issued by the Office of the Registrar, {{ config('institution.branding.name') ?: 'University' }}</p>
         <p>Date Issued: {{ \Carbon\Carbon::now()->format('F d, Y') }}</p>
 </div>
 

@@ -14,6 +14,11 @@
                 </div></div>
             </div>
         </div>
+        <div class="row">
+            <div class="col-lg-5 grid-margin stretch-card">
+                <div class="card">@include('dashboard.calendar')</div>
+            </div>
+        </div>
         @include('dashboard.widgets')
     </div>
 </div>

@@ -94,12 +94,12 @@
                 <div class="col-lg-5 grid-margin stretch-card">
                     <div class="card">
                         <div class="card-body p-0 d-flex">
-                            <div id="inline-datepicker" class="datepicker datepicker-custom"></div>
+                            @include('dashboard.calendar')
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-7 grid-margin stretch-card">
-                    <div class="card">
+                    <div class="card" id="recent-updates">
                         <div class="card-body">
                             <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
                                 <div>
@@ -146,6 +146,23 @@
                                     <p class="text-muted mb-0">New class schedules, course changes and published results for you will appear here.</p>
                                 </div>
                             @endforelse
+                            @if($updates instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $updates->hasPages())
+                                <nav class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-3 border-top" aria-label="Recent updates pages">
+                                    <span class="text-muted small" aria-live="polite">Showing {{ $updates->firstItem() }}–{{ $updates->lastItem() }} of {{ $updates->total() }} updates</span>
+                                    <div class="d-flex gap-2">
+                                        @if($updates->onFirstPage())
+                                            <span class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">Previous</span>
+                                        @else
+                                            <a class="btn btn-sm btn-outline-primary" href="{{ $updates->previousPageUrl() }}" rel="prev">Previous</a>
+                                        @endif
+                                        @if($updates->hasMorePages())
+                                            <a class="btn btn-sm btn-outline-primary" href="{{ $updates->nextPageUrl() }}" rel="next">Next</a>
+                                        @else
+                                            <span class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">Next</span>
+                                        @endif
+                                    </div>
+                                </nav>
+                            @endif
                         </div>
                     </div>
                 </div>

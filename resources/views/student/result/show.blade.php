@@ -16,7 +16,7 @@
                     <th>Course Code</th>
                     <th>Course Title</th><th>Exam attempt</th>
                     <th>Credit Unit</th>
-                    <th>Outcome</th><th>Score</th>
+                    <th>Outcome</th>
                     <th>Grade</th>
                     <th>Grade Point</th>
                 </tr>
@@ -27,7 +27,7 @@
                         <td>{{ $result->course_code }}</td>
                         <td>{{ $result->course_title }}</td><td>{{ $result->attempt_type === 'resit' ? 'Resit exam' : ucfirst($result->attempt_type).' exam' }} ({{ $result->attempt_number }})</td>
                         <td>{{ $result->credit_unit }}</td>
-                        <td>{{ str_replace('_',' ',$result->outcome_status) }}</td><td>{{ $result->score ?? '—' }}</td>
+                        <td>{{ str_replace('_',' ',$result->outcome_status) }}</td>
                         <td>{{ $result->grade }}</td>
                         <td>{{ $result->grade_point }}</td>
                     </tr>

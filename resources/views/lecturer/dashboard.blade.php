@@ -133,7 +133,7 @@
                     <div class="col-lg-5 grid-margin stretch-card">
                         <div class="card">
                             <div class="card-body p-0 d-flex">
-                                <div id="inline-datepicker" class="datepicker datepicker-custom"></div>
+                                @include('dashboard.calendar')
                             </div>
                         </div>
                     </div>

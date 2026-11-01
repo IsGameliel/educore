@@ -152,7 +152,7 @@
 
                 <div class="border rounded p-3 mb-3">
                     <h5>Bulk session level update</h5>
-                    <p class="helper-text">Choose a department above and click Search. Filter by current level to select the right cohort. This saves historical session levels without changing current profile levels.</p>
+                    <p class="helper-text">Tick students below to update their session level. To update all matching students across every page, choose a department above and click Search first. This saves historical session levels without changing current profile levels.</p>
                     <form id="bulk-session-level" method="POST" action="{{ route('admin.course-registrations.bulk-session-level') }}">
                         @csrf
                         @method('PUT')
@@ -183,10 +183,10 @@
                                 <label for="bulk-scope">Students to update</label>
                                 <select id="bulk-scope" name="scope" class="form-control">
                                     <option value="selected" @selected(old('scope', 'selected') === 'selected')>Ticked students on this page</option>
-                                    <option value="all_matching" @selected(old('scope') === 'all_matching')>All {{ $students->total() }} students matching filters (every page)</option>
+                                    <option value="all_matching" @disabled(!request('department_id')) @selected(request('department_id') && old('scope') === 'all_matching')>All {{ $students->total() }} students matching filters (every page)</option>
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-brand" @disabled(!request('department_id'))>Save bulk session level</button>
+                            <button type="submit" class="btn btn-brand">Save bulk session level</button>
                         </div>
                         <p class="helper-text mt-2 mb-0">Every selected student receives the same session level. If existing results conflict, the entire update stops and shows the affected students.</p>
                     </form>

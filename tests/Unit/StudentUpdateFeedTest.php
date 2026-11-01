@@ -130,5 +130,7 @@ it('includes published result notifications in the student feed', function () {
 
     expect($updates)->toHaveCount(1)
         ->and($updates->first()['title'])->toBe('Result Published')
-        ->and($updates->first()['course_code'])->toBe('CSC101');
+        ->and($updates->first()['course_code'])->toBe('CSC101')
+        ->and($updates->first()['details'])->toContain('Grade: F')
+        ->and($updates->first()['details'])->not->toContain('45');
 });

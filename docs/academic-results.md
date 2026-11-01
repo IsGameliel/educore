@@ -100,3 +100,15 @@ The student opens Course Registration, keeps their current level, chooses the se
 An admin must first create the course offering in the current academic session with the same department, course code and semester. Only published, graded failures from earlier sessions qualify; a published pass clears the course from the outstanding list. Unpublished marks cannot establish eligibility. Current and carryover credits share the semester credit limit.
 
 The new registration stores a reference to the previous failed result. Staff enter marks against the new session registration using the existing result entry/upload workflow. The new result is a separate repeat attempt and its detail page links to the previous failure; original scores remain unchanged. Approval and publication rules still apply. This differs from **Authorize resit** on an original result, which creates an additional exam attempt within that original session.
+
+## Course status and registration
+
+Courses support **Elective (E)**, **Required (R)** and **Compulsory (C)**. Course creation and editing include a Course Status field. Spreadsheet uploads accept a `status` column containing the full name or E/R/C, case-insensitively; `course_status` is also accepted. Invalid values are reported as row errors. Uploading an existing course with a status updates its status. Older files without the column preserve existing statuses and create new courses as Elective.
+
+The course-status migration defaults existing offerings to Elective to preserve their previous registration behavior. Administrators should classify existing courses before using mandatory registration. New manual course entries default to Compulsory.
+
+Required and Compulsory courses for the student's department, session, level and semester are preselected and cannot be omitted. Mandatory outstanding carryovers are also required. Already registered equivalents are excluded from selection. The server enforces these rules, including blocking student withdrawal of a mandatory course. Prerequisites, registration access and credit limits still apply; contact the department if mandatory credits exceed the student's limit.
+
+Departmental broadsheets label course headers with `[E]`, `[R]` or `[C]` in every score, grade and grade-point section, on screen and in Excel. Status is read from the matching department/session/semester course offering.
+
+Apply `2026_10_22_120000_add_course_status_to_courses.php` during deployment. Shared-platform installations must use their established `tenancy:upgrade` rollout after pausing writers. Legacy installations can run `php artisan migrate --path=database/migrations/2026_10_22_120000_add_course_status_to_courses.php`.

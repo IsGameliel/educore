@@ -105,15 +105,15 @@
 
                         <!-- Courses Field -->
                         <div class="form-group">
-                            <label for="courses">Select Courses:</label>
+                            <label for="courses">Select Courses:</label><p>Required and Compulsory courses are selected automatically and cannot be removed. Elective courses are optional.</p>
                             <select name="course_ids[]" id="courses" class="form-control" multiple>
                                 @forelse($courses as $course)
                                     <option
                                         value="{{ $course->id }}"
-                                        data-credit-unit="{{ $course->credit_unit }}"
-                                        @selected(in_array($course->id, old('course_ids', [])))
+                                        data-credit-unit="{{ $course->credit_unit }}" data-mandatory="{{ $course->isMandatory() ? 1 : 0 }}"
+                                        @selected($course->isMandatory() || in_array($course->id, old('course_ids', [])))
                                     >
-                                        {{ $course->code }} - {{ $course->title }} ({{ $course->credit_unit }} credits)
+                                        {{ $course->code }} - {{ $course->title }} ({{ $course->credit_unit }} credits) — {{ $course->course_status }}
                                         @if($course->prerequisites->isNotEmpty())
                                             - Prerequisite:
                                             @foreach($course->prerequisites as $prerequisite)
@@ -133,7 +133,7 @@
                             @forelse($carryoverCourses as $carryover)
                                 <label class="d-block carryover-option" data-semester="{{ $carryover->semester }}">
                                     <input type="checkbox" name="carryover_ids[]" value="{{ $carryover->id }}"
-                                           data-credit-unit="{{ $carryover->credit_unit }}" @checked(in_array($carryover->id, old('carryover_ids', [])))>
+                                           data-credit-unit="{{ $carryover->credit_unit }}" data-mandatory="{{ $carryover->isMandatory() ? 1 : 0 }}" @checked($carryover->isMandatory() || in_array($carryover->id, old('carryover_ids', [])))>
                                     {{ $carryover->code }} — {{ $carryover->title }} ({{ $carryover->credit_unit }} credits)
                                     — Failed in {{ $carryover->failedResult->session }}, {{ $carryover->semester }} semester
                                 </label>
@@ -156,7 +156,7 @@
 
                         <!-- Courses Field -->
                         {{-- <div class="form-group">
-                            <label for="courses">Select Courses:</label>
+                            <label for="courses">Select Courses:</label><p>Required and Compulsory courses are selected automatically and cannot be removed. Elective courses are optional.</p>
                             <select name="course_ids[]" id="courses" class="form-control" multiple>
                                 @foreach($courses as $course)
                                     <option value="{{ $course->id }}">
@@ -220,6 +220,7 @@
     }
 
     function updateCreditTotals() {
+        document.querySelectorAll('#courses option[data-mandatory="1"]').forEach(option => option.selected = true);
         let selected = $('#courses').val() || [];
         let totalCredits = 0;
 
@@ -248,10 +249,14 @@
             const visible = $(this).data('semester') === $('#semester').val();
             $(this).toggle(visible).find('input').prop('disabled', !visible);
             if (!visible) $(this).find('input').prop('checked', false);
+            else $(this).find('input[data-mandatory=1]').prop('checked', true);
         });
         updateCreditTotals();
     }
-    $('.carryover-option input').on('change', updateCreditTotals);
+    $('.carryover-option input').on('change', function () {
+        if (this.dataset.mandatory === '1') this.checked = true;
+        updateCreditTotals();
+    });
     filterCarryovers();
     $('#level, #semester').on('change', function () {
         filterCarryovers();
@@ -278,8 +283,8 @@
                             }
 
                             $('#courses').append(
-                                `<option value="${course.id}" data-credit-unit="${course.credit_unit}">
-                                    ${course.code} - ${course.title} (${course.credit_unit} credits)${prerequisites}
+                                `<option value="${course.id}" data-credit-unit="${course.credit_unit}" data-mandatory="${course.course_status === 'Elective' ? 0 : 1}" ${course.course_status === 'Elective' ? '' : 'selected'}>
+                                    ${course.code} - ${course.title} (${course.credit_unit} credits) — ${course.course_status}${prerequisites}
                                 </option>`
                             );
                         });
