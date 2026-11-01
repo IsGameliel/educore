@@ -19,7 +19,7 @@ class TenantSchema
         if (! is_string($from) || ! preg_match('/\A(?:(\w+)\.)?(\w+)(?:\s+(?:as\s+)?(\w+))?\z/i', $from, $match)) {
             throw new RuntimeException('Tenant queries require an explicit table or a scoped subquery.');
         }
-        if (! empty($match[1]) && $match[1] !== DB::connection(config('tenancy.central_connection'))->getDatabaseName()) {
+        if (! empty($match[1]) && $match[1] !== DB::connection()->getDatabaseName()) {
             throw new RuntimeException('Cross-database tenant queries are forbidden.');
         }
 

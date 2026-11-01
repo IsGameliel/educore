@@ -175,8 +175,9 @@ body {
   transform: translateX(2px) scale(0.985);
 }
 
-/* Keep Bootstrap panels visible after the opening animation; Tailwind's
-   collapse utility otherwise hides their contents. */
+/* Bootstrap controls collapse with display/height. Tailwind's visibility utility
+   otherwise hides the panel again when its opening transition completes. */
+
 .page-body-wrapper .collapse {
   visibility: visible;
 }

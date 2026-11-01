@@ -24,13 +24,14 @@ class InstitutionLifecycle
                 $school->forceFill(['status' => $status, 'archived_at' => $status === 'archived' ? now() : null])->save();
                 $db = DB::connection(config('tenancy.central_connection'));
                 if ($status !== 'ready') {
+                    $records = app(InstitutionDatabases::class)->connection($school->id);
                     $db->table('institution_portal_handoffs')->where('institution_id', $school->id)->delete();
                     foreach (['institution_sessions', 'sessions', 'personal_access_tokens', 'institution_password_resets', 'jobs'] as $table) {
-                        if ($db->getSchemaBuilder()->hasColumn($table, 'tenant_id')) {
-                            $db->table($table)->where('tenant_id', $school->id)->delete();
+                        if ($records->getSchemaBuilder()->hasColumn($table, 'tenant_id')) {
+                            $records->table($table)->where('tenant_id', $school->id)->delete();
                         }
                     }
-                    $db->table('users')->where('tenant_id', $school->id)->update(['remember_token' => null]);
+                    $records->table('users')->where('tenant_id', $school->id)->update(['remember_token' => null]);
                 }
                 InstitutionAudit::record($school->id, 'lifecycle_changed', 'platform:'.$actor, ['from' => $before, 'to' => $status, 'reason' => $reason]);
             });
@@ -53,14 +54,15 @@ class InstitutionLifecycle
                 $school->domains()->updateOrCreate(['domain' => $domain], ['is_primary' => true])->forceFill(['verified_at' => now()])->save();
                 $school->forceFill(['settings' => [...($school->settings ?? []), 'domain_pending_verification' => false]])->save();
                 $db = DB::connection(config('tenancy.central_connection'));
+                $records = app(InstitutionDatabases::class)->connection($school->id);
                 foreach (['institution_sessions', 'sessions', 'personal_access_tokens', 'institution_password_resets'] as $table) {
-                    if ($db->getSchemaBuilder()->hasColumn($table, 'tenant_id')) {
-                        $db->table($table)->where('tenant_id', $school->id)->delete();
+                    if ($records->getSchemaBuilder()->hasColumn($table, 'tenant_id')) {
+                        $records->table($table)->where('tenant_id', $school->id)->delete();
                     }
                 }
-                $db->table('users')->where('tenant_id', $school->id)->update(['remember_token' => null]);
+                $records->table('users')->where('tenant_id', $school->id)->update(['remember_token' => null]);
                 $db->table('institution_portal_handoffs')->where('institution_id', $school->id)->delete();
-                InstitutionAudit::record($school->id,'domain_changed','platform:'.$actor,['from' => $old, 'to' => $domain, 'reason' => $reason]);
+                InstitutionAudit::record($school->id, 'domain_changed', 'platform:'.$actor, ['from' => $old, 'to' => $domain, 'reason' => $reason]);
             });
         });
     }

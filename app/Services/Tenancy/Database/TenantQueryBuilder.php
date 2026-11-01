@@ -2,6 +2,8 @@
 
 namespace App\Services\Tenancy\Database;
 
+use App\Services\Tenancy\FeaturePermissions;
+use App\Services\Tenancy\InstitutionDatabases;
 use App\Services\Tenancy\TenantSchema;
 use App\Services\Tenancy\TenantState;
 use Illuminate\Database\Eloquent\Model;
@@ -17,8 +19,8 @@ class TenantQueryBuilder extends Builder
     {
         [$table] = app(TenantSchema::class)->table($this->from);
         $financialWrite = config('tenancy.financial_event', false) && in_array($table, ['result_appeals', 'transcript_requests'], true);
-        if (! $financialWrite && ($feature = app(\App\Services\Tenancy\FeaturePermissions::class)->forTable($table))) {
-            app(\App\Services\Tenancy\FeaturePermissions::class)->authorize($feature);
+        if (! $financialWrite && ($feature = app(FeaturePermissions::class)->forTable($table))) {
+            app(FeaturePermissions::class)->authorize($feature);
         }
         if (! app(TenantSchema::class)->owned($table)) {
             throw new RuntimeException('Platform tables cannot be modified through a tenant connection.');
@@ -31,6 +33,7 @@ class TenantQueryBuilder extends Builder
             $values['tenant_id'] = $id;
         }
         if (isset($values['id']) && ! in_array($table, ['institution_sessions', 'sessions', 'job_batches'], true)
+            && ! app(InstitutionDatabases::class)->primary($id)
             && DB::connection(config('tenancy.central_connection'))->table($table)
                 ->where('id', $values['id'])->where('tenant_id', '!=', $id)->exists()) {
             throw ValidationException::withMessages(['id' => 'This identifier belongs to another institution.']);
@@ -105,8 +108,8 @@ class TenantQueryBuilder extends Builder
     public function delete($id = null)
     {
         [$table] = app(TenantSchema::class)->table($this->from);
-        if ($feature = app(\App\Services\Tenancy\FeaturePermissions::class)->forTable($table)) {
-            app(\App\Services\Tenancy\FeaturePermissions::class)->authorize($feature);
+        if ($feature = app(FeaturePermissions::class)->forTable($table)) {
+            app(FeaturePermissions::class)->authorize($feature);
         }
 
         return parent::delete($id);
