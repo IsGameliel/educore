@@ -40,12 +40,12 @@
 
                     <div class="alert alert-info">
                         <strong>Expected columns:</strong>
-                        <code>code, title, credit_unit, semester, level, department_ids</code>
+                        <code>code, title, credit_unit, semester, level, department_ids, status</code>
                         <br>
                         <small>
                             Use <code>department_ids</code> for one or many departments in the same row, for example
                             <code>1,4,7</code>. A single <code>department_id</code> column is also still supported.
-                            <br>Course codes such as <code>GST101</code> are automatically saved as <code>GST 101</code>.
+                            <br>Status: <code>Elective</code>, <code>Required</code>, or <code>Compulsory</code> (E, R, C also accepted). Older files without status default to Elective.<br>Course codes such as <code>GST101</code> are automatically saved as <code>GST 101</code>.
                         </small>
                     </div>
 

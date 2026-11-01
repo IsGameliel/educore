@@ -22,5 +22,6 @@ it('lists identical courses once and finds registrations linked to either copy',
     $this->actingAs($student);
     $controller = new \App\Http\Controllers\CourseRegistrationController();
     $request = \Illuminate\Http\Request::create('/', 'GET', ['level' => '100', 'semester' => 'First', 'session' => $session->name]);
-    expect($controller->getCoursesByLevel($request)->getData())->toHaveCount(1);
+    // A registration against either duplicate removes both from selectable courses.
+    expect($controller->getCoursesByLevel($request)->getData())->toHaveCount(0);
 });

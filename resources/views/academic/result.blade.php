@@ -2,14 +2,14 @@
 @section('heading', $result->course_code.' — '.$result->matric_number)
 @section('academic-content')
 <p>{{ $result->session }} · {{ $result->semester }} semester · <strong>{{ ucfirst($result->workflow_status) }}</strong> · Version {{ $result->version }}</p>
-<p>Outcome: {{ str_replace('_',' ',$result->outcome_status) }} · Score: {{ $result->score ?? '—' }} · Grade: {{ $result->grade ?? '—' }} · Credits: {{ $result->credit_unit }}</p>
+<p>Outcome: {{ str_replace('_',' ',$result->outcome_status) }} · @if(!$student)Score: {{ $result->score ?? '—' }} · @endif Grade: {{ $result->grade ?? '—' }} · Credits: {{ $result->credit_unit }}</p>
 @if($result->registration?->previousResult?->workflow_status === 'published')
 <p>Carryover attempt: <a href="{{ route('academic.show', $result->registration->previousResult) }}">View previous failed result ({{ $result->registration->previousResult->session }})</a>. The original marks are preserved.</p>
 @endif
 @if($attempts->count() > 1)
-<h3>Exam attempts</h3><p>The original exam result is retained for reference. Each resit has its own score and approval status.</p>
-<div class="table-responsive"><table class="table table-bordered"><thead><tr><th>Exam</th><th>Score</th><th>Grade</th><th>Status</th><th>Record</th></tr></thead><tbody>
-@foreach($attempts as $attempt)<tr><td>{{ $attempt->attempt_type === 'resit' ? 'Resit exam' : 'Original exam' }}</td><td>{{ $attempt->score ?? 'Not entered' }}</td><td>{{ $attempt->grade ?? '—' }}</td><td>{{ ucfirst($attempt->workflow_status) }}</td><td><a href="{{ route('academic.show', $attempt) }}">Open attempt {{ $attempt->attempt_number }}</a></td></tr>@endforeach
+<h3>Exam attempts</h3><p>The original exam result is retained for reference. Each resit has its own grade and approval status.</p>
+<div class="table-responsive"><table class="table table-bordered"><thead><tr><th>Exam</th>@if(!$student)<th>Score</th>@endif<th>Grade</th><th>Status</th><th>Record</th></tr></thead><tbody>
+@foreach($attempts as $attempt)<tr><td>{{ $attempt->attempt_type === 'resit' ? 'Resit exam' : 'Original exam' }}</td>@if(!$student)<td>{{ $attempt->score ?? 'Not entered' }}</td>@endif<td>{{ $attempt->grade ?? '—' }}</td><td>{{ ucfirst($attempt->workflow_status) }}</td><td><a href="{{ route('academic.show', $attempt) }}">Open attempt {{ $attempt->attempt_number }}</a></td></tr>@endforeach
 </tbody></table></div>
 @endif
 @if(!$student && $result->resit_authorized_at)<p>Resit authorized by staff #{{ $result->resit_authorized_by }} on {{ $result->resit_authorized_at->format('d M Y H:i') }}. The authorization reason is recorded in the change history.</p>@endif

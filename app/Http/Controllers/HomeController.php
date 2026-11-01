@@ -48,6 +48,18 @@ class HomeController extends Controller
                 });
 
             $recentUpdates = StudentUpdateFeed::forUser($user);
+            $updatesPage = min(
+                max(1, (int) request()->query('updates_page', 1)),
+                max(1, (int) ceil($recentUpdates->count() / 4))
+            );
+            $recentUpdates = new \Illuminate\Pagination\LengthAwarePaginator(
+                $recentUpdates->forPage($updatesPage, 4)->values(),
+                $recentUpdates->count(),
+                4,
+                $updatesPage,
+                ['path' => request()->url(), 'pageName' => 'updates_page', 'fragment' => 'recent-updates']
+            );
+            $recentUpdates->appends(request()->except('updates_page'));
             $tuitionSession = AcademicSession::current();
             $tuitionInvoices = collect();
             $tuitionClearances = [];
@@ -91,7 +103,10 @@ class HomeController extends Controller
         $academicSessions = AcademicSession::query()
             ->orderByDesc('is_active')
             ->orderByDesc('start_year')
-            ->get();
+            ->orderByDesc('id')
+            ->paginate(3, ['*'], 'sessions_page')
+            ->withQueryString()
+            ->fragment('existing-sessions');
         $currentAcademicSession = AcademicSession::current();
         $departmentCourseSummary = Department::withCount('courses')
             ->orderBy('name')
@@ -170,10 +185,11 @@ class HomeController extends Controller
             });
         }
 
-        return $query
-            ->take(8)
-            ->get()
-            ->map(function ($activity) {
+        $activities = $user->dashboardRole() === 'admin'
+            ? $query->orderByDesc('id')->paginate(4, ['*'], 'activity_page')->withQueryString()->fragment('recent-activity-table')
+            : $query->take(8)->get();
+
+        $formatActivity = function ($activity) {
                 $meta = $this->getActivityMeta($activity->action);
 
                 return [
@@ -184,7 +200,11 @@ class HomeController extends Controller
                     'status_color' => $meta['color'],
                     'occurred_at' => $activity->created_at,
                 ];
-            });
+            };
+
+        return $activities instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator
+            ? $activities->through($formatActivity)
+            : $activities->map($formatActivity);
     }
 
     private function getActivityMeta(string $action): array

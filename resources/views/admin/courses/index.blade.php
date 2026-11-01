@@ -143,7 +143,7 @@
                                 <th><input type="checkbox" id="select-all-courses" aria-label="Select all courses on this page"></th>
                                 <th>Code</th>
                                 <th>Title</th>
-                                <th>Credit Unit</th>
+                                <th>Credit Unit</th><th>Course Status</th>
                                 <th>Session</th>
                                 <th>Semester</th>
                                 <th>Department</th>
@@ -156,7 +156,7 @@
                                     <td><input type="checkbox" name="course_ids[]" value="{{ $course->id }}" form="bulk-course-delete" class="course-selection" aria-label="Select {{ $course->code }} {{ $course->title }}"></td>
                                     <td class="fw-semibold">{{ $course->code }}</td>
                                     <td>{{ $course->title }}</td>
-                                    <td>{{ $course->credit_unit }}</td>
+                                    <td>{{ $course->credit_unit }}</td><td>{{ $course->course_status }} ({{ $course->status_code }})</td>
                                     <td>{{ $course->academicSession?->name ?? 'N/A' }}</td>
                                     <td>{{ $course->semester }}</td>
                                     <td>{{ optional($course->department)->name }}</td>
@@ -175,7 +175,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-3">No courses found.</td>
+                                    <td colspan="9" class="text-center text-muted py-3">No courses found.</td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -93,7 +93,7 @@
                                     <td>{{ $registration->session ?: 'Session not assigned' }}</td>
                                     <td>
                                         @forelse($registration->results->where('workflow_status', 'published') as $result)
-                                            <div><a href="{{ route('academic.show', $result) }}">{{ ucfirst($result->attempt_type) }}: {{ $result->score ?? ucfirst(str_replace('_', ' ', $result->outcome_status)) }} {{ $result->grade }}</a></div>
+                                            <div><a href="{{ route('academic.show', $result) }}">{{ ucfirst($result->attempt_type) }}: {{ $result->grade ?? ucfirst(str_replace('_', ' ', $result->outcome_status)) }}</a></div>
                                         @empty
                                             <span class="text-muted">No published result</span>
                                         @endforelse

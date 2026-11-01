@@ -18,7 +18,7 @@ class AdminCourseRegistrationController extends Controller
     public function bulkUpdateSessionLevel(Request $request)
     {
         $data = $request->validate([
-            'department_id' => 'required|exists:departments,id',
+            'department_id' => 'required_if:scope,all_matching|nullable|exists:departments,id',
             'target_session' => 'required|exists:academic_sessions,name',
             'level' => 'required|in:100,200,300,400,500,600',
             'scope' => 'required|in:selected,all_matching',
@@ -28,7 +28,8 @@ class AdminCourseRegistrationController extends Controller
             'q' => 'nullable|string|max:255',
         ]);
         $count = DB::transaction(function () use ($request, $data) {
-            $query = User::where('usertype', 'student')->where('department_id', $data['department_id'])
+            $query = User::where('usertype', 'student')
+                ->when($data['department_id'] ?? null, fn ($q, $department) => $q->where('department_id', $department))
                 ->when($data['current_level'] ?? null, fn ($q, $level) => $q->where('level', $level))
                 ->when($data['q'] ?? null, function ($query, $search) {
                     $query->where(fn ($q) => $q->where('name', 'like', '%'.trim($search).'%')
@@ -53,14 +54,14 @@ class AdminCourseRegistrationController extends Controller
                 );
             }
             ActivityLogger::log($request->user(), 'student_session_levels_bulk_updated', 'Saved student session levels in bulk.', [
-                'department_id' => (int) $data['department_id'], 'properties' => [
+                'department_id' => isset($data['department_id']) ? (int) $data['department_id'] : null, 'properties' => [
                     'session' => $session->name, 'level' => $data['level'], 'student_ids' => $students->pluck('id')->all(),
                 ],
             ]);
             return $students->count();
         });
         return redirect()->route('admin.course-registrations.index', [
-            'department_id' => $data['department_id'], 'session' => $data['target_session'],
+            'department_id' => $data['department_id'] ?? null, 'session' => $data['target_session'],
             'current_level' => $data['current_level'] ?? null, 'q' => $data['q'] ?? null,
         ])->with('success', "Session level {$data['level']} saved for {$count} student(s) in {$data['target_session']}. Current profile levels were left unchanged.");
     }

@@ -83,7 +83,7 @@ it('downloads the published departmental broadsheet as a real Excel workbook', f
     $f = academicFixture();
     publishAcademicFixture($f);
     $f['student']->update(['name' => '=1+1']);
-    DB::table('results')->where('id', $f['result']->id)->update(['matric_number' => '000123', 'score' => 0, 'grade' => 'F']);
+    DB::table('results')->where('id', $f['result']->id)->update(['matric_number' => '000123', 'score' => 0, 'grade' => 'F', 'grade_point' => 0]);
     $filters = ['department_id' => $f['department']->id, 'session' => $f['session']->name, 'semester' => 'First'];
     $this->actingAs($f['admin'])->get(route('academic.reports', $filters))->assertOk()->assertSee('Export broadsheet (Excel)');
     $response = $this->get(route('academic.reports', $filters + ['export_broadsheet' => 1]));
@@ -92,17 +92,24 @@ it('downloads the published departmental broadsheet as a real Excel workbook', f
     try {
         $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
         $sheet = $book->getActiveSheet();
-        expect($sheet->getCell('B2')->getValue())->toBe('Computing')
-            ->and($sheet->getCell('C6')->getValue())->toBe('CSC101 (First, regular)')
-            ->and($sheet->getCell('A7')->getValue())->toBe('=1+1')
-            ->and($sheet->getCell('A7')->getDataType())->toBe('s')
-            ->and($sheet->getCell('B7')->getValue())->toBe('000123')
-            ->and($sheet->getCell('C7')->getValue())->toBe('0 / F')
-            ->and($sheet->getFreezePane())->toBe('A7')
-            ->and($sheet->getColumnDimension('A')->getWidth())->toEqual(32)
-            ->and($sheet->getColumnDimension('C')->getWidth())->toEqual(24)
-            ->and($sheet->getColumnDimension('C')->getVisible())->toBeTrue()
-            ->and($sheet->getStyle('C6')->getAlignment()->getWrapText())->toBeTrue()
+        expect($sheet->getCell('A2')->getValue())->toBe('Science')
+            ->and($sheet->getCell('A3')->getValue())->toBe('Department of Computing')
+            ->and($sheet->getCell('D8')->getValue())->toBe('CSC101 [E]')
+            ->and($sheet->getCell('D9')->getValue())->toBe('3')
+            ->and($sheet->getCell('A9')->getValue())->toBe('S/N')
+            ->and($sheet->getCell('B10')->getValue())->toBe('000123')
+            ->and($sheet->getCell('C10')->getValue())->toBe('=1+1')
+            ->and($sheet->getCell('C10')->getDataType())->toBe('s')
+            ->and($sheet->getHighestColumn())->toBe('I')
+            ->and($sheet->getCell('D10')->getValue())->toBe('0')
+            ->and($sheet->getCell('D17')->getValue())->toBe('F')
+            ->and($sheet->getCell('D24')->getValue())->toBe('0')
+            ->and($sheet->getFreezePane())->toBeNull()
+            ->and($sheet->getColumnDimension('D')->getWidth())->toEqual(9)
+            ->and($sheet->getColumnDimension('D')->getVisible())->toBeTrue()
+            ->and($sheet->getStyle('D8')->getAlignment()->getWrapText())->toBeTrue()
+            ->and($sheet->getPageSetup()->getOrientation())->toBe('landscape')
+            ->and($sheet->getMergeCells())->toHaveKey('D7:I7')
             ->and($sheet->getProtection()->getSheet())->toBeFalse();
         $book->disconnectWorksheets();
     } finally {
@@ -123,7 +130,7 @@ it('limits broadsheet exports to reviewed and later results matching all selecte
     \Maatwebsite\Excel\Facades\Excel::assertDownloaded('departmental-broadsheet-review.xlsx', function ($export) use ($f) {
         $rows = $export->array();
         return $export->results->modelKeys() === [$f['result']->id]
-            && str_contains($rows[0][0], 'review copy') && str_contains($rows[6][2], '[draft]');
+            && str_contains($rows[3][0], 'REVIEW COPY') && str_contains($rows[9][3], '[draft]');
     });
     ResultWorkflow::transition($f['result'], $f['lecturer'], 'submit', 'Marks checked and submitted');
     $assertEmpty($filters);
@@ -132,7 +139,7 @@ it('limits broadsheet exports to reviewed and later results matching all selecte
         $this->get(route('academic.reports', $filters))->assertOk();
         \Maatwebsite\Excel\Facades\Excel::assertDownloaded('departmental-broadsheet.xlsx', function ($export) use ($f, $status) {
             return $export->results->modelKeys() === [$f['result']->id]
-                && str_contains($export->array()[6][2], '['.$status.']');
+                && str_contains($export->array()[9][3], '['.$status.']');
         });
         ResultWorkflow::transition($f['result'], $f['admin'], $status === 'reviewed' ? 'approve' : 'publish', 'Academic review completed');
     }
@@ -790,4 +797,71 @@ it('lets admins set scoped student credit limits and enforces them during regist
     expect(\App\Services\Academic\StudentCreditLimit::for($f['student'], $f['session']->name, 'First'))->toBe(24);
     $this->get(route('admin.course-registrations.show', [$f['student'], 'session' => $f['session']->name, 'semester' => 'First']))
         ->assertOk()->assertSee('Save credit load');
+});
+
+it('exports broadsheet previous and selected sessions with separate session and level columns', function () {
+    $f = academicFixture();
+    publishAcademicFixture($f);
+    $previous = AcademicSession::create(['name' => '2024/2025', 'start_year' => 2024, 'end_year' => 2025]);
+    $future = AcademicSession::create(['name' => '2026/2027', 'start_year' => 2026, 'end_year' => 2027]);
+    $f['student']->update(['level' => '200']);
+    DB::table('results')->where('id', $f['result']->id)->update(['level' => '200']);
+    $copy = function (array $changes) use ($f) {
+        $result = $f['result']->replicate();
+        $result->forceFill($changes);
+        $result->saveQuietly();
+        return $result;
+    };
+    $old = $copy(['session' => $previous->name, 'level' => '100', 'course_registration_id' => null, 'score' => 40, 'grade' => 'E', 'grade_point' => 1]);
+    $copy(['session' => $future->name, 'course_registration_id' => null]);
+    $copy(['session' => $previous->name, 'semester' => 'Second', 'course_registration_id' => null]);
+    $draft = $copy(['session' => $previous->name, 'course_code' => 'DRAFT101', 'workflow_status' => 'draft', 'course_registration_id' => null]);
+    $other = Department::create(['name' => 'Other', 'faculty_id' => $f['department']->faculty_id]);
+    $copy(['session' => $previous->name, 'department_id' => $other->id, 'course_registration_id' => null]);
+    $filters = ['department_id' => $f['department']->id, 'session' => $f['session']->name, 'semester' => 'First'];
+    $this->actingAs($f['admin'])->get(route('academic.reports', $filters))->assertOk()->assertSee('Export all available sessions (Excel)');
+    $response = $this->get(route('academic.reports', $filters + ['export_broadsheet' => 1, 'all_sessions' => 1]));
+    $response->assertOk()->assertDownload('departmental-broadsheet.xlsx');
+    $path = $response->baseResponse->getFile()->getPathname();
+    try {
+        $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+        $sheet = $book->getActiveSheet();
+        expect($sheet->getCell('A4')->getValue())->toContain('All available sessions through 2025/2026')
+            ->and($sheet->getHighestColumn())->toBe('O')
+            ->and($sheet->getCell('D7')->getValue())->toBe('100L - 2024/2025 First Semester Examination')
+            ->and($sheet->getCell('J7')->getValue())->toBe('200L - 2025/2026 First Semester Examination')
+            ->and($sheet->getCell('D10')->getValue())->toBe('40')
+            ->and($sheet->getCell('J10')->getValue())->toBe('70')
+            ->and($sheet->getCell('D17')->getValue())->toBe('E')
+            ->and($sheet->getCell('D24')->getValue())->toBe('1')
+            ->and($sheet->getCell('H24')->getValue())->toBe('1.00');
+        $book->disconnectWorksheets();
+    } finally {
+        @unlink($path);
+    }
+    \Maatwebsite\Excel\Facades\Excel::fake();
+    $this->get(route('academic.reports', $filters + ['export_broadsheet' => 1, 'all_sessions' => 1, 'include_unpublished' => 1]))->assertOk();
+    \Maatwebsite\Excel\Facades\Excel::assertDownloaded('departmental-broadsheet-review.xlsx', fn ($export) => $export->results->count() === 3 && $export->results->contains('id', $draft->id) && $export->results->contains('id', $old->id));
+    $this->get(route('academic.reports', $filters + ['export_broadsheet' => 1, 'all_sessions' => 'invalid']))->assertSessionHasErrors('all_sessions');
+});
+
+it('calculates broadsheet credits weighted points GPA and carryovers from published graded results', function () {
+    $f = academicFixture();
+    publishAcademicFixture($f);
+    $failed = clone $f['result'];
+    $failed->forceFill(['id' => 200, 'course_code' => 'FAIL101', 'credit_unit' => 2, 'score' => 0, 'grade' => 'F', 'grade_point' => 0]);
+    $incomplete = clone $f['result'];
+    $incomplete->forceFill(['id' => 201, 'course_code' => 'INC101', 'credit_unit' => 4, 'outcome_status' => 'incomplete', 'score' => null, 'grade' => null, 'grade_point' => null]);
+    $reviewed = clone $f['result'];
+    $reviewed->forceFill(['id' => 202, 'course_code' => 'REV101', 'credit_unit' => 3, 'workflow_status' => 'reviewed']);
+    $export = new \App\Exports\DepartmentalBroadsheetExport(collect([$f['result'], $failed, $incomplete, $reviewed]), 'Computing', $f['session']->name, 'First');
+    $rows = $export->array();
+    $headers = $rows[7];
+    $score = $rows[9];
+    expect(array_slice($score, array_search('TCC', $headers)))->toBe([5, 3, 15, '3.00', 'FAIL101'])
+        ->and($score[array_search('FAIL101', $headers)])->toBe('0')
+        ->and($score[array_search('INC101', $headers)])->toBe('incomplete')
+        ->and($score[array_search('REV101', $headers)])->toBe('70 [reviewed]');
+    $reviewOnly = new \App\Exports\DepartmentalBroadsheetExport(collect([$reviewed]), 'Computing', $f['session']->name, 'First');
+    expect(array_slice($reviewOnly->array()[9], 4))->toBe(['', '', '', '', '']);
 });

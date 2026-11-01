@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\ActivityLog;
+use App\Models\Result;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -17,7 +18,7 @@ class StudentUpdateFeed
 
         $studentLevel = (string) $user->level;
 
-        return ActivityLog::with(['actor', 'targetUser'])
+        return ActivityLog::with(['actor', 'targetUser', 'subject'])
             ->whereIn('action', [
                 'course_created',
                 'course_updated',
@@ -70,7 +71,11 @@ class StudentUpdateFeed
             'id' => $activity->id,
             'actor' => $activity->actor?->name ?? 'System',
             'title' => $meta['label'],
-            'details' => $activity->description,
+            'details' => $activity->action === 'result_published'
+                ? ($activity->subject instanceof Result
+                    ? $activity->subject->course_code.' result published. Grade: '.($activity->subject->grade ?? ucfirst(str_replace('_', ' ', $activity->subject->outcome_status)))
+                    : 'Your result has been published.')
+                : $activity->description,
             'status' => $meta['status'],
             'status_color' => $meta['color'],
             'occurred_at' => $activity->created_at,

@@ -224,15 +224,20 @@ class Result extends Model
         $hasExam = $examScore !== null && $examScore !== '';
 
         if ($hasCa || $hasExam) {
-            return round((float) ($caScore ?: 0) + (float) ($examScore ?: 0), 2);
+            return (int) round((float) ($caScore ?: 0) + (float) ($examScore ?: 0), 0, PHP_ROUND_HALF_UP);
         }
 
-        return $score === null || $score === '' ? null : round((float) $score, 2);
+        return $score === null || $score === '' ? null : (int) round((float) $score, 0, PHP_ROUND_HALF_UP);
+    }
+
+    public function getScoreAttribute($value)
+    {
+        return static::resolveScore($value);
     }
 
     public function getGradePointAttribute($value)
     {
-        return $value === null ? null : number_format($value, 2);
+        return $value === null ? null : (int) round((float) $value, 0, PHP_ROUND_HALF_UP);
     }
 
     public function scopeBySessionAndSemester($query, $session, $semester)

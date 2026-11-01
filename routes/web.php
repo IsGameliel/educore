@@ -121,9 +121,8 @@ Route::get('/support', function () {
     return view('support');
 });
 
-Route::get('/request-demo', function () {
-    return view('request-demo');
-});
+Route::get('/request-demo', [\App\Http\Controllers\DemoRequestController::class, 'show'])->name('demo.show');
+Route::post('/request-demo', [\App\Http\Controllers\DemoRequestController::class, 'store'])->middleware('throttle:3,10')->name('demo.store');
 
 Route::get('/register', function () {
     $departments = Department::orderBy('name')->get(['id', 'name']);

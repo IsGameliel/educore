@@ -22,7 +22,22 @@ class Courses extends Model
         'level',
         'academic_session_id',
         'pass_mark',
+        'course_status',
     ];
+
+    public const STATUSES = ['Elective', 'Required', 'Compulsory'];
+
+    protected $attributes = ['course_status' => 'Elective'];
+
+    public function isMandatory(): bool
+    {
+        return in_array($this->course_status, ['Required', 'Compulsory'], true);
+    }
+
+    public function getStatusCodeAttribute(): string
+    {
+        return ['Elective' => 'E', 'Required' => 'R', 'Compulsory' => 'C'][$this->course_status] ?? '';
+    }
 
     // Define the relationship with the Department model (belongs to a department)
     public function department()

@@ -153,7 +153,7 @@
                                     </div>
                                     <div class="col-lg-8">
                                         <div class="border rounded p-3 h-100">
-                                            <h5 class="mb-3">Existing Sessions</h5>
+                                            <h5 class="mb-3" id="existing-sessions">Existing Sessions</h5>
                                             <div class="table-responsive">
                                                 <table class="table table-hover align-middle mb-0">
                                                     <thead>
@@ -168,7 +168,7 @@
                                                     <tbody>
                                                     @forelse ($academicSessions as $academicSession)
                                                         <tr>
-                                                            <td>{{ $loop->iteration }}</td>
+                                                            <td>{{ $academicSessions->firstItem() + $loop->index }}</td>
                                                             <td class="fw-semibold">{{ $academicSession->name }}</td>
                                                             <td>
                                                                 @if($academicSession->is_active)
@@ -212,6 +212,7 @@
                                                     </tbody>
                                                 </table>
                                             </div>
+                                            @include('dashboard.pagination', ['paginator' => $academicSessions, 'label' => 'Existing Sessions'])
                                         </div>
                                     </div>
                                 </div>
@@ -350,6 +351,7 @@
                                             </tbody>
                                         </table>
                                     </div>
+                                    @include('dashboard.pagination', ['paginator' => $recentActivities, 'label' => 'Recent Activity'])
                                 </div>
                             </div>
                         </div>
@@ -359,7 +361,7 @@
                     <div class="col-lg-5 grid-margin stretch-card">
                         <div class="card">
                             <div class="card-body p-0 d-flex">
-                                <div id="inline-datepicker" class="datepicker datepicker-custom"></div>
+                                @include('dashboard.calendar')
                             </div>
                         </div>
                     </div>

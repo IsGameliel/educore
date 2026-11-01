@@ -42,6 +42,36 @@ it('updates only ticked students and rejects students outside the filtered depar
     $this->put($url, array_merge($payload, ['student_ids' => []]))->assertSessionHasErrors('student_ids');
 });
 
+it('lets an admin save ticked students without a department filter', function () {
+    $f = bulkLevelFixture();
+    $this->actingAs($f['admin']);
+    $this->get(route('admin.course-registrations.index'))
+        ->assertOk()
+        ->assertSee('<button type="submit" class="btn btn-brand">Save bulk session level</button>', false);
+
+    $ids = [$f['students'][0]->id, $f['outside']->id];
+    $this->put(route('admin.course-registrations.bulk-session-level'), [
+        'department_id' => '', 'target_session' => $f['session']->name,
+        'level' => '100', 'scope' => 'selected', 'student_ids' => $ids,
+    ])->assertSessionHasNoErrors()->assertRedirect();
+
+    expect(StudentAcademicSession::count())->toBe(2);
+    foreach ($ids as $id) {
+        $this->assertDatabaseHas('student_academic_sessions', [
+            'user_id' => $id, 'academic_session_id' => $f['session']->id, 'level' => '100',
+        ]);
+        $this->assertDatabaseHas('users', ['id' => $id, 'level' => '500']);
+    }
+});
+
+it('requires a department before updating all matching students', function () {
+    $f = bulkLevelFixture();
+    $this->actingAs($f['admin'])->put(route('admin.course-registrations.bulk-session-level'),
+        array_merge($f['payload'], ['department_id' => ''])
+    )->assertSessionHasErrors('department_id');
+    expect(StudentAcademicSession::count())->toBe(0);
+});
+
 it('rejects conflicting academic history without partially updating the batch', function () {
     $f = bulkLevelFixture();
     $student = $f['students']->last();

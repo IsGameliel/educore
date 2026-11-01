@@ -1,10 +1,11 @@
+@php($hidePlatformBranding = auth()->user()?->dashboardRole() === 'student' && request()->routeIs('student.results.*', 'academic.show', 'academic.index', 'academic.transcripts'))
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>{{ config('app.name', 'Euvion') }}</title>
+    <title>{{ $hidePlatformBranding ? (config('institution.branding.name') ?: 'Student Results') : config('app.name', 'Euvion') }}</title>
     @include('partials.vite-assets')
     <!-- plugins:css -->
     <link rel="stylesheet" href="{{ asset('dash/assets/vendors/mdi/css/materialdesignicons.min.css')}}">
@@ -20,6 +21,7 @@
     <!-- endinject -->
     <!-- Layout styles -->
     <link rel="stylesheet" href="{{ asset('dash/assets/css/style.css')}}">
+
     <link rel="stylesheet" href="{{ asset('dash/assets/css/euvion-dashboard.css') }}?v={{ filemtime(public_path('dash/assets/css/euvion-dashboard.css')) }}">
     <!-- End layout styles -->
     <link rel="shortcut icon" href="{{ asset('dash/assets/images/favicon.png')}}" />
@@ -77,6 +79,7 @@
 <!-- Custom js for this page -->
 <script src="{{ asset('dash/assets/js/dashboard.js')}}"></script>
 <script src="{{ asset('dash/assets/js/euvion-dashboard.js')}}"></script>
+<script src="{{ asset('dash/assets/js/dashboard-calendar.js')}}"></script>
 <!-- End custom js for this page -->
 @stack('modals')
 @livewireScripts

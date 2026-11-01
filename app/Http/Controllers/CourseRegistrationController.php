@@ -67,7 +67,8 @@ class CourseRegistrationController extends Controller
             ->orderBy('code')
             ->get();
         $carryoverCourses = \App\Services\Academic\CarryoverRegistration::available($user, $currentSession);
-        $courses = Courses::uniqueOptions($courses);
+        $carryoverCourses = $carryoverCourses->filter(fn ($course) => $this->unregisteredOptions(collect([$course]), $user, $currentSession, $course->semester)->isNotEmpty())->values();
+        $courses = $this->unregisteredOptions($courses, $user, $currentSession, $defaultSemester);
         $creditLimits = collect(['First', 'Second'])->mapWithKeys(fn ($semester) => [
             $semester => \App\Services\Academic\StudentCreditLimit::for($user, $currentSession, $semester),
         ])->all();
@@ -98,7 +99,16 @@ class CourseRegistrationController extends Controller
             ->orderBy('code')
             ->get();
 
-        return response()->json(Courses::uniqueOptions($courses));
+        return response()->json($this->unregisteredOptions($courses, $user, $session, $semester));
+    }
+
+    private function unregisteredOptions($courses, User $user, string $session, string $semester)
+    {
+        $registered = CourseRegistration::where('user_id', $user->id)->where('session', $session)
+            ->where('semester', $semester)->whereIn('status', ['registered', 'approved', 'completed', 'pending'])
+            ->pluck('course_id');
+
+        return Courses::uniqueOptions($courses)->reject(fn ($course) => $course->equivalentIds()->intersect($registered)->isNotEmpty())->values();
     }
 
 
@@ -140,6 +150,15 @@ class CourseRegistrationController extends Controller
             return $this->courseRegistrationError($request, 'A selected carryover is not an outstanding published failure available this semester.', 422);
         }
         $courseIds = array_values(array_unique(array_merge($courseIds, $carryoverIds)));
+        $mandatory = Courses::where('department_id', $user->department_id)->forAcademicSession($session)
+            ->where('level', $level)->where('semester', $semester)
+            ->whereIn('course_status', ['Required', 'Compulsory'])->get();
+        $mandatory = $mandatory->concat($carryovers->filter(fn ($course) => $course->isMandatory()))->unique('id');
+        $missing = $this->unregisteredOptions($mandatory, $user, $session, $semester)
+            ->reject(fn ($course) => $course->equivalentIds()->intersect($courseIds)->isNotEmpty());
+        if ($missing->isNotEmpty()) {
+            return $this->courseRegistrationError($request, 'Required and Compulsory courses must be registered: '.$missing->pluck('code')->join(', ').'.', 422);
+        }
         if (empty($courseIds)) {
             return $this->courseRegistrationError($request, 'Please select at least one course.', 422);
         }
@@ -337,6 +356,9 @@ class CourseRegistrationController extends Controller
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($registration, $userId) {
             User::whereKey($userId)->lockForUpdate()->firstOrFail();
+            if ($registration->course?->isMandatory()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['course_registration' => 'Required and Compulsory courses cannot be withdrawn by students. Contact your department.']);
+            }
             $registration->assertCanRemove();
 
             // Remove the registration (i.e., withdrawal)
@@ -427,7 +449,7 @@ class CourseRegistrationController extends Controller
             'courses' => $courses,
             'totalCreditUnits' => $totalCreditUnits,
             'department' => $user->department->name ?? 'N/A', // Assuming a relationship exists
-            'level' => $user->level ?? 'N/A', // Replace with the appropriate attribute
+            'level' => \App\Services\Academic\StudentSessionLevel::find($user, $session) ?? 'Not set',
         ];
 
         // Generate the PDF with the courses and user data

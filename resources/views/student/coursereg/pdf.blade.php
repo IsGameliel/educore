@@ -1,378 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Registered Courses</title>
-
-  <style>
-  :root{
-    --blue:#0B5ED7;
-    --orange:#C25A1D;
-    --red:#D72638;
-
-    --ink:#111827;
-    --muted:#6b7280;
-    --line:#d1d5db;
-    --bg:#f8fafc;
-    --card:#ffffff;
-  }
-
-  *{ box-sizing:border-box; }
-
-  body{
-    font-family: DejaVu Sans, "Segoe UI", Arial, sans-serif; /* DejaVu helps DomPDF */
-    margin: 0;
-    padding: 0;
-    background: #ffffff; /* safest for PDF */
-    color: var(--ink);
-  }
-
-  .container{
-    max-width: 900px;
-    margin: 18px auto;
-    padding: 18px;
-    background: var(--card);
-    border: 1px solid var(--line); /* instead of shadow */
-    border-radius: 6px;            /* simple radius works */
-  }
-
-  /* Brand strip (no gradients) */
-  .brand-strip{
-    width: 100%;
-    height: 8px;
-    background: var(--blue);
-    border-radius: 20px;
-    margin-bottom: 14px;
-  }
-
-  /* Simple 3-color bar under strip (PDF safe) */
-  .brand-strip-2{
-    width: 100%;
-    height: 4px;
-    margin-top: 6px;
-    font-size: 0;
-  }
-  .brand-strip-2 span{
-    display:inline-block;
-    height: 4px;
-  }
-  .brand-strip-2 .b{ width:60%; background: var(--blue); }
-  .brand-strip-2 .o{ width:25%; background: var(--orange); }
-  .brand-strip-2 .r{ width:15%; background: var(--red); }
-
-  .logo{
-    text-align: center;
-    margin-bottom: 10px;
-  }
-  .logo h1{
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--blue);
-  }
-  .logo p{
-    margin: 4px 0 0;
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .header{
-    text-align: center;
-    margin: 12px 0 14px;
-    padding: 12px;
-    border: 1px solid var(--line);
-    background: #f9fafb; /* flat color */
-  }
-  .header h2{
-    margin: 0 0 10px;
-    font-size: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    color: var(--ink);
-  }
-
-  /* Meta grid (PDF-safe 2 columns) */
-  .meta{
-    width: 100%;
-    margin: 0 auto;
-    text-align: left;
-    border-collapse: separate;
-    border-spacing: 10px 8px;
-  }
-  .meta td{
-    width: 50%;
-    padding: 10px 12px;
-    border: 1px solid var(--line);
-    background: #ffffff;
-    vertical-align: top;
-  }
-  .meta strong{
-    display:block;
-    font-size: 11px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    margin-bottom: 4px;
-  }
-  .meta span{
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--ink);
-    display:block;
-    word-break: break-word;
-  }
-
-  table{
-    width: 100%;
-    border-collapse: collapse;
-    margin: 14px 0 0;
-  }
-
-  thead th{
-    background: var(--blue);
-    color: #ffffff;
-    padding: 10px;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    border: 1px solid var(--blue);
-  }
-
-  tbody td{
-    padding: 10px;
-    border: 1px solid var(--line);
-    font-size: 13px;
-  }
-
-  tfoot td{
-    padding: 10px;
-    border: 1px solid var(--line);
-    font-size: 13px;
-    font-weight: 700;
-    background: #f9fafb;
-  }
-
-  .code{
-    font-weight: 700;
-  }
-  .unit{
-    text-align: center;
-    font-weight: 700;
-  }
-
-  .total-label{
-    text-align: right;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-  }
-
-  .total-unit{
-    text-align: center;
-    color: var(--blue);
-  }
-
-  /* Badge: avoid flex/chips, use simple inline-block */
-  .sem-badge{
-    display:inline-block;
-    padding: 4px 8px;
-    border: 1px solid var(--orange);
-    color: var(--orange);
-    font-size: 12px;
-    font-weight: 700;
-    border-radius: 14px;
-  }
-
-  /* Signatures: use table for perfect PDF layout */
-  .signature-section{
-    margin-top: 4px;
-  }
-
-  .signature-table{
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 14px 0; /* spacing between boxes */
-  }
-
-  .signature-table td{
-    width: 33.33%;
-    border: 1px solid var(--line);
-    padding: 14px;
-    vertical-align: bottom;
-    height: 95px;
-    position: relative;
-  }
-
-  /* left color strip (no gradient) */
-  .signature-table td::before{
-    content:"";
-    position:absolute;
-    left:0;
-    top:0;
-    bottom:0;
-    width: 5px;
-    background: var(--blue);
-  }
-  .signature-table td:nth-child(2)::before{ background: var(--orange); }
-  .signature-table td:nth-child(3)::before{ background: var(--red); }
-
-  .signature-line{
-    border-top: 1px dashed #9ca3af;
-    margin: 0 0 10px;
-    width: 100%;
-  }
-
-  .signature-table p{
-    margin: 0;
-    text-align: center;
-    font-size: 12px;
-    color: var(--muted);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-  }
-
-  .footer{
-    margin-top: 4px;
-    padding-top: 10px;
-    border-top: 1px solid var(--line);
-    text-align: center;
-    font-size: 11px;
-    color: var(--muted);
-  }
-  .footer a{
-    color: var(--blue);
-    font-weight: 700;
-    text-decoration: none;
-  }
-
-  /* Ensure colors print (Chrome print) */
-  @media print{
-    *{
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-  }
-</style>
-
+    <meta charset="UTF-8">
+    <title>Course Registration Form</title>
+    <style>
+        @page { size: A4 portrait; margin: 34pt 36pt 46pt; }
+        body { margin: 0; font-family: DejaVu Sans, sans-serif; color: #202c3e; font-size: 9pt; line-height: 1.45; }
+        table { width: 100%; border-collapse: collapse; }
+        .masthead { border-top: 5pt solid #173b5f; padding-top: 10pt; padding-bottom: 10pt; border-bottom: 1pt solid #dce3ea; }
+        .institution { font-size: 13pt; font-weight: bold; color: #173b5f; line-height: 1.25; margin-bottom: 5pt; }
+        .eyebrow { font-size: 8pt; letter-spacing: 1.5pt; color: #66768a; text-transform: uppercase; }
+        .heading { margin: 13pt 0 3pt; font-size: 10pt; color: #173b5f; font-weight: bold; }
+        .subtitle { margin: 0 0 10pt; color: #66768a; font-size: 9pt; }
+        .session-band { background: #173b5f; color: #fff; margin-bottom: 12pt; }
+        .session-band td { padding: 7pt 11pt; width: 33.33%; }
+        .session-band .label { color: #c5d6e6; }
+        .label { font-size: 7pt; text-transform: uppercase; letter-spacing: .7pt; margin-bottom: 3pt; color: #66768a; }
+        .value { font-weight: bold; font-size: 10pt; overflow-wrap: break-word; }
+        .student-info { table-layout: fixed; margin-bottom: 10pt; }
+        .student-info td { width: 50%; padding: 0 14pt 8pt 0; vertical-align: top; }
+        .section-title { font-size: 9pt; font-weight: bold; color: #173b5f; margin-bottom: 8pt; }
+        .course-table { table-layout: fixed; }
+        .course-table thead { display: table-header-group; }
+        .course-table th { background: #eaf0f5; color: #173b5f; padding: 6pt 7pt; font-size: 7pt; text-align: left; text-transform: uppercase; letter-spacing: .4pt; border-bottom: 1pt solid #c5d2df; }
+        .course-table td { padding: 6pt 7pt; border-bottom: .5pt solid #e1e7ed; vertical-align: top; font-size: 8.5pt; overflow-wrap: break-word; }
+        .course-table tr { page-break-inside: avoid; }
+        .course-table .alternate td { background: #f7f9fb; }
+        .course-table .center { text-align: center; }
+        .course-code { font-weight: bold; color: #173b5f; }
+        .summary { margin-top: 11pt; border-bottom: 2pt solid #173b5f; page-break-inside: avoid; }
+        .summary td { padding: 10pt 12pt; background: #eaf0f5; font-size: 9pt; }
+        .summary .total { text-align: right; font-weight: bold; color: #173b5f; }
+        .approval { margin-top: 18pt; page-break-inside: avoid; }
+        .approval-note { margin: 0 0 19pt; color: #66768a; font-size: 8pt; }
+        .signatures { table-layout: fixed; }
+        .signatures td { width: 33.33%; padding-right: 18pt; vertical-align: top; }
+        .signatures td:last-child { padding-right: 0; }
+        .signature-line { border-top: .7pt solid #8797a8; margin-bottom: 5pt; }
+        .signature-role { font-size: 8pt; font-weight: bold; color: #173b5f; }
+        .signature-date { margin-top: 6pt; font-size: 7pt; color: #66768a; }
+        .footer { position: fixed; bottom: -28pt; left: 0; right: 0; border-top: .5pt solid #dce3ea; padding-top: 7pt; color: #788697; font-size: 7pt; }
+    </style>
 </head>
-
 <body>
-  <div class="container">
-
-    <div class="brand-strip"></div>
-
-    <!-- Logo Section -->
-    <div class="logo">
-      <h1>{{ config('institution.branding.name', 'Mudiame University Irrua') }}</h1>
-      <p>Student Portal • Registered Courses</p>
-    </div>
-
-    <div class="header">
-      <div class="meta">
-        <div class="meta-item">
-          <strong>Name</strong>
-          <span>{{ $user->name }}</span>
-        </div>
-        <div class="meta-item">
-          <strong>Name</strong>
-          <span>{{ $user->matric_number }}</span>
-        </div>
-
-        <div class="meta-item">
-          <strong>Department</strong>
-          <span>{{ $department }}</span>
-        </div>
-
-        <div class="meta-item">
-          <strong>Level</strong>
-          <span>{{ $user->level }}</span>
-        </div>
-
-        <div class="meta-item">
-          <strong>Session</strong>
-          <span>{{ $session }}</span>
-        </div>
-
-        <div class="meta-item">
-          <strong>Semester</strong>
-          <span>{{ $semester }}</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:18%; color: var(--blue);">Course Code</th>
-            <th style="color: var(--blue)">Course Title</th>
-            <th style="width:14%; text-align:center; color: var(--blue)">Credit Unit</th>
-            <th style="width:16%; color: var(--blue)">Semester</th>
-          </tr>
-        </thead>
-
+    <div class="footer">Course registration record &nbsp; | &nbsp; {{ $session }} &nbsp; | &nbsp; {{ $semester }} semester</div>
+    <!-- <div class="masthead">
+        <div class="institution">{{ config('institution.branding.name') ?: 'Mudiame University Irrua' }}</div>
+        <div class="eyebrow">Academic Affairs / Student Records</div>
+    </div> -->
+    <!-- <div class="heading">Course Registration Form</div>
+    <p class="subtitle">Registered courses for the selected academic session and semester.</p> -->
+    <table class="session-band">
+        <tr>
+            <td><div class="label">Academic session</div><div class="value">{{ $session }}</div></td>
+            <td><div class="label">Semester</div><div class="value">{{ $semester }}</div></td>
+            <td><div class="label">Session level</div><div class="value">{{ $level ?? 'Not set' }}</div></td>
+        </tr>
+    </table>
+    <table class="student-info">
+        <tr>
+            <td><div class="label">Student name</div><div class="value">{{ $user->name }}</div></td>
+            <td><div class="label">Matriculation number</div><div class="value">{{ $user->matric_number ?: 'Not assigned' }}</div></td>
+        </tr>
+        <tr>
+            <td><div class="label">Department</div><div class="value">{{ $department }}</div></td>
+            <td><div class="label">Email address</div><div class="value">{{ $user->email ?? 'N/A' }}</div></td>
+        </tr>
+    </table>
+    <div class="section-title">REGISTERED COURSES</div>
+    <table class="course-table">
+        <thead><tr>
+            <th style="width: 6%;" class="center">No.</th>
+            <th style="width: 19%;">Course code</th>
+            <th style="width: 48%;">Course title</th>
+            <th style="width: 10%;" class="center">Units</th>
+            <th style="width: 17%;">Semester</th>
+        </tr></thead>
         <tbody>
-          @forelse ($courses as $registration)
-            <tr>
-              <td class="code">{{ $registration->course->code }}</td>
-              <td>{{ $registration->course->title }}</td>
-              <td class="unit">{{ $registration->course->credit_unit }}</td>
-              <td>
-                <span class="sem-badge">{{ ucfirst($registration->course->semester) }}</span>
-              </td>
-            </tr>
-          @empty
-            <tr>
-              <td colspan="4" style="text-align:center; padding:16px; color: var(--muted);">
-                No registered courses found.
-              </td>
-            </tr>
-          @endforelse
+            @forelse($courses as $registration)
+                <tr class="{{ $loop->even ? 'alternate' : '' }}">
+                    <td class="center">{{ $loop->iteration }}</td>
+                    <td class="course-code">{{ $registration->course?->code ?? 'N/A' }}</td>
+                    <td>{{ $registration->course?->title ?? 'Course unavailable' }}</td>
+                    <td class="center">{{ $registration->course?->credit_unit ?? 0 }}</td>
+                    <td>{{ ucfirst($registration->course?->semester ?? $semester) }}</td>
+                </tr>
+            @empty
+                <tr><td colspan="5" class="center">No registered courses found for this period.</td></tr>
+            @endforelse
         </tbody>
-
-        @if($courses->isNotEmpty())
-          <tfoot>
-            <tr>
-              <td colspan="2" class="total-label">Total Course Unit Registered</td>
-              <td class="total-unit">{{ $totalCreditUnits ?? $courses->sum(fn ($registration) => $registration->course?->credit_unit ?? 0) }}</td>
-              <td></td>
-            </tr>
-          </tfoot>
-        @endif
-      </table>
+    </table>
+    <table class="summary"><tr>
+        <td>{{ $courses->count() }} {{ $courses->count() === 1 ? 'course' : 'courses' }} registered</td>
+        <td class="total">Total credit units &nbsp; {{ $totalCreditUnits ?? $courses->sum(fn ($registration) => $registration->course?->credit_unit ?? 0) }}</td>
+    </tr></table>
+    <div class="approval">
+        <div class="section-title">AUTHORIZATION</div>
+        <p class="approval-note">For review and endorsement by the designated academic officers.</p>
+        <table class="signatures"><tr>
+            <td><div class="signature-line"></div><div class="signature-role">Head of Department</div><div class="signature-date">Date: __________________</div></td>
+            <td><div class="signature-line"></div><div class="signature-role">DAP</div><div class="signature-date">Date: __________________</div></td>
+            <td><div class="signature-line"></div><div class="signature-role">Academic Affairs</div><div class="signature-date">Date: __________________</div></td>
+        </tr></table>
     </div>
-
-    <div class="signature-section">
-      <div class="signatures">
-        <div class="sig">
-          <div class="signature-line"></div>
-          <p>HOD</p>
-        </div>
-
-        <div class="sig">
-          <div class="signature-line"></div>
-          <p>DAP</p>
-        </div>
-
-        <div class="sig">
-          <div class="signature-line"></div>
-          <p>Academic Affairs</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="footer">
-      <div>
-        Copyright © {{ date('Y') }}
-        <a href="#" target="_blank">codewitheugene</a>. All rights reserved.
-      </div>
-      <div style="margin-top:6px;">
-        Coding made simple <span style="color: var(--red); font-weight:900;">♥</span>
-      </div>
-    </div>
-
-  </div>
 </body>
 </html>
