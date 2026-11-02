@@ -36,6 +36,12 @@
             </div>
         @endif
 
+        @if(!$applicationFeeEnabled && $application?->status !== 'awaiting_payment')
+            <div class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                The application fee is currently waived. Submitting your application will activate your student account.
+            </div>
+        @endif
+
         @if($application)
             <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
                 Application <strong>{{ $application->application_number }}</strong> is {{ $application->status }}.
@@ -259,10 +265,18 @@
                 <div class="flex flex-col gap-3 rounded-lg border border-blue-100 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h3 class="font-bold text-blue-950">Submit admission application</h3>
-                        <p class="text-sm text-blue-800">Pay the &#8358;10,000 application fee through Paystack. Student access activates after payment is confirmed.</p>
+                        @if($applicationFeeEnabled)
+                            <p class="text-sm text-blue-800">Pay the &#8358;10,000 application fee through Paystack. Student access activates after payment is confirmed.</p>
+                        @else
+                            <p class="text-sm text-blue-800">No application fee is required. Student access activates after you submit this form.</p>
+                        @endif
                     </div>
                     <button class="rounded-lg bg-blue-700 px-6 py-3 font-bold text-white shadow-sm hover:bg-blue-800" type="submit">
-                        Continue to payment — &#8358;10,000
+                        @if($applicationFeeEnabled)
+                            Continue to payment — &#8358;10,000
+                        @else
+                            Submit application
+                        @endif
                     </button>
                 </div>
                 </fieldset>
@@ -274,7 +288,7 @@
                     <ol class="mt-4 space-y-3 text-sm text-slate-600">
                         <li class="flex gap-3"><span class="font-bold text-blue-700">1.</span> Create an account.</li>
                         <li class="flex gap-3"><span class="font-bold text-blue-700">2.</span> Choose your applicant type and fill all sections.</li>
-                        <li class="flex gap-3"><span class="font-bold text-blue-700">3.</span> Pay &#8358;10,000 to complete admission and activate student access.</li>
+                        <li class="flex gap-3"><span class="font-bold text-blue-700">3.</span> @if($applicationFeeEnabled)Pay &#8358;10,000 to complete admission and activate student access.@else Submit your application to activate student access; no application fee is currently required.@endif</li>
                     </ol>
                 </div>
                 <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">

@@ -10,9 +10,9 @@ class RegistrationSetting extends Model
 {
     use BelongsToInstitution;
 
-    protected $fillable = ['registration_open', 'require_fee_clearance', 'require_late_registration_fee', 'updated_by'];
+    protected $fillable = ['registration_open', 'require_fee_clearance', 'require_late_registration_fee', 'application_fee_enabled', 'updated_by'];
 
-    protected $casts = ['registration_open' => 'boolean', 'require_fee_clearance' => 'boolean', 'require_late_registration_fee' => 'boolean'];
+    protected $casts = ['registration_open' => 'boolean', 'require_fee_clearance' => 'boolean', 'require_late_registration_fee' => 'boolean', 'application_fee_enabled' => 'boolean'];
 
     public static function current(): self
     {

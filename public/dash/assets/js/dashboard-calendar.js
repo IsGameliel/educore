@@ -41,6 +41,7 @@
       const agenda = calendar.querySelector('[data-calendar-agenda]');
       agenda.replaceChildren();
       const due = events.filter((event) => event.date === key(selected));
+      calendar.querySelector('[data-calendar-count]').textContent = due.length ? `${due.length} ${due.length === 1 ? 'deadline' : 'deadlines'}` : '';
       (due.length ? due.map((event) => event.title) : ['No project deadlines for this day.']).forEach((title) => {
         const item = document.createElement('li');
         item.textContent = title;

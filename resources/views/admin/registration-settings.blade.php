@@ -6,7 +6,7 @@
         <div>
             <div class="registration-settings__eyebrow">Academic administration</div>
             <h1>Course Registration Settings</h1>
-            <p>Manage student registration access and semester fee requirements.</p>
+            <p>Manage applicant fees, student registration access, and semester fee requirements.</p>
         </div>
         <a href="{{ route('dashboard') }}" class="btn btn-outline-primary">Back to dashboard</a>
     </div>
@@ -25,7 +25,27 @@
     <form method="POST" action="{{ route('admin.registration-settings.update') }}">
         @csrf
         @method('PUT')
-        <div class="registration-settings__scope"><i class="mdi mdi-information-outline" aria-hidden="true"></i><span>Applies to all student registration submissions for their selected session and semester.</span></div>
+        <div class="registration-settings__scope"><i class="mdi mdi-information-outline" aria-hidden="true"></i><span>Applicant fee changes apply to new applications. Applications already awaiting payment keep their current payment requirement. Registration controls apply to student submissions for their selected session and semester.</span></div>
+        <section class="registration-settings__card" aria-labelledby="application-fee-title">
+            <div class="registration-settings__row">
+                <div class="registration-settings__description">
+                    <div class="registration-settings__icon"><i class="mdi mdi-cash-check" aria-hidden="true"></i></div>
+                    <div><h2 id="application-fee-title">Application fee for new applicants</h2><p>Control whether new applicants must pay ₦10,000 before student access is activated.</p></div>
+                </div>
+                <div class="registration-settings__control">
+                    <input type="hidden" name="application_fee_enabled" value="0">
+                    <label class="registration-toggle" for="application_fee_enabled">
+                        <input type="checkbox" role="switch" id="application_fee_enabled" name="application_fee_enabled" value="1" aria-label="Require the application fee for new applicants" aria-describedby="application-fee-help" @checked(old('application_fee_enabled', $settings->application_fee_enabled))>
+                        <span class="registration-toggle__track" aria-hidden="true"></span>
+                        <span class="registration-toggle__status" aria-hidden="true"><span class="registration-toggle__on">On</span><span class="registration-toggle__off">Off</span></span>
+                    </label>
+                </div>
+            </div>
+            <div class="registration-settings__detail" id="application-fee-help">
+                <div><strong>When on</strong><p>New applicants pay the application fee through Paystack before student access is activated.</p></div>
+                <div><strong>When off</strong><p>New applicants submit without payment and receive student access. Existing applications awaiting payment are unchanged.</p></div>
+            </div>
+        </section>
         <section class="registration-settings__card" aria-labelledby="registration-access-title">
             <div class="registration-settings__row">
                 <div class="registration-settings__description">

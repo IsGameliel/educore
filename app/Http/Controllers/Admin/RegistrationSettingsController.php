@@ -21,16 +21,19 @@ class RegistrationSettingsController extends Controller
             'registration_open' => 'required|boolean',
             'require_fee_clearance' => 'required|boolean',
             'require_late_registration_fee' => 'sometimes|boolean',
+            'application_fee_enabled' => 'sometimes|boolean',
         ]);
         DB::transaction(function () use ($request, $data) {
-            $settings = RegistrationSetting::whereKey(1)->lockForUpdate()->firstOrFail();
-            $before = $settings->only(['registration_open', 'require_fee_clearance', 'require_late_registration_fee']);
+            $current = RegistrationSetting::current();
+            $settings = RegistrationSetting::query()->lockForUpdate()->findOrFail($current->id);
+            $tracked = ['registration_open', 'require_fee_clearance', 'require_late_registration_fee', 'application_fee_enabled'];
+            $before = $settings->only($tracked);
             $settings->update($data + ['updated_by' => $request->user()->id]);
-            ActivityLogger::log($request->user(), 'registration_settings_updated', 'Updated student course registration controls.', [
+            ActivityLogger::log($request->user(), 'registration_settings_updated', 'Updated applicant fee and student course registration settings.', [
                 'subject' => $settings,
-                'properties' => ['before' => $before, 'after' => $settings->only(['registration_open', 'require_fee_clearance', 'require_late_registration_fee'])],
+                'properties' => ['before' => $before, 'after' => $settings->only($tracked)],
             ]);
         });
-        return redirect()->route('admin.registration-settings.edit')->with('success', 'Course registration settings saved successfully.');
+        return redirect()->route('admin.registration-settings.edit')->with('success', 'Registration settings saved successfully.');
     }
 }

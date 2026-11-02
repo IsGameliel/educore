@@ -18,8 +18,9 @@ class StudentServices
             ['label'=>'Matriculation number','done'=>filled($student->matric_number),'detail'=>filled($student->matric_number) ? 'Your matriculation number has been assigned.' : 'Ask the academic office to assign your matriculation number.','url'=>route('profile.show')],
         ];
         if ($application) {
-            $steps[] = ['label'=>'Application payment','done'=>$application->payment?->status === 'success',
-                'detail'=>$application->payment ? 'Check your application payment confirmation.' : 'No linked payment record. Ask admissions to verify your existing application before making any new payment.',
+            $feeWaived = $application->status === 'completed' && ! $application->payment;
+            $steps[] = ['label'=>'Application fee','done'=>$application->payment?->status === 'success' || $feeWaived,
+                'detail'=>$application->payment ? 'Check your application payment confirmation.' : ($feeWaived ? 'Your application was completed while the application fee was waived.' : 'No linked payment record. Ask admissions to verify your existing application before making any new payment.'),
                 'url'=>$application->payment ? route('payments.show',$application->payment) : route('payments.index')];
         }
         if (!$session) {

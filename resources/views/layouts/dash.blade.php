@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="{{ asset('dash/assets/css/style.css')}}">
 
     <link rel="stylesheet" href="{{ asset('dash/assets/css/euvion-dashboard.css') }}?v={{ filemtime(public_path('dash/assets/css/euvion-dashboard.css')) }}">
+    <link rel="stylesheet" href="{{ asset('dash/assets/css/dashboard-calendar.css') }}?v={{ filemtime(public_path('dash/assets/css/dashboard-calendar.css')) }}">
     <!-- End layout styles -->
     <link rel="shortcut icon" href="{{ asset('dash/assets/images/favicon.png')}}" />
     @livewireStyles
