@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdmissionApplication;
+use App\Models\AcademicSession;
 use App\Models\Department;
+use App\Models\Payment;
+use App\Models\RegistrationSetting;
 use App\Models\User;
 use App\Services\PaystackPayments;
 use Illuminate\Http\Request;
@@ -27,8 +30,9 @@ class AdmissionController extends Controller
         $departments = Department::with('faculty')
             ->orderBy('name')
             ->get();
+        $applicationFeeEnabled = RegistrationSetting::current()->application_fee_enabled;
 
-        return view('admissions.create', compact('application', 'departments', 'user'));
+        return view('admissions.create', compact('application', 'departments', 'user', 'applicationFeeEnabled'));
     }
 
     public function store(Request $request, PaystackPayments $gateway)
@@ -96,6 +100,11 @@ class AdmissionController extends Controller
             if ($existingApplication?->status === 'awaiting_payment') {
                 return $gateway->create($existingApplication, $user, 'application');
             }
+            $currentSettings = RegistrationSetting::current();
+            $applicationFeeEnabled = RegistrationSetting::query()
+                ->lockForUpdate()
+                ->findOrFail($currentSettings->id)
+                ->application_fee_enabled;
             $documents = $this->storeDocuments($request, $existingApplication);
 
             $application = AdmissionApplication::updateOrCreate(
@@ -103,13 +112,33 @@ class AdmissionController extends Controller
                 $validated + [
                     'olevel_results' => $olevelResults,
                     'application_number' => $this->applicationNumber($user->id),
-                    'status' => 'awaiting_payment',
-                    'completed_at' => null,
+                    'status' => $applicationFeeEnabled ? 'awaiting_payment' : 'completed',
+                    'completed_at' => $applicationFeeEnabled ? null : now(),
                 ] + $documents
             );
 
+            if (! $applicationFeeEnabled) {
+                $user->forceFill([
+                    'name' => trim($application->first_name.' '.$application->middle_name.' '.$application->surname),
+                    'usertype' => 'student',
+                    'department_id' => $application->department_id,
+                    'level' => $application->level,
+                    'entry_year' => $application->entry_year,
+                ])->save();
+
+                if ($session = AcademicSession::current()) {
+                    app(\App\Services\TuitionBilling::class)->ensureInvoices($user, $session);
+                }
+
+                return null;
+            }
+
             return $gateway->create($application, $user, 'application');
         }, 3);
+
+        if (! ($payment instanceof Payment)) {
+            return redirect()->route('dashboard')->with('success', 'Your admission application was submitted. Student access is now active.');
+        }
 
         return app(PaymentController::class)->start($payment, $gateway);
     }

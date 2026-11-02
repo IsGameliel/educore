@@ -9,6 +9,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\CourseImport;
 use DataTables; // yajra
 use App\Exports\CoursesExport;
+use App\Exports\CourseCatalogExport;
 use App\Models\{
     AcademicSession, Department, Courses
 };
@@ -367,6 +368,18 @@ class CourseController extends Controller
         return view('admin.courses.import');
     }
 
+    public function export(Request $request)
+    {
+        $filters = $request->boolean('filtered');
+        $export = new CourseCatalogExport(
+            $filters ? $request->input('title') : null,
+            $filters ? $request->input('department_id', $request->input('department')) : null,
+            $filters ? $request->input('academic_session_id') : null,
+        );
+
+        return Excel::download($export, $filters ? 'filtered_courses.xlsx' : 'courses.xlsx');
+    }
+
     public function import(Request $request)
     {
         $request->validate([
@@ -384,13 +397,23 @@ class CourseController extends Controller
         }
 
         if ($import->failedRows()) {
+            $redirectRoute = match ($request->input('return_to')) {
+                'dashboard' => 'dashboard',
+                'courses' => 'admin.courses.index',
+                default => 'admin.courses.import.form',
+            };
+
             return redirect()
-                ->route('admin.courses.import.form')
+                ->route($redirectRoute)
                 ->with('warning', $message)
                 ->with('import_errors', $import->failedRows());
         }
 
-        return redirect()->route('admin.courses.index')->with('success', $message);
+        $redirectRoute = $request->input('return_to') === 'dashboard'
+            ? 'dashboard'
+            : 'admin.courses.index';
+
+        return redirect()->route($redirectRoute)->with('success', $message);
     }
 
 }

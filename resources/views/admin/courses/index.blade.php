@@ -78,10 +78,17 @@
                 </div>
             </div>
 
-            <div class="top-actions d-flex gap-2">
+            <div class="top-actions d-flex flex-wrap align-items-center gap-2">
                 <a href="{{ route('admin.courses.create') }}" class="btn brand-cta btn-sm"><i class="mdi mdi-plus me-1"></i> Add New Course</a>
-                <a href="{{ route('admin.courses.import.form') }}" class="btn btn-outline-secondary btn-sm"><i class="mdi mdi-file-import me-1"></i> Import</a>
-                <button id="btn-export-excel" class="btn btn-success btn-sm"><i class="mdi mdi-file-excel"></i> Export Excel</button>
+                <a href="{{ route('admin.courses.export', array_merge(request()->only(['title', 'department_id', 'department', 'academic_session_id']), ['filtered' => 1])) }}" class="btn btn-outline-primary btn-sm"><i class="mdi mdi-file-download-outline me-1"></i> Export filtered</a>
+                <a href="{{ route('admin.courses.export') }}" class="btn btn-outline-success btn-sm"><i class="mdi mdi-file-excel me-1"></i> Export all</a>
+                <form action="{{ route('admin.courses.import') }}" method="POST" enctype="multipart/form-data" class="d-flex flex-wrap align-items-center gap-2">
+                    @csrf
+                    <input type="hidden" name="return_to" value="courses">
+                    <label for="course-import-file" class="visually-hidden">Choose course file to import</label>
+                    <input id="course-import-file" type="file" name="file" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" required style="max-width:220px">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="mdi mdi-file-import me-1"></i> Import</button>
+                </form>
             </div>
         </div>
 
@@ -130,7 +137,15 @@
 
                 {{-- DataTable --}}
                 @if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
+                @if(session('warning'))<div class="alert alert-warning" role="status">{{ session('warning') }}</div>@endif
                 @if($errors->any())<div class="alert alert-danger">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>@endif
+                @if(session('import_errors'))
+                    <div class="alert alert-warning"><strong>Rows needing attention:</strong>
+                        @foreach(session('import_errors') as $errorRow)
+                            <div>Row {{ $errorRow['row'] }} ({{ $errorRow['code'] }}): {{ implode(' ', $errorRow['errors']) }}</div>
+                        @endforeach
+                    </div>
+                @endif
                 <form id="bulk-course-delete" action="{{ route('admin.courses.bulk-delete') }}" method="POST" class="mb-3">
                     @csrf @method('DELETE')
                     <button id="delete-selected-courses" type="submit" class="btn btn-danger btn-sm" disabled>Delete selected courses (<span id="selected-course-count">0</span>)</button>
@@ -220,9 +235,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-
-<!-- Buttons: we won't use excelHtml5 for server-side export; we'll call our server export endpoint -->
-<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
 
 @endsection
