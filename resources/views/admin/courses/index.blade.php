@@ -246,22 +246,34 @@ document.addEventListener('DOMContentLoaded', function () {
         const feedback = form.querySelector('[role="status"]');
         let previousValue = select.value;
         select.addEventListener('change', async function () {
-            const selectedValue = select.value;
+            const payload = new FormData(form);
             select.disabled = true;
             feedback.textContent = 'Saving…';
             feedback.classList.remove('is-error');
 
             try {
                 const response = await fetch(form.action, {
+                    // PHP parses multipart form fields reliably for POST; Laravel's
+                    // hidden _method field converts this request to PATCH.
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
                     },
-                    body: new FormData(form),
+                    body: payload,
                     credentials: 'same-origin',
                 });
-                if (!response.ok) throw new Error('Could not save this status.');
+                if (!response.ok) {
+                    let message = `Save failed (${response.status}).`;
+                    try {
+                        const problem = await response.json();
+                        message = Object.values(problem.errors || {}).flat()[0] || problem.message || message;
+                    } catch (_) {
+                        // Keep the HTTP status visible when the server returns a non-JSON error page.
+                    }
+                    throw new Error(message);
+                }
 
                 const result = await response.json();
                 previousValue = result.course_status;
