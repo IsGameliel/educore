@@ -334,6 +334,7 @@ Route::middleware([
         Route::get('/courses/import', [CourseController::class, 'showImportForm'])->name('courses.import.form');
         Route::post('/courses/import', [CourseController::class, 'import'])->name('courses.import');
         Route::get('/courses/export', [CourseController::class, 'export'])->name('courses.export');
+        Route::patch('/courses/{course}/status', [CourseController::class, 'updateStatus'])->name('courses.status.update');
         Route::delete('/courses/bulk-delete', [CourseController::class, 'bulkDestroy'])->name('courses.bulk-delete');
         Route::resource('courses', CourseController::class);
         Route::get('courses/{course}/prerequisites', [CourseController::class, 'showPrerequisites'])->name('courses.prerequisites');

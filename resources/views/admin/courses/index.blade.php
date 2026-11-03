@@ -58,6 +58,10 @@
     border-radius:6px; padding:6px 10px; margin-right:6px;
 }
 .table thead th { background: linear-gradient(90deg, {{ $brand }} 0%, #003366 100%); color:#fff; }
+.course-status-form { min-width: 132px; }
+.course-status-select { min-width: 132px; border-color: #d7deea; font-weight: 600; }
+.course-status-feedback { display: block; min-height: 15px; margin: 3px 2px 0; color: #16804a; font-size: .68rem; line-height: 1.2; }
+.course-status-feedback.is-error { color: #b42318; }
 
 /* Responsive tweaks */
 @media (max-width:767px){
@@ -171,7 +175,20 @@
                                     <td><input type="checkbox" name="course_ids[]" value="{{ $course->id }}" form="bulk-course-delete" class="course-selection" aria-label="Select {{ $course->code }} {{ $course->title }}"></td>
                                     <td class="fw-semibold">{{ $course->code }}</td>
                                     <td>{{ $course->title }}</td>
-                                    <td>{{ $course->credit_unit }}</td><td>{{ $course->course_status }} ({{ $course->status_code }})</td>
+                                    <td>{{ $course->credit_unit }}</td>
+                                    <td>
+                                        <form class="course-status-form" method="POST" action="{{ route('admin.courses.status.update', $course) }}" data-course-status-form>
+                                            @csrf
+                                            @method('PATCH')
+                                            <label class="visually-hidden" for="course-status-{{ $course->id }}">Status for {{ $course->code }} {{ $course->title }}</label>
+                                            <select id="course-status-{{ $course->id }}" name="course_status" class="form-select form-select-sm course-status-select" data-initial-status="{{ $course->course_status }}" aria-describedby="course-status-feedback-{{ $course->id }}">
+                                                @foreach(\App\Models\Courses::STATUSES as $status)
+                                                    <option value="{{ $status }}" @selected($course->course_status === $status)>{{ $status }}</option>
+                                                @endforeach
+                                            </select>
+                                            <span id="course-status-feedback-{{ $course->id }}" class="course-status-feedback" role="status" aria-live="polite"></span>
+                                        </form>
+                                    </td>
                                     <td>{{ $course->academicSession?->name ?? 'N/A' }}</td>
                                     <td>{{ $course->semester }}</td>
                                     <td>{{ optional($course->department)->name }}</td>
@@ -224,6 +241,42 @@ document.addEventListener('DOMContentLoaded', function () {
         updateSelection();
     });
     selections.forEach(input => input.addEventListener('change', updateSelection));
+    document.querySelectorAll('[data-course-status-form]').forEach(form => {
+        const select = form.querySelector('select[name="course_status"]');
+        const feedback = form.querySelector('[role="status"]');
+        let previousValue = select.value;
+        select.addEventListener('change', async function () {
+            const selectedValue = select.value;
+            select.disabled = true;
+            feedback.textContent = 'Saving…';
+            feedback.classList.remove('is-error');
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: new FormData(form),
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) throw new Error('Could not save this status.');
+
+                const result = await response.json();
+                previousValue = result.course_status;
+                select.dataset.initialStatus = previousValue;
+                feedback.textContent = 'Saved';
+                window.setTimeout(() => { feedback.textContent = ''; }, 1800);
+            } catch (error) {
+                select.value = previousValue;
+                feedback.textContent = error.message || 'Could not save this status. Try again.';
+                feedback.classList.add('is-error');
+            } finally {
+                select.disabled = false;
+            }
+        });
+    });
     document.getElementById('bulk-course-delete').addEventListener('submit', function (event) {
         const count = selections.filter(input => input.checked).length;
         if (!count || !confirm('Delete ' + count + ' selected course(s)? This cannot be undone.')) event.preventDefault();

@@ -310,6 +310,37 @@ class CourseController extends Controller
         return redirect()->to(route('admin.courses.index', $filters).'#course-'.$course->id)->with('success', $message);
     }
 
+    public function updateStatus(Request $request, Courses $course)
+    {
+        $validated = $request->validate([
+            'course_status' => ['required', 'string', 'in:'.implode(',', Courses::STATUSES)],
+        ]);
+
+        $previousStatus = $course->course_status;
+        $course->update(['course_status' => $validated['course_status']]);
+
+        if ($previousStatus !== $course->course_status) {
+            ActivityLogger::log($request->user(), 'course_updated',
+                "Changed {$course->code} - {$course->title} status from {$previousStatus} to {$course->course_status}.", [
+                    'subject' => $course,
+                    'department_id' => $course->department_id,
+                    'properties' => [
+                        'course_id' => $course->id,
+                        'course_code' => $course->code,
+                        'course_title' => $course->title,
+                        'old_course_status' => $previousStatus,
+                        'course_status' => $course->course_status,
+                    ],
+                ]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['course_status' => $course->course_status]);
+        }
+
+        return back()->with('success', 'Course status updated successfully.');
+    }
+
     /**
      * Remove the specified course from storage.
      */
