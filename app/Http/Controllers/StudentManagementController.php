@@ -235,10 +235,32 @@ class StudentManagementController extends Controller
         // Perform the update and verify it succeeded
         try {
             DB::transaction(function () use ($student, $updateData) {
+                $activeSession = \App\Models\AcademicSession::current();
+                $levelChanged = (string) $student->level !== (string) $updateData['level'];
+                if ($levelChanged && $activeSession) {
+                    $hasConflictingResults = \App\Models\Result::withoutGlobalScopes()
+                        ->where('user_id', $student->id)
+                        ->where('session', $activeSession->name)
+                        ->where(fn ($query) => $query->whereNull('level')->orWhere('level', '!=', $updateData['level']))
+                        ->exists();
+                    if ($hasConflictingResults) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'level' => 'Existing results have a different level for the active session. Correct those academic records before changing the student level.',
+                        ]);
+                    }
+                }
                 $student->update($updateData);
+                if ($levelChanged && $activeSession) {
+                    \App\Models\StudentAcademicSession::updateOrCreate(
+                        ['user_id' => $student->id, 'academic_session_id' => $activeSession->id],
+                        ['level' => $updateData['level']]
+                    );
+                }
                 // Force refresh from database to ensure update was persisted
                 $student->refresh();
             });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Error updating student: ' . $e->getMessage(), [
                 'student_id' => $id,
