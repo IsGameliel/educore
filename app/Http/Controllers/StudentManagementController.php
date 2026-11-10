@@ -76,6 +76,45 @@ class StudentManagementController extends Controller
             ->with('success', "Entry year updated to {$data['entry_year']} for {$count} student(s).");
     }
 
+    public function bulkLevel(Request $request)
+    {
+        $data = $request->validate(['level' => 'required|in:100,200,300,400,500,600']);
+        [$query, $filters] = $this->filteredStudents($request);
+        $session = \App\Models\AcademicSession::current();
+        $count = DB::transaction(function () use ($query, $data, $request, $filters, $session) {
+            $students = $query->orderBy('id')->lockForUpdate()->get();
+            if ($session && $students->isNotEmpty()) {
+                $conflicts = \App\Models\Result::withoutGlobalScopes()->whereIn('user_id', $students->pluck('id'))
+                    ->where('session', $session->name)
+                    ->where(fn ($q) => $q->whereNull('level')->orWhere('level', '!=', $data['level']))
+                    ->distinct()->pluck('user_id');
+                if ($conflicts->isNotEmpty()) {
+                    $names = $students->whereIn('id', $conflicts)->take(5)->map(fn ($student) => $student->matric_number ?: $student->name)->join(', ');
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'level' => "{$conflicts->count()} student(s) have results at a different level in {$session->name}: {$names}. No levels were changed.",
+                    ]);
+                }
+            }
+            foreach ($students as $student) {
+                $before = (string) $student->level;
+                if ($before === (string) $data['level']) { continue; }
+                $student->update(['level' => $data['level']]);
+                if ($session) {
+                    \App\Models\StudentAcademicSession::updateOrCreate(
+                        ['user_id' => $student->id, 'academic_session_id' => $session->id], ['level' => $data['level']]
+                    );
+                }
+                \App\Support\ActivityLogger::log($request->user(), 'student_level_bulk_updated', 'Updated student level in bulk.', [
+                    'subject' => $student, 'target_user' => $student,
+                    'properties' => ['before' => $before, 'after' => $data['level'], 'session' => $session?->name, 'filters' => $filters],
+                ]);
+            }
+            return $students->count();
+        });
+        return redirect()->route('admin.students.index', array_filter($filters, fn ($value) => filled($value)))
+            ->with('success', "Level {$data['level']} saved for {$count} matching student(s)".($session ? " and synced to {$session->name} course registration." : '.'));
+    }
+
     public function create()
     {
         $departments = Department::all();
