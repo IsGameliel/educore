@@ -106,13 +106,13 @@ class StudentManagementController extends Controller
             }
             foreach ($students as $student) {
                 $before = (string) $student->level;
-                if ($before === (string) $data['level']) { continue; }
-                $student->update(['level' => $data['level']]);
                 if ($session) {
                     \App\Models\StudentAcademicSession::updateOrCreate(
                         ['user_id' => $student->id, 'academic_session_id' => $session->id], ['level' => $data['level']]
                     );
                 }
+                if ($before === (string) $data['level']) { continue; }
+                $student->update(['level' => $data['level']]);
                 \App\Support\ActivityLogger::log($request->user(), 'student_level_bulk_updated', 'Updated student level in bulk.', [
                     'subject' => $student, 'target_user' => $student,
                     'properties' => ['before' => $before, 'after' => $data['level'], 'session' => $session?->name],
