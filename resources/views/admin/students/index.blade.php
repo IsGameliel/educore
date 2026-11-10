@@ -93,14 +93,13 @@
                         <button type="submit" class="btn brand-btn btn-sm" @disabled($students->total() === 0)>Update matching students</button>
                     </div>
                 </form>
-                <form method="POST" action="{{ route('admin.students.bulk-level') }}" class="border rounded p-3 my-3" onsubmit="return confirm('Change the level for all {{ $students->total() }} students matching these filters across every page?')">
+                <form method="POST" action="{{ route('admin.students.bulk-level') }}" id="bulk-level-form" class="border rounded p-3 my-3" onsubmit="return confirm('Change the level for the selected students?')">
                     @csrf
-                    @foreach(['name', 'department', 'level'] as $filter)<input type="hidden" name="{{ $filter }}" value="{{ $filters[$filter] ?? '' }}">@endforeach
                     <h2 class="h6">Bulk update student level</h2>
-                    <p class="small text-muted">Select all {{ number_format($students->total()) }} students matching the current filters, across every page. Their active-session course registration level will be updated too.</p>
+                    <p class="small text-muted">Select students with the checkboxes below. Their active-session course registration level will be updated too.</p>
                     <div class="d-flex flex-wrap align-items-end gap-2">
                         <div><label for="bulk-level" class="form-label">New level</label><select id="bulk-level" name="level" required class="form-select form-select-sm"><option value="">Choose level</option>@foreach(['100','200','300','400','500','600'] as $lvl)<option value="{{ $lvl }}" @selected(old('level') === $lvl)>{{ $lvl }} Level</option>@endforeach</select></div>
-                        <button type="submit" class="btn brand-btn btn-sm" @disabled($students->total() === 0)>Update all matching students</button>
+                        <button type="submit" class="btn brand-btn btn-sm" @disabled($students->count() === 0)>Update selected students</button>
                     </div>
                 </form>
                 <div class="students-directory-heading"><h2>Student directory</h2><span>{{ number_format($students->total()) }} students</span></div>
@@ -108,6 +107,7 @@
                     <table class="table align-middle">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="select-visible-students" aria-label="Select all students on this page" @disabled($students->count() === 0)></th>
                                 <th>Name</th>
                                 <th>Matric No.</th>
                                 <th>Department</th>
@@ -120,6 +120,7 @@
                         <tbody>
                             @forelse($students as $student)
                                 <tr>
+                                    <td><input type="checkbox" class="student-level-select" name="student_ids[]" value="{{ $student->id }}" form="bulk-level-form" aria-label="Select {{ $student->name }}"></td>
                                     <td class="student-name">{{ $student->name }}</td>
                                     <td>{{ $student->matric_number ?: 'Not set' }}</td>
                                     <td>{{ optional($student->department)->name }}</td>
@@ -141,7 +142,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="students-empty"><strong>No students found.</strong><p>Try a different name, department, or level.</p></td>
+                                    <td colspan="8" class="students-empty"><strong>No students found.</strong><p>Try a different name, department, or level.</p></td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -152,6 +153,12 @@
                 <div class="students-pagination"><p>Showing {{ $students->firstItem() ?? 0 }} to {{ $students->lastItem() ?? 0 }} of {{ number_format($students->total()) }} students</p>
                     {{ $students->appends(request()->query())->links() }}
                 </div>
+
+                <script>
+                    document.getElementById('select-visible-students')?.addEventListener('change', function () {
+                        document.querySelectorAll('.student-level-select').forEach((checkbox) => { checkbox.checked = this.checked; });
+                    });
+                </script>
 
             </div>
         </div>

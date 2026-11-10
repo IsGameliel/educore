@@ -78,11 +78,20 @@ class StudentManagementController extends Controller
 
     public function bulkLevel(Request $request)
     {
-        $data = $request->validate(['level' => 'required|in:100,200,300,400,500,600']);
-        [$query, $filters] = $this->filteredStudents($request);
+        $data = $request->validate([
+            'level' => 'required|in:100,200,300,400,500,600',
+            'student_ids' => 'required|array|min:1',
+            'student_ids.*' => 'required|integer|distinct|exists:users,id',
+        ]);
         $session = \App\Models\AcademicSession::current();
-        $count = DB::transaction(function () use ($query, $data, $request, $filters, $session) {
-            $students = $query->orderBy('id')->lockForUpdate()->get();
+        $count = DB::transaction(function () use ($data, $request, $session) {
+            $students = User::where('usertype', 'student')->whereIn('id', $data['student_ids'])
+                ->orderBy('id')->lockForUpdate()->get();
+            if ($students->count() !== count($data['student_ids'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'student_ids' => 'One or more selected records are not students. No levels were changed.',
+                ]);
+            }
             if ($session && $students->isNotEmpty()) {
                 $conflicts = \App\Models\Result::withoutGlobalScopes()->whereIn('user_id', $students->pluck('id'))
                     ->where('session', $session->name)
@@ -106,13 +115,13 @@ class StudentManagementController extends Controller
                 }
                 \App\Support\ActivityLogger::log($request->user(), 'student_level_bulk_updated', 'Updated student level in bulk.', [
                     'subject' => $student, 'target_user' => $student,
-                    'properties' => ['before' => $before, 'after' => $data['level'], 'session' => $session?->name, 'filters' => $filters],
+                    'properties' => ['before' => $before, 'after' => $data['level'], 'session' => $session?->name],
                 ]);
             }
             return $students->count();
         });
-        return redirect()->route('admin.students.index', array_filter($filters, fn ($value) => filled($value)))
-            ->with('success', "Level {$data['level']} saved for {$count} matching student(s)".($session ? " and synced to {$session->name} course registration." : '.'));
+        return redirect()->route('admin.students.index', $request->only(['name', 'department', 'level']))
+            ->with('success', "Level {$data['level']} saved for {$count} selected student(s)".($session ? " and synced to {$session->name} course registration." : '.'));
     }
 
     public function create()
