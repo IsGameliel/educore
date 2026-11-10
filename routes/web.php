@@ -409,6 +409,7 @@ Route::middleware([
         Route::get('/students/import', [StudentManagementController::class, 'showImportForm'])
             ->name('students.import.form');
         Route::post('/students/bulk-entry-year', [StudentManagementController::class, 'bulkEntryYear'])->name('students.bulk-entry-year');
+        Route::post('/students/bulk-level', [StudentManagementController::class, 'bulkLevel'])->name('students.bulk-level');
         Route::post('/students/import', [StudentManagementController::class, 'import'])
             ->name('students.import');
 
