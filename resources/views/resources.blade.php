@@ -113,7 +113,7 @@
             </nav>
             <div class="flex items-center gap-4">
                 <a class="text-sm font-semibold text-primary transition-colors hover:text-primary-container" href="{{ url('/login') }}">Sign In</a>
-                <a class="rounded-xl bg-gradient-to-br from-primary to-primary-container px-6 py-2 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-[2px] active:scale-95" href="{{ url('/register') }}">Get Started</a>
+                <a class="rounded-xl bg-gradient-to-br from-primary to-primary-container px-6 py-2 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-[2px] active:scale-95" href="{{ config('tenancy.enabled') ? route('pricing') : route('login') }}">Get Started</a>
             </div>
         </div>
     </header>

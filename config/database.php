@@ -62,6 +62,23 @@ return [
             'strict' => true,
         ],
 
+        // Operator-only read source for a restored legacy-school snapshot.
+        // Never point this at the live legacy database or the shared target.
+        'legacy_snapshot' => [
+            'driver' => 'mysql',
+            'url' => null,
+            'host' => env('LEGACY_SNAPSHOT_DB_HOST', '127.0.0.1'),
+            'port' => env('LEGACY_SNAPSHOT_DB_PORT', '3306'),
+            'database' => env('LEGACY_SNAPSHOT_DB_DATABASE', ''),
+            'username' => env('LEGACY_SNAPSHOT_DB_USERNAME', ''),
+            'password' => env('LEGACY_SNAPSHOT_DB_PASSWORD', ''),
+            'unix_socket' => env('LEGACY_SNAPSHOT_DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => true,
+        ],
+
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
