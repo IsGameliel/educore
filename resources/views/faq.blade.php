@@ -100,7 +100,7 @@
                 <a class="text-slate-600 transition-colors hover:text-blue-900 dark:text-slate-400 dark:hover:text-white" href="{{ url('/resources') }}">Resources</a>
                 <a class="text-slate-600 transition-colors hover:text-blue-900 dark:text-slate-400 dark:hover:text-white" href="{{ url('/support') }}">Support</a>
                 <a class="text-slate-600 transition-colors hover:text-blue-900 dark:text-slate-400 dark:hover:text-white" href="{{ url('/login') }}">Login</a>
-                <a class="rounded-xl bg-primary px-5 py-2 text-sm font-bold tracking-wide text-on-primary shadow-md transition-transform hover:-translate-y-0.5 active:scale-95" href="{{ url('/register') }}">Get Started</a>
+                <a class="rounded-xl bg-primary px-5 py-2 text-sm font-bold tracking-wide text-on-primary shadow-md transition-transform hover:-translate-y-0.5 active:scale-95" href="{{ config('tenancy.enabled') ? route('pricing') : route('login') }}">Get Started</a>
             </nav>
         </div>
         <div class="h-px bg-slate-200/20 dark:bg-slate-800/20"></div>

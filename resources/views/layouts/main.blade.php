@@ -38,7 +38,7 @@
                 <li><a href="/#features-section" class="nav-link">Pricing</a></li>
                 <li><a href="/#contact-section" class="nav-link">Contact</a></li>
                 @guest
-                    <li class="cta mt-2"><a href="{{ url('register') }}" class="nav-link"><span>Get started</span></a></li>
+                    <li class="cta mt-2"><a href="{{ config('tenancy.enabled') ? route('pricing') : route('login') }}" class="nav-link"><span>Get started</span></a></li>
                 @else
                     <li class="mt-2"><a href="{{ url('home') }}" class="nav-link">Dashboard</a></li>
                     <li>
@@ -78,7 +78,7 @@
                     <nav class="site-navigation position-relative text-right" role="navigation">
                         @guest
                             <ul class="site-menu main-menu  site-menu-dark mr-auto d-none d-lg-block m-0 p-0">
-                                <li class="cta"><a href="{{ url('register') }}" class="nav-link"><span>Get started</span></a></li>
+                                <li class="cta"><a href="{{ config('tenancy.enabled') ? route('pricing') : route('login') }}" class="nav-link"><span>Get started</span></a></li>
                             </ul>
                         @else
                             <ul class="site-menu main-menu  site-menu-dark mr-auto d-none d-lg-block m-0 p-0">

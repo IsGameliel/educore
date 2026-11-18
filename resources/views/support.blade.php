@@ -99,7 +99,7 @@
             </div>
             <div class="flex items-center gap-4">
                 <a class="px-5 py-2 text-sm font-semibold text-[#1A4175] transition-transform hover:-translate-y-[2px]" href="{{ url('/login') }}">Login</a>
-                <a class="rounded-xl bg-primary-container px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-transform duration-200 hover:-translate-y-[2px] active:scale-95" href="{{ url('/register') }}">Get Started</a>
+                <a class="rounded-xl bg-primary-container px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-transform duration-200 hover:-translate-y-[2px] active:scale-95" href="{{ config('tenancy.enabled') ? route('pricing') : route('login') }}">Get Started</a>
             </div>
         </div>
     </nav>

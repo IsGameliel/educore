@@ -26,6 +26,10 @@ class SignupController extends Controller
 {
     public function pricing()
     {
+        if (! config('tenancy.enabled')) {
+            return redirect()->route('login');
+        }
+
         return view('pricing', ['plans' => Plan::with('features')->orderBy('standard_rate_minor')->get()]);
     }
 
