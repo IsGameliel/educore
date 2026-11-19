@@ -360,6 +360,8 @@ Route::middleware([
             ->name('course-registrations.index');
         Route::put('/course-registrations/bulk-session-level', [AdminCourseRegistrationController::class, 'bulkUpdateSessionLevel'])
             ->name('course-registrations.bulk-session-level');
+        Route::put('/course-registrations/department-credit-limit', [AdminCourseRegistrationController::class, 'updateDepartmentCreditLimit'])
+            ->name('course-registrations.department-credit-limit');
 
         Route::get('/course-registrations/{student}/registrations/{registration}/edit', [\App\Http\Controllers\Admin\RegistrationEditController::class, 'edit'])->name('course-registrations.record.edit');
         Route::put('/course-registrations/{student}/registrations/{registration}', [\App\Http\Controllers\Admin\RegistrationEditController::class, 'update'])->name('course-registrations.record.update');

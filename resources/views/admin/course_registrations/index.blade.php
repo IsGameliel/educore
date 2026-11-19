@@ -106,6 +106,25 @@
             </div>
         @endif
 
+        <div class="card mb-4">
+            <div class="card-body">
+                <h4 class="card-title mb-1">Department semester credit limit</h4>
+                <p class="helper-text">Set the maximum credit units students in a department may register for each semester. Leave blank to use the existing student-level default or override.</p>
+                <form method="POST" action="{{ route('admin.course-registrations.department-credit-limit') }}" class="d-flex flex-wrap gap-3 align-items-end">
+                    @csrf @method('PUT')
+                    <div><label for="limit-department">Department</label><select id="limit-department" name="department_id" class="form-control" required>
+                        <option value="">Choose department</option>
+                        @foreach($departments as $department)<option value="{{ $department->id }}" @selected((string) old('department_id', request('department_id')) === (string) $department->id)>{{ $department->name }}</option>@endforeach
+                    </select></div>
+                    <div><label for="limit-semester">Semester</label><select id="limit-semester" name="semester" class="form-control" required>
+                        @foreach(['First','Second'] as $semester)<option value="{{ $semester }}" @selected(old('semester', 'First') === $semester)>{{ $semester }}</option>@endforeach
+                    </select></div>
+                    <div><label for="department-credit-limit">Maximum credit units</label><input id="department-credit-limit" name="credit_limit" type="number" min="1" max="1000" class="form-control" value="{{ old('credit_limit') }}" placeholder="Clear to remove"></div>
+                    <button class="btn btn-brand" type="submit">Save department limit</button>
+                </form>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-body">
                 <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
