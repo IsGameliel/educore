@@ -133,11 +133,33 @@ class AdminCourseRegistrationController extends Controller
         return back()->with('success', 'Student credit limit updated.');
     }
 
+    public function updateDepartmentCreditLimit(Request $request)
+    {
+        $data = $request->validate([
+            'department_id' => ['required', 'exists:departments,id'],
+            'semester' => ['required', 'in:First,Second'],
+            'credit_limit' => ['nullable', 'integer', 'min:1', 'max:1000'],
+        ]);
+        $key = ['department_id' => $data['department_id'], 'semester' => $data['semester']];
+        if ($data['credit_limit'] === null) {
+            DB::table('department_credit_limits')->where($key)->delete();
+        } else {
+            DB::table('department_credit_limits')->updateOrInsert($key, [
+                'credit_limit' => $data['credit_limit'], 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+        ActivityLogger::log($request->user(), 'department_credit_limit_updated', 'Updated department semester credit limit', [
+            'department_id' => $data['department_id'], 'properties' => $key + ['credit_limit' => $data['credit_limit']],
+        ]);
+        return back()->with('success', 'Department semester credit limit updated.');
+    }
+
     public function index(Request $request)
     {
         $currentSession = $request->query('session', 'all');
         $academicSessions = $this->getAcademicSessionOptions([$currentSession]);
         $departments = Department::orderBy('name')->get(['id', 'name']);
+        $departmentCreditLimits = DB::table('department_credit_limits')->get()->keyBy(fn ($row) => $row->department_id.'-'.$row->semester);
 
         $students = User::query()
             ->where('usertype', 'student')
@@ -158,7 +180,7 @@ class AdminCourseRegistrationController extends Controller
             ->withQueryString();
 
         $sessionLevels = \App\Services\Academic\StudentSessionLevel::forStudents($students->getCollection());
-        return view('admin.course_registrations.index', compact('students', 'currentSession', 'academicSessions', 'departments', 'sessionLevels'));
+        return view('admin.course_registrations.index', compact('students', 'currentSession', 'academicSessions', 'departments', 'sessionLevels', 'departmentCreditLimits'));
     }
 
     public function show(User $student, Request $request)
