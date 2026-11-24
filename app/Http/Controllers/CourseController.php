@@ -346,6 +346,10 @@ class CourseController extends Controller
      */
     public function destroy(Courses $course)
     {
+        if ($course->courseRegistrations()->exists()) {
+            return back()->with('warning', "{$course->code} was kept because student registrations or result history refer to it.");
+        }
+
         $course->delete();
 
         return redirect()->route('admin.courses.index')->with('success', 'Course deleted successfully!');
@@ -354,21 +358,49 @@ class CourseController extends Controller
     public function bulkDestroy(Request $request)
     {
         $data = $request->validate([
-            'course_ids' => 'required|array|min:1|max:200',
+            'selection_mode' => 'required|in:selected,all_matching',
+            'course_ids' => 'required_if:selection_mode,selected|array|min:1',
             'course_ids.*' => 'required|integer|distinct|exists:courses,id',
+            'title' => 'nullable|string|max:255',
+            'department_id' => 'nullable|exists:departments,id',
+            'academic_session_id' => 'nullable|exists:academic_sessions,id',
         ]);
-        $count = DB::transaction(function () use ($data, $request) {
-            $courses = Courses::whereIn('id', $data['course_ids'])->orderBy('id')->lockForUpdate()->get();
-            foreach ($courses as $course) {
+        [$count, $protectedCodes, $protectedCount] = DB::transaction(function () use ($data, $request) {
+            $query = Courses::query();
+            if ($data['selection_mode'] === 'selected') {
+                $query->whereIn('id', $data['course_ids']);
+            } else {
+                $query->when(filled($data['title'] ?? null), fn ($q) => $q->where('title', 'like', '%'.trim($data['title']).'%'))
+                    ->when(filled($data['department_id'] ?? null), fn ($q) => $q->where('department_id', $data['department_id']))
+                    ->when(filled($data['academic_session_id'] ?? null), fn ($q) => $q->where('academic_session_id', $data['academic_session_id']));
+            }
+            $courses = $query->orderBy('id')->lockForUpdate()->get();
+            $protectedIds = \App\Models\CourseRegistration::whereIn('course_id', $courses->pluck('id'))
+                ->distinct()->pluck('course_id')->map(fn ($id) => (int) $id)->all();
+            $protected = $courses->whereIn('id', $protectedIds);
+            $deletable = $courses->whereNotIn('id', $protectedIds);
+            foreach ($deletable as $course) {
                 ActivityLogger::log($request->user(), 'course_deleted', 'Deleted selected course.', [
                     'subject' => $course, 'department_id' => $course->department_id,
                     'properties' => ['before' => $course->toArray()],
                 ]);
                 $course->delete();
             }
-            return $courses->count();
+            return [$deletable->count(), $protected->pluck('code')->unique()->take(10)->values()->all(), $protected->count()];
         });
-        return back()->with('success', "{$count} selected course(s) deleted successfully.");
+        $redirect = back();
+        if ($count > 0) {
+            $redirect->with('success', "{$count} course(s) deleted successfully.");
+        }
+        if ($protectedCount > 0) {
+            $samples = implode(', ', $protectedCodes);
+            $more = $protectedCount > count($protectedCodes) ? ' and '.($protectedCount - count($protectedCodes)).' more' : '';
+            $redirect->with('warning', "Kept {$protectedCount} course(s) because student registrations or result history refer to them. Examples: {$samples}{$more}.");
+        }
+        if ($count === 0 && $protectedCount === 0) {
+            $redirect->with('warning', 'No matching courses were found to delete. Refresh the course list and try again.');
+        }
+        return $redirect;
     }
 
     public function assignPrerequisites(Request $request, Courses $course)

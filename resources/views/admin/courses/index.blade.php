@@ -152,8 +152,13 @@
                 @endif
                 <form id="bulk-course-delete" action="{{ route('admin.courses.bulk-delete') }}" method="POST" class="mb-3">
                     @csrf @method('DELETE')
+                    <input type="hidden" name="selection_mode" id="course-selection-mode" value="selected">
+                    <input type="hidden" name="title" value="{{ request('title') }}">
+                    <input type="hidden" name="department_id" value="{{ request('department_id', request('department')) }}">
+                    <input type="hidden" name="academic_session_id" value="{{ request('academic_session_id') }}">
                     <button id="delete-selected-courses" type="submit" class="btn btn-danger btn-sm" disabled>Delete selected courses (<span id="selected-course-count">0</span>)</button>
-                    <span class="text-muted small ms-2">Select courses below. Select all applies to this page only.</span>
+                    <button id="select-all-matching-courses" type="button" class="btn btn-outline-danger btn-sm ms-2">Select all {{ number_format($courses->total()) }} matching courses</button>
+                    <span id="bulk-course-selection-help" class="text-muted small ms-2">Select visible rows or all matching courses across every page.</span>
                 </form>
                 <div class="table-responsive">
                     <table id="coursesTable" class="table table-striped table-bordered" style="width:100%;">
@@ -229,18 +234,51 @@ document.addEventListener('DOMContentLoaded', function () {
     const selections = Array.from(document.querySelectorAll('.course-selection'));
     const selectAll = document.getElementById('select-all-courses');
     const button = document.getElementById('delete-selected-courses');
+    const selectAllMatching = document.getElementById('select-all-matching-courses');
+    const selectionMode = document.getElementById('course-selection-mode');
+    const form = document.getElementById('bulk-course-delete');
+    const matchingCount = {{ (int) $courses->total() }};
+    let allMatchingSelected = false;
     function updateSelection() {
+        if (allMatchingSelected) return;
         const count = selections.filter(input => input.checked).length;
         document.getElementById('selected-course-count').textContent = count;
         button.disabled = count === 0;
+        button.firstChild.textContent = 'Delete selected courses (';
         selectAll.checked = count > 0 && count === selections.length;
         selectAll.indeterminate = count > 0 && count < selections.length;
     }
     selectAll.addEventListener('change', function () {
+        allMatchingSelected = false;
+        selectionMode.value = 'selected';
+        selectAllMatching.disabled = false;
         selections.forEach(input => { input.checked = selectAll.checked; });
         updateSelection();
     });
-    selections.forEach(input => input.addEventListener('change', updateSelection));
+    selections.forEach(input => input.addEventListener('change', function () {
+        allMatchingSelected = false;
+        selectionMode.value = 'selected';
+        selectAllMatching.disabled = false;
+        updateSelection();
+    }));
+    selectAllMatching.addEventListener('click', function () {
+        allMatchingSelected = true;
+        selectionMode.value = 'all_matching';
+        selections.forEach(input => { input.checked = true; });
+        selectAll.checked = true;
+        selectAll.indeterminate = false;
+        document.getElementById('selected-course-count').textContent = matchingCount;
+        button.disabled = matchingCount === 0;
+        button.firstChild.textContent = 'Delete all matching courses (';
+        selectAllMatching.disabled = true;
+        document.getElementById('bulk-course-selection-help').textContent = 'All ' + matchingCount + ' matching courses are selected across every page.';
+    });
+    form.addEventListener('submit', function (event) {
+        const message = allMatchingSelected
+            ? 'Delete all ' + matchingCount + ' courses matching the current filters? This cannot be undone.'
+            : 'Delete the selected courses? This cannot be undone.';
+        if (!window.confirm(message)) event.preventDefault();
+    });
     document.querySelectorAll('[data-course-status-form]').forEach(form => {
         const select = form.querySelector('select[name="course_status"]');
         const feedback = form.querySelector('[role="status"]');

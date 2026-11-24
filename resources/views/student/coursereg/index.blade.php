@@ -85,7 +85,7 @@
                         <tbody>
                             @foreach($courses as $registration)
                                 <tr>
-                                    <td>{{ $registration->course->code }} @if($registration->previous_result_id)<span class="badge bg-warning text-dark">Carryover</span>@endif</td>
+                                    <td>{{ $registration->course->code }} @if($registration->is_carryover || $registration->previous_result_id)@if($registration->previous_result_id)<span class="badge bg-danger">Failed course</span> @endif<span class="badge bg-warning text-dark">Carryover</span>@endif</td>
                                     <td>{{ $registration->course->title }}</td>
                                     <td>{{ $registration->course->credit_unit }}</td>
                                     <td>{{ $registration->semester }}</td>

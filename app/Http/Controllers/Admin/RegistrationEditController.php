@@ -66,7 +66,7 @@ class RegistrationEditController extends Controller
             $before = $current->getAttributes();
             $current->fill(collect($data)->only(['course_id', 'session', 'semester', 'status'])->all());
             $identityChanged = $current->isDirty(['course_id', 'session', 'semester']);
-            if ($identityChanged && $current->previous_result_id) {
+            if ($identityChanged && ($current->is_carryover || $current->previous_result_id)) {
                 throw ValidationException::withMessages(['course_id' => 'This carryover registration is linked to a previous result. Correct it through the carryover workflow.']);
             }
             if ($identityChanged || $current->isDirty('status')) {

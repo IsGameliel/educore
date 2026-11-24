@@ -83,6 +83,7 @@
                 </h3>
                 <p class="helper-text mb-0">Manage each student's registered courses per session and semester.</p>
             </div>
+            <a class="btn btn-brand" href="{{ route('admin.course-registrations.bulk') }}">Bulk register courses</a>
 
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
@@ -264,6 +265,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 </div>
 <script>

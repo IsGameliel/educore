@@ -13,6 +13,7 @@
                 $link('Manage Students', 'admin.students.index', ['admin.students.*']),
                 $link('Admitted Students', 'admin.admitted-students.index', ['admin.admitted-students.*']),
                 $link('Course Registrations', 'admin.course-registrations.index', ['admin.course-registrations.*']),
+                $link('Bulk Course Registration', 'admin.course-registrations.bulk', ['admin.course-registrations.bulk*']),
             ]],
             $link('Manage Staff', 'admin.staffs.index', ['admin.staffs.*'], 'mdi-account-key'),
             ['label' => 'Finance', 'icon' => 'mdi-cash-multiple', 'id' => 'finance-menu', 'children' => [

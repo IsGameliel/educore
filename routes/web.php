@@ -34,6 +34,12 @@ Route::middleware(['platform.domain', \App\Http\Middleware\PlatformAccess::class
     Route::put('/dashboard/institutions/{institution}/domain', [\App\Http\Controllers\Platform\AuthController::class,'domain'])->name('platform.institutions.domain');
     Route::patch('/dashboard/institutions/{institution}/status', [\App\Http\Controllers\Platform\AuthController::class, 'status'])->name('platform.institutions.status');
 });
+
+// Admin and exam officers can register a cohort in one operation.
+Route::middleware(['auth', 'usertype:admin,exam_officer'])->prefix('admin/course-registrations')->name('admin.course-registrations.')->group(function () {
+    Route::get('/bulk', [AdminCourseRegistrationController::class, 'bulkCreate'])->name('bulk');
+    Route::post('/bulk', [AdminCourseRegistrationController::class, 'bulkStore'])->name('bulk.store');
+});
 Route::middleware(['platform.domain', 'throttle:platform-sensitive'])->group(function () {
     Route::get('/dashboard/two-factor-challenge', [\App\Http\Controllers\Platform\AccountController::class, 'challengeForm'])->name('platform.challenge.form');
     Route::post('/dashboard/two-factor-challenge', [\App\Http\Controllers\Platform\AccountController::class, 'challenge'])->name('platform.challenge');
@@ -375,6 +381,10 @@ Route::middleware([
             ->name('course-registrations.credit-limit');
         Route::put('/course-registrations/{student}/session-level', [AdminCourseRegistrationController::class, 'updateSessionLevel'])
             ->name('course-registrations.session-level');
+        Route::post('/course-registrations/{student}/carryovers', [AdminCourseRegistrationController::class, 'addCarryovers'])
+            ->name('course-registrations.carryovers.store');
+        Route::post('/course-registrations/{student}/previous-level-courses', [AdminCourseRegistrationController::class, 'addPreviousLevelCourses'])
+            ->name('course-registrations.previous-level-courses.store');
 
         Route::put('/course-registrations/{student}', [AdminCourseRegistrationController::class, 'update'])
             ->name('course-registrations.update');

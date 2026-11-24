@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{{ asset('dash/assets/css/student-merge.css') }}">
 @endpush
 @section('content')
-@php($locked = $hasResults || $registration->previous_result_id)
+@php($locked = $hasResults || $registration->is_carryover || $registration->previous_result_id)
 <div class="main-panel students-page"><div class="content-wrapper">
     <div class="page-header"><div><span class="students-eyebrow">COURSE REGISTRATIONS</span><h1 class="students-title">Edit registration #{{ $registration->id }}</h1><p class="small-muted">{{ $student->name }} · {{ $student->matric_number ?: $student->email }}</p></div>
         <a class="btn btn-outline-primary" href="{{ route('admin.course-registrations.show', ['student' => $student->id, 'semester' => $registration->semester, 'session' => $registration->session ?: 'unassigned']) }}">Back to registrations</a></div>

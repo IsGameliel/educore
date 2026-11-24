@@ -238,7 +238,7 @@
                         <tbody>
                             @forelse($registrations as $reg)
                                 <tr>
-                                    <td class="course-code">{{ $reg->course->code ?? 'N/A' }}</td>
+                                    <td class="course-code">{{ $reg->course->code ?? 'N/A' }} @if($reg->is_carryover || $reg->previous_result_id)@if($reg->previous_result_id)<span class="badge bg-danger">Failed course</span> @endif<span class="badge bg-warning text-dark">Carryover</span>@endif</td>
                                     <td>{{ $reg->course->title ?? 'N/A' }}</td>
                                     <td>{{ $reg->course->credit_unit ?? 0 }}</td>
                                     <td>

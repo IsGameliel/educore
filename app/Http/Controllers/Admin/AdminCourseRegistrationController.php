@@ -15,6 +15,146 @@ use Illuminate\Support\Facades\DB;
 
 class AdminCourseRegistrationController extends Controller
 {
+    public function bulkCreate(Request $request)
+    {
+        $request->validate([
+            'department_id' => 'nullable|exists:departments,id',
+            'session' => 'nullable|exists:academic_sessions,name',
+            'semester' => 'nullable|in:First,Second',
+            'level' => 'nullable|in:100,200,300,400,500,600',
+            'include_carryover' => 'nullable|boolean',
+        ]);
+        $sessions = $this->getAcademicSessionOptions([]);
+        $departments = Department::orderBy('name')->get(['id', 'name']);
+        $session = $request->query('session', AcademicSession::current()?->name);
+        $semester = $request->query('semester', 'First');
+        $departmentId = $request->query('department_id');
+        $level = $request->query('level');
+        $includeCarryover = $request->boolean('include_carryover') && (int) $level > 100;
+        $students = collect();
+        $courses = collect();
+        $usingOtherSessionCatalog = false;
+        if ($departmentId && $session && $level) {
+            $academicSessionId = AcademicSession::where('name', $session)->value('id');
+            $students = User::where('usertype', 'student')->where('department_id', $departmentId)
+                ->orderBy('name')->get()->filter(fn ($student) => \App\Services\Academic\StudentSessionLevel::find($student, $session) === $level)->values();
+            $courseQuery = Courses::where('department_id', $departmentId)
+                ->where(function ($query) use ($level, $includeCarryover) {
+                    $query->whereRaw('TRIM(level) = ?', [(string) $level]);
+                    if ($includeCarryover) {
+                        $query->orWhereRaw('TRIM(level) = ?', [(string) ((int) $level - 100)]);
+                    }
+                })
+                ->whereRaw('LOWER(TRIM(semester)) = ?', [strtolower(trim($semester))]);
+            $courses = (clone $courseQuery)->where('academic_session_id', $academicSessionId)
+                ->with('academicSession')->orderBy('code')->get();
+            if ($courses->isEmpty()) {
+                // Keep the workflow usable when a school has not copied its catalog
+                // forward yet, while exposing the source session and requiring explicit
+                // confirmation before those courses can be saved for the chosen session.
+                $courses = $courseQuery->with('academicSession')->orderBy('code')->get();
+                $usingOtherSessionCatalog = $courses->isNotEmpty();
+            }
+        }
+        return view('admin.course_registrations.bulk', compact('sessions', 'departments', 'session', 'semester', 'departmentId', 'level', 'students', 'courses', 'usingOtherSessionCatalog', 'includeCarryover'));
+    }
+
+    public function bulkStore(Request $request)
+    {
+        $data = $request->validate([
+            'department_id' => 'required|exists:departments,id', 'session' => 'required|exists:academic_sessions,name',
+            'semester' => 'required|in:First,Second', 'level' => 'required|in:100,200,300,400,500,600',
+            'student_ids' => 'required|array|min:1', 'student_ids.*' => 'required|integer|distinct|exists:users,id',
+            'course_ids' => 'required|array|min:1', 'course_ids.*' => 'required|integer|distinct|exists:courses,id',
+            'include_carryover' => 'nullable|boolean',
+        ]);
+        $students = User::where('usertype', 'student')->where('department_id', $data['department_id'])->whereIn('id', $data['student_ids'])->get();
+        if ($students->count() !== count($data['student_ids']) || $students->contains(fn ($student) => \App\Services\Academic\StudentSessionLevel::find($student, $data['session']) !== $data['level'])) {
+            return back()->withInput()->withErrors(['student_ids' => 'Every selected student must belong to the chosen department and have the chosen level for this session.']);
+        }
+        $academicSessionId = AcademicSession::where('name', $data['session'])->value('id');
+        $includeCarryover = $request->boolean('include_carryover') && (int) $data['level'] > 100;
+        $courses = Courses::whereIn('id', $data['course_ids'])->where('department_id', $data['department_id'])
+            ->where(function ($query) use ($data, $includeCarryover) {
+                $query->whereRaw('TRIM(level) = ?', [(string) $data['level']]);
+                if ($includeCarryover) {
+                    $query->orWhereRaw('TRIM(level) = ?', [(string) ((int) $data['level'] - 100)]);
+                }
+            })
+            ->whereRaw('LOWER(TRIM(semester)) = ?', [strtolower(trim($data['semester']))])
+            ->with('prerequisites')->get();
+        if ($courses->count() !== count($data['course_ids'])) {
+            return back()->withInput()->withErrors(['course_ids' => 'Every selected course must match the department, eligible level, session and semester.']);
+        }
+        $selectedSessionCourses = $courses->filter(fn ($course) => (int) $course->academic_session_id === (int) $academicSessionId);
+        if ($selectedSessionCourses->count() !== $courses->count() && $request->input('confirm_other_session_catalog') !== '1') {
+            return back()->withInput()->withErrors(['confirm_other_session_catalog' => 'Some selected courses belong to a different academic session. Review their source session and explicitly confirm before registering them for this session.']);
+        }
+        $catalogSessionIds = $courses->pluck('academic_session_id')->filter()->unique()->values();
+        $count = DB::transaction(function () use ($request, $data, $students, $courses, $academicSessionId, $catalogSessionIds) {
+            $created = 0;
+            foreach ($students as $student) {
+                User::whereKey($student->id)->lockForUpdate()->firstOrFail();
+                $existing = CourseRegistration::where('user_id', $student->id)->where('session', $data['session'])
+                    ->where('semester', $data['semester'])->whereIn('course_id', $courses->pluck('id'))->get()->keyBy('course_id');
+                $newCourses = $courses->reject(fn ($course) => $existing->has($course->id));
+                if ($newCourses->isNotEmpty()) {
+                    app(\App\Services\TuitionBilling::class)->assertCleared($student, $data['session'], $data['semester']);
+                }
+                $mandatory = Courses::where('department_id', $data['department_id'])
+                    ->where(fn ($query) => $query->where('academic_session_id', $academicSessionId)
+                        ->when($catalogSessionIds->isNotEmpty(), fn ($query) => $query->orWhereIn('academic_session_id', $catalogSessionIds))
+                        ->orWhereNull('academic_session_id'))
+                    ->whereRaw('TRIM(level) = ?', [(string) $data['level']])
+                    ->whereRaw('LOWER(TRIM(semester)) = ?', [strtolower(trim($data['semester']))])
+                    ->whereIn('course_status', ['Required', 'Compulsory'])->pluck('id');
+                $alreadyActive = CourseRegistration::where('user_id', $student->id)->where('session', $data['session'])
+                    ->where('semester', $data['semester'])->whereIn('status', ['registered', 'approved', 'completed', 'pending'])->pluck('course_id');
+                $missingMandatory = $mandatory->diff($alreadyActive->merge($courses->pluck('id')));
+                if ($missingMandatory->isNotEmpty()) {
+                    $codes = Courses::whereIn('id', $missingMandatory)->pluck('code')->join(', ');
+                    throw \Illuminate\Validation\ValidationException::withMessages(['course_ids' => "{$student->name} must also be registered for required courses: {$codes}."]);
+                }
+                $currentCredits = CourseRegistration::where('user_id', $student->id)->where('session', $data['session'])
+                    ->where('semester', $data['semester'])->whereIn('status', ['registered', 'approved', 'completed', 'pending'])
+                    ->with('course')->get()->sum(fn ($registration) => $registration->course?->credit_unit ?? 0);
+                $limit = \App\Services\Academic\StudentCreditLimit::for($student, $data['session'], $data['semester']);
+                if ($currentCredits + $newCourses->sum('credit_unit') > $limit) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['course_ids' => "{$student->name} would exceed the {$limit} credit unit limit."]);
+                }
+                $activeIds = CourseRegistration::where('user_id', $student->id)->where('session', $data['session'])->where('semester', $data['semester'])
+                    ->whereIn('status', ['registered', 'approved', 'completed', 'pending'])->pluck('course_id')->merge($newCourses->pluck('id'))->unique()->all();
+                if ($conflict = \App\Services\Academic\TimetableConflicts::forCourses($activeIds)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['course_ids' => $student->name.': '.implode(' ', $conflict)]);
+                }
+                foreach ($newCourses as $course) {
+                    foreach ($course->prerequisites as $prerequisite) {
+                        if (! CourseRegistration::where('user_id', $student->id)->where('course_id', $prerequisite->id)->exists()) {
+                            throw \Illuminate\Validation\ValidationException::withMessages(['course_ids' => "{$student->name} is missing prerequisite {$prerequisite->code} for {$course->code}."]);
+                        }
+                    }
+                    $registration = CourseRegistration::create(['user_id' => $student->id, 'acted_by' => $request->user()->id,
+                        'course_id' => $course->id, 'semester' => $data['semester'], 'session' => $data['session'],
+                        'registration_date' => now(), 'status' => 'registered']);
+                    ActivityLogger::log($request->user(), 'registration_created', "Registered {$student->name} for {$course->code} - {$course->title} ({$data['semester']} Semester, {$data['session']})", [
+                        'subject' => $registration, 'target_user' => $student, 'department_id' => $course->department_id,
+                        'properties' => ['course_id' => $course->id, 'course_code' => $course->code, 'session' => $data['session'], 'semester' => $data['semester'], 'status' => 'registered'],
+                    ]);
+                    $created++;
+                }
+                foreach ($existing as $registration) {
+                    if (in_array($registration->status, ['withdrawn', 'rejected'], true)) {
+                        $registration->update(['status' => 'registered', 'acted_by' => $request->user()->id]);
+                        $created++;
+                    }
+                }
+            }
+            return $created;
+        });
+        return redirect()->route('admin.course-registrations.bulk', array_merge(array_intersect_key($data, array_flip(['department_id', 'session', 'semester', 'level'])), ['include_carryover' => $includeCarryover ? 1 : null]))
+            ->with('success', "Registered {$count} course enrollment(s) for {$students->count()} student(s). Existing registrations were preserved.");
+    }
+
     public function bulkUpdateSessionLevel(Request $request)
     {
         $data = $request->validate([
@@ -219,6 +359,8 @@ class AdminCourseRegistrationController extends Controller
         $session = $request->query('session', $this->getCurrentAcademicSession());
         $academicSessions = $this->getAcademicSessionOptions([$session]);
         $sessionLevel = \App\Services\Academic\StudentSessionLevel::find($student, $session);
+        $activeSessionName = AcademicSession::currentName() ?? $session;
+        $activeSessionLevel = \App\Services\Academic\StudentSessionLevel::find($student, $activeSessionName);
 
         $registeredCourseIds = CourseRegistration::where('user_id', $student->id)
             ->where('semester', $semester)
@@ -239,6 +381,23 @@ class AdminCourseRegistrationController extends Controller
             ->with('prerequisites')
             ->orderBy('code')
             ->get();
+        $carryoverCourses = $sessionLevel
+            ? \App\Services\Academic\CarryoverRegistration::available($student, $session)
+                ->where('semester', $semester)->values()
+            : collect();
+        $departments = Department::orderBy('name')->get(['id', 'name']);
+        $previousLevel = $request->query('previous_level');
+        $previousDepartmentId = $request->query('previous_department_id', $student->department_id);
+        $previousSession = $request->query('previous_session', $activeSessionName);
+        $previousLevelCourses = collect();
+        $previousRegisteredCourseIds = [];
+        if ($previousLevel && $previousDepartmentId && $previousSession) {
+            $previousLevelCourses = Courses::where('department_id', $previousDepartmentId)
+                ->forAcademicSession($previousSession)->whereRaw('TRIM(level) = ?', [(string) $previousLevel])
+                ->where('semester', $semester)->orderBy('code')->get();
+            $previousRegisteredCourseIds = CourseRegistration::where('user_id', $student->id)->where('session', $activeSessionName)
+                ->where('semester', $semester)->pluck('course_id')->all();
+        }
 
         return view('admin.course_registrations.edit', compact(
             'student',
@@ -248,7 +407,150 @@ class AdminCourseRegistrationController extends Controller
             'courses',
             'registeredCourseIds',
             'registeredStatuses'
-        ) + ['sessionLevel' => $sessionLevel]);
+        ) + ['sessionLevel' => $sessionLevel, 'activeSessionName' => $activeSessionName, 'activeSessionLevel' => $activeSessionLevel,
+            'carryoverCourses' => $carryoverCourses, 'previousLevelCourses' => $previousLevelCourses,
+            'departments' => $departments, 'previousLevel' => $previousLevel, 'previousDepartmentId' => $previousDepartmentId,
+            'previousSession' => $previousSession, 'previousRegisteredCourseIds' => $previousRegisteredCourseIds]);
+    }
+
+    public function addPreviousLevelCourses(User $student, Request $request)
+    {
+        abort_unless($student->dashboardRole() === 'student', 404);
+        $data = $request->validate([
+            'session' => ['required', 'exists:academic_sessions,name'],
+            'department_id' => ['required', 'exists:departments,id'],
+            'level' => ['required', 'in:100,200,300,400,500,600'],
+            'semester' => ['required', 'in:First,Second'],
+            'course_ids' => ['required', 'array', 'min:1'],
+            'course_ids.*' => ['required', 'integer', 'distinct', 'exists:courses,id'],
+        ]);
+        $registrationSession = AcademicSession::currentName();
+        if (! $registrationSession) {
+            return back()->withInput()->withErrors(['session' => 'There is no active academic session to register this course into.']);
+        }
+        $studentLevel = \App\Services\Academic\StudentSessionLevel::find($student, $registrationSession);
+        if (! $studentLevel || (int) $data['level'] >= (int) $studentLevel) {
+            return back()->withInput()->withErrors(['level' => "Choose a level below the student's level for the selected session."]);
+        }
+        $courses = Courses::whereIn('id', $data['course_ids'])->where('department_id', $data['department_id'])
+            ->forAcademicSession($data['session'])->whereRaw('TRIM(level) = ?', [(string) $data['level']])
+            ->where('semester', $data['semester'])->get()->keyBy('id');
+        if ($courses->count() !== count($data['course_ids'])) {
+            return back()->withInput()->withErrors(['course_ids' => 'Select only courses from the immediately previous level, department, session and semester.']);
+        }
+
+        $failedResults = collect();
+        foreach ($courses as $course) {
+            $failure = \App\Models\Result::where('user_id', $student->id)->where('department_id', $course->department_id)
+                ->where('course_code', $course->code)->where('semester', $data['semester'])
+                ->where('workflow_status', 'published')->where('outcome_status', 'graded')
+                ->where('session', '<', $registrationSession)->orderByDesc('session')->orderByDesc('attempt_number')->first();
+            $failedResults->put($course->id, $failure && (float) $failure->grade_point === 0.0 ? $failure : null);
+        }
+
+        $added = DB::transaction(function () use ($student, $request, $data, $courses, $failedResults, $registrationSession) {
+            User::whereKey($student->id)->lockForUpdate()->firstOrFail();
+            $added = 0;
+            foreach ($courses as $course) {
+                $existing = CourseRegistration::where('user_id', $student->id)->where('course_id', $course->id)
+                    ->where('session', $registrationSession)->where('semester', $data['semester'])->first();
+                if ($existing) {
+                    $failure = $failedResults->get($course->id);
+                    if ($existing->is_carryover && (int) $existing->previous_result_id === (int) $failure?->id) continue;
+                    if ($existing->previous_result_id && $failure && (int) $existing->previous_result_id !== (int) $failure->id) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['course_ids' => "{$course->code} is already linked to a different failed result. Review the registration before changing its carryover link."]);
+                    }
+                    $existing->update(['previous_result_id' => $failure?->id ?? $existing->previous_result_id, 'is_carryover' => true, 'acted_by' => $request->user()->id]);
+                    ActivityLogger::log($request->user(), 'carryover_registered', "Marked {$student->name}'s {$course->code} registration as a carryover", [
+                        'subject' => $existing, 'target_user' => $student, 'department_id' => $course->department_id,
+                        'properties' => ['course_id' => $course->id, 'course_code' => $course->code, 'session' => $registrationSession, 'course_catalog_session' => $data['session'], 'semester' => $data['semester'], 'previous_result_id' => $failure?->id, 'status' => $existing->status],
+                    ]);
+                    $added++;
+                    continue;
+                }
+                $misplaced = CourseRegistration::where('user_id', $student->id)->where('course_id', $course->id)
+                    ->where(function ($query) use ($course, $failedResults) {
+                        $query->where('is_carryover', true);
+                        if ($failedResults->get($course->id)) {
+                            $query->orWhere('previous_result_id', $failedResults->get($course->id)->id);
+                        }
+                    })
+                    ->where('semester', $data['semester'])->where('session', '!=', $registrationSession)
+                    ->latest('id')->first();
+                if ($misplaced && ! $misplaced->results()->exists()) {
+                    app(\App\Services\TuitionBilling::class)->assertCleared($student, $registrationSession, $data['semester']);
+                    $fromSession = $misplaced->session;
+                    $misplaced->update(['session' => $registrationSession, 'is_carryover' => true, 'acted_by' => $request->user()->id]);
+                    ActivityLogger::log($request->user(), 'carryover_registration_session_corrected', "Moved {$student->name}'s {$course->code} carryover registration to {$registrationSession}", [
+                        'subject' => $misplaced, 'target_user' => $student, 'department_id' => $course->department_id,
+                        'properties' => ['course_id' => $course->id, 'course_code' => $course->code, 'from_session' => $fromSession, 'session' => $registrationSession, 'semester' => $data['semester'], 'previous_result_id' => $misplaced->previous_result_id],
+                    ]);
+                    $added++;
+                    continue;
+                }
+                app(\App\Services\TuitionBilling::class)->assertCleared($student, $registrationSession, $data['semester']);
+                $registration = CourseRegistration::create([
+                    'user_id' => $student->id, 'acted_by' => $request->user()->id, 'course_id' => $course->id,
+                    'previous_result_id' => $failedResults->get($course->id)?->id, 'is_carryover' => true,
+                    'semester' => $data['semester'], 'session' => $registrationSession, 'registration_date' => now(), 'status' => 'registered',
+                ]);
+                ActivityLogger::log($request->user(), 'carryover_registered', "Registered {$student->name} for carryover {$course->code} ({$data['semester']} Semester, {$registrationSession})", [
+                    'subject' => $registration, 'target_user' => $student, 'department_id' => $course->department_id,
+                    'properties' => ['course_id' => $course->id, 'course_code' => $course->code, 'department_id' => $course->department_id, 'session' => $registrationSession, 'course_catalog_session' => $data['session'], 'semester' => $data['semester'], 'level' => $course->level, 'previous_result_id' => $failedResults->get($course->id)?->id, 'status' => 'registered'],
+                ]);
+                $added++;
+            }
+            return $added;
+        });
+
+        return redirect()->route('admin.course-registrations.show', ['student' => $student->id, 'session' => $registrationSession, 'semester' => $data['semester']])
+            ->with('success', "Added {$added} previous-level course registration(s) for {$student->name}.");
+    }
+
+    public function addCarryovers(User $student, Request $request)
+    {
+        abort_unless($student->dashboardRole() === 'student', 404);
+        $data = $request->validate([
+            'session' => ['required', 'exists:academic_sessions,name'],
+            'semester' => ['required', 'in:First,Second'],
+            'course_ids' => ['required', 'array', 'min:1'],
+            'course_ids.*' => ['required', 'integer', 'distinct', 'exists:courses,id'],
+        ]);
+        $available = \App\Services\Academic\CarryoverRegistration::available($student, $data['session'])
+            ->where('semester', $data['semester'])->keyBy('id');
+        if (collect($data['course_ids'])->diff($available->keys())->isNotEmpty()) {
+            return back()->withInput()->withErrors(['course_ids' => 'One or more selected courses are not outstanding carryovers for this student and session.']);
+        }
+
+        $added = DB::transaction(function () use ($student, $request, $data, $available) {
+            User::whereKey($student->id)->lockForUpdate()->firstOrFail();
+            $added = 0;
+            foreach ($data['course_ids'] as $courseId) {
+                $course = $available->get($courseId);
+                $failedResult = $course->failedResult;
+                $existing = CourseRegistration::where('user_id', $student->id)->where('course_id', $course->id)
+                    ->where('session', $data['session'])->where('semester', $data['semester'])->first();
+                if ($existing) {
+                    if ($existing->previous_result_id === $failedResult->id) continue;
+                    throw \Illuminate\Validation\ValidationException::withMessages(['course_ids' => "{$course->code} already has a registration in this session. Review that registration before adding it as a carryover."]);
+                }
+                app(\App\Services\TuitionBilling::class)->assertCleared($student, $data['session'], $data['semester']);
+                $registration = CourseRegistration::create([
+                    'user_id' => $student->id, 'acted_by' => $request->user()->id, 'course_id' => $course->id,
+                    'previous_result_id' => $failedResult->id, 'is_carryover' => true, 'semester' => $data['semester'], 'session' => $data['session'],
+                    'registration_date' => now(), 'status' => 'registered',
+                ]);
+                ActivityLogger::log($request->user(), 'carryover_registered', "Registered {$student->name} for carryover {$course->code} ({$data['semester']} Semester, {$data['session']})", [
+                    'subject' => $registration, 'target_user' => $student, 'department_id' => $student->department_id,
+                    'properties' => ['course_id' => $course->id, 'course_code' => $course->code, 'session' => $data['session'], 'semester' => $data['semester'], 'previous_result_id' => $failedResult->id, 'status' => 'registered'],
+                ]);
+                $added++;
+            }
+            return $added;
+        });
+
+        return redirect()->route('admin.course-registrations.edit', ['student' => $student->id, 'session' => $data['session'], 'semester' => $data['semester']])
+            ->with('success', "Added {$added} carryover course registration(s) for {$student->name}.");
     }
 
     public function update(User $student, Request $request)
