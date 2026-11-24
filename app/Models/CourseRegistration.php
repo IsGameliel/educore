@@ -20,6 +20,7 @@ class CourseRegistration extends Model
         'user_id',
         'acted_by',
         'previous_result_id',
+        'is_carryover',
         'course_id',
         'status',
         'semester',
@@ -30,6 +31,7 @@ class CourseRegistration extends Model
     // Cast attributes to specific data types
     protected $casts = [
         'registration_date' => 'datetime',
+        'is_carryover' => 'boolean',
     ];
 
     public function scopeHistorySession($query, string $session)

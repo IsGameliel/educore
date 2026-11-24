@@ -174,6 +174,111 @@
                     <small class="text-muted">Save the historical level, then select courses below. This does not change the current profile level.</small>
                 </div>
 
+                <div class="p-3 border-bottom bg-light">
+                    <h5 class="mb-1">Carryover courses</h5>
+                    <p class="helper-text">Outstanding courses from previous levels available to register in {{ $semester }} Semester, {{ $session }}.</p>
+                    @if($carryoverCourses->isEmpty())
+                        <div class="text-muted">No outstanding carryover courses are available for this student.</div>
+                    @else
+                        <form method="POST" action="{{ route('admin.course-registrations.carryovers.store', $student->id) }}">
+                            @csrf
+                            <input type="hidden" name="session" value="{{ $session }}">
+                            <input type="hidden" name="semester" value="{{ $semester }}">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-3">
+                                    <thead><tr><th>Select</th><th>Course</th><th>Title</th><th>Level</th><th>Failed in</th><th>Units</th></tr></thead>
+                                    <tbody>
+                                        @foreach($carryoverCourses as $course)
+                                            <tr>
+                                                <td><input class="form-check-input" type="checkbox" name="course_ids[]" value="{{ $course->id }}"></td>
+                                                <td class="course-code">{{ $course->code }}</td>
+                                                <td>{{ $course->title }}</td>
+                                                <td>{{ $course->level }} Level</td>
+                                                <td>{{ $course->failedResult->session }}</td>
+                                                <td>{{ $course->credit_unit }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-outline-primary" type="submit"><i class="mdi mdi-plus me-1"></i> Register selected as carryover</button>
+                        </form>
+                    @endif
+                </div>
+
+                <div class="p-3 border-bottom">
+                    <h5 class="mb-1">Add courses from the previous level</h5>
+                    <p class="helper-text">Choose a previous level, department, and course offering session. Matching courses will be registered into the active session ({{ $activeSessionName }}). The Added marker only applies when the course is already registered in that active session. A course must have an earlier published failed result to be labeled as a carryover.</p>
+                    <form method="GET" action="{{ route('admin.course-registrations.edit', $student->id) }}" class="row g-2 align-items-end mb-3">
+                        <input type="hidden" name="session" value="{{ $session }}">
+                        <input type="hidden" name="semester" value="{{ $semester }}">
+                        <div class="col-sm-6 col-lg-3">
+                            <label class="form-label" for="previous-level">Level</label>
+                            <select id="previous-level" name="previous_level" class="form-select" required>
+                                <option value="">Select level</option>
+                                @foreach(['100','200','300','400','500','600'] as $optionLevel)
+                                    @if(!$activeSessionLevel || (int) $optionLevel < (int) $activeSessionLevel)
+                                        <option value="{{ $optionLevel }}" @selected((string) $previousLevel === $optionLevel)>{{ $optionLevel }} Level</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <label class="form-label" for="previous-department">Department</label>
+                            <select id="previous-department" name="previous_department_id" class="form-select" required>
+                                @foreach($departments as $department)
+                                    <option value="{{ $department->id }}" @selected((string) $previousDepartmentId === (string) $department->id)>{{ $department->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <label class="form-label" for="previous-session">Course offering session</label>
+                            <select id="previous-session" name="previous_session" class="form-select" required>
+                                @foreach($academicSessions as $academicSession)
+                                    <option value="{{ $academicSession }}" @selected($previousSession === $academicSession)>{{ $academicSession }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-sm-6 col-lg-3"><button class="btn btn-primary" type="submit">Show courses</button></div>
+                    </form>
+                    @if($previousLevel && $previousDepartmentId && $previousSession)
+                        @if($previousLevelCourses->isEmpty())
+                        <div class="text-muted">No courses match those level, department, session, and semester choices.</div>
+                        @else
+                        <form method="POST" action="{{ route('admin.course-registrations.previous-level-courses.store', $student->id) }}">
+                            @csrf
+                            <input type="hidden" name="session" value="{{ $previousSession }}">
+                            <input type="hidden" name="semester" value="{{ $semester }}">
+                            <input type="hidden" name="department_id" value="{{ $previousDepartmentId }}">
+                            <input type="hidden" name="level" value="{{ $previousLevel }}">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-3">
+                                    <thead><tr><th>Select</th><th>Course</th><th>Title</th><th>Level</th><th>Units</th></tr></thead>
+                                    <tbody>
+                                        @foreach($previousLevelCourses as $course)
+                                            <tr>
+                                                <td>
+                                                    @if(in_array($course->id, $previousRegisteredCourseIds))
+                                                        <span class="text-muted small">Added</span>
+                                                    @else
+                                                        <input class="form-check-input" type="checkbox" name="course_ids[]" value="{{ $course->id }}">
+                                                    @endif
+                                                </td>
+                                                <td class="course-code">{{ $course->code }}</td>
+                                                <td>{{ $course->title }}</td>
+                                                <td>{{ $course->level }} Level</td>
+                                                <td>{{ $course->credit_unit }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button class="btn btn-outline-secondary" type="submit"><i class="mdi mdi-plus me-1"></i> Add selected previous-level courses</button>
+                        </form>
+                        @endif
+                    @endif
+                </div>
+
                 <form method="POST" action="{{ route('admin.course-registrations.update', $student->id) }}">
                     @csrf
                     @method('PUT')

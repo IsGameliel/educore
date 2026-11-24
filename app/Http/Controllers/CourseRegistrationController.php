@@ -246,6 +246,7 @@ class CourseRegistrationController extends Controller
                 'acted_by' => $userId,
                 'course_id' => $course->id,
                 'previous_result_id' => $carryovers->get($course->id)?->failedResult?->id,
+                'is_carryover' => $carryovers->has($course->id),
                 'semester' => $semester, // Save as "First Semester" or "Second Semester"
                 'session' => $session,
                 'registration_date' => now(),

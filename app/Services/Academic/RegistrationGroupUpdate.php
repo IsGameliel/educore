@@ -53,7 +53,7 @@ class RegistrationGroupUpdate
                     $record->status = $selectedChanges['status'];
                 }
                 if ($record->isDirty(['course_id', 'session', 'semester'])) {
-                    if ($record->previous_result_id) {
+                    if ($record->is_carryover || $record->previous_result_id) {
                         throw ValidationException::withMessages(['course_id' => 'Registration #'.$record->id.' has a carryover link. Use the carryover workflow. No registrations were changed.']);
                     }
                     $record->assertCanRemove();
